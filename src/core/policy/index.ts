@@ -1,3 +1,4 @@
+export { combine, evaluate } from "./evaluate";
 export {
   DENY_REASONS,
   HOLD_REASONS,
