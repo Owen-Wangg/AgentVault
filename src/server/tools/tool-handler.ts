@@ -2,7 +2,7 @@ import { z } from "zod";
 import { type Micros, MicrosSchema, micros } from "@/core/money";
 import { idempotencyKeyOf, invalidIdempotencyKey, json, parseBody, withAgent } from "@/server/http/agent-route";
 import { type GuardedBody, runGuardedRequest } from "@/server/payments/guarded";
-import { type PayDeps, defaultPayDeps } from "@/server/payments/pay-handler";
+import { type PayDeps, defaultPayDeps, scheduleReconcile } from "@/server/payments/pay-handler";
 import { PAY_TOOLS, findTool } from "./registry";
 
 /**
@@ -81,6 +81,7 @@ export function handleTool(request: Request, deps: ToolDeps = defaultToolDeps())
 
     const body: GuardedBody = { tool, sessionId, ...toolArgs.data };
     const result = await runGuardedRequest({ agent, idempotencyKey, body }, { db, key: deps.key(), now: deps.now, railFor: deps.railFor });
+    scheduleReconcile(deps, agent.id);
     return json(result.status, result.body);
   });
 }

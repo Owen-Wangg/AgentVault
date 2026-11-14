@@ -25,6 +25,7 @@
     "db:seed": "tsx scripts/db-seed.ts",
     "sandbox:reset": "tsx scripts/sandbox-reset.ts",
     "audit:verify": "tsx scripts/audit-verify.ts",
+    "reconcile": "tsx scripts/reconcile.ts",
     "env:check": "tsx scripts/env-check.ts"
   },
   "dependencies": {
