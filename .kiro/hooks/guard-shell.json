@@ -3,15 +3,15 @@
   "hooks": [
     {
       "name": "Guard dangerous shell commands",
-      "enabled": false,
+      "enabled": true,
       "trigger": "PreToolUse",
-      "description": "AgentVault's own rule applied to Kiro: blocks rm -rf / Remove-Item -Recurse -Force, git push --force, git reset --hard, and reading .env files. The script exits 2 to block. Disabled until project setup (Phase 2 in docs/PLAN.md) creates the script.",
+      "description": "AgentVault's own rule applied to Kiro: blocks recursive force deletes (rm -rf, Remove-Item -Recurse -Force), git push --force, git reset --hard, and any command that references a .env file. Exits 2 to block, with the reason on stderr.",
       "matcher": "shell",
       "action": {
         "type": "command",
-        "command": "node scripts/guard-shell.mjs",
-        "timeout": 10
-      }
+        "command": "node scripts/guard-shell.mjs"
+      },
+      "timeout": 10
     }
   ]
 }

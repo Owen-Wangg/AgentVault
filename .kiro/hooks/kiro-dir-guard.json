@@ -3,15 +3,15 @@
   "hooks": [
     {
       "name": "Keep .kiro out of .gitignore",
-      "enabled": false,
+      "enabled": true,
       "trigger": "PostFileSave",
-      "description": "Fails loudly if .kiro or any file in it becomes gitignored, which would risk Devpost disqualification. Disabled until project setup (Phase 2 in docs/PLAN.md) creates the script.",
+      "description": "Fails loudly if .kiro or any file in it becomes gitignored, which would risk Devpost disqualification.",
       "matcher": "(^|[\\\\/])\\.gitignore$",
       "action": {
         "type": "command",
-        "command": "node scripts/check-kiro-not-ignored.mjs",
-        "timeout": 30
-      }
+        "command": "node scripts/check-kiro-not-ignored.mjs"
+      },
+      "timeout": 30
     }
   ]
 }

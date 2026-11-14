@@ -3,14 +3,14 @@
   "hooks": [
     {
       "name": "Verify after spec task",
-      "enabled": false,
+      "enabled": true,
       "trigger": "PostTaskExec",
-      "description": "Runs typecheck, lint, and the test suite after each spec task completes. Disabled until project setup (Phase 2 in docs/PLAN.md) adds these scripts.",
+      "description": "Runs typecheck, lint, and the test suite after each spec task completes.",
       "action": {
         "type": "command",
-        "command": "pnpm typecheck && pnpm lint && pnpm test --run",
-        "timeout": 300
-      }
+        "command": "pnpm verify"
+      },
+      "timeout": 300
     }
   ]
 }

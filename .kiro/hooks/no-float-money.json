@@ -3,15 +3,15 @@
   "hooks": [
     {
       "name": "No floats for money",
-      "enabled": false,
+      "enabled": true,
       "trigger": "PostFileSave",
-      "description": "Flags parseFloat, toFixed, Number() on amounts, and number-typed *Micros fields (security-standards.md section 1). Disabled until project setup (Phase 2 in docs/PLAN.md) creates the script.",
+      "description": "Flags parseFloat, toFixed, Number() and Math rounding on amounts, unary + on amounts, and number-typed money fields (security-standards.md section 1).",
       "matcher": "\\.(ts|tsx)$",
       "action": {
         "type": "command",
-        "command": "pnpm tsx scripts/check-money.ts",
-        "timeout": 60
-      }
+        "command": "pnpm check:money"
+      },
+      "timeout": 60
     }
   ]
 }
