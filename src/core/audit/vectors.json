@@ -1,0 +1,88 @@
+{
+  "note": "Fixed vectors (audit-and-approvals property 8). Canonical strings were written by hand and hashed with node:crypto, not with src/core/audit. Do not regenerate them to make a test pass.",
+  "events": [
+    {
+      "name": "first decision in a workspace uses the genesis prev_hash",
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "body": {
+        "workspace_id": "ws_demo",
+        "seq": 1,
+        "type": "decision",
+        "created_at": "2026-11-18T09:30:00.123Z",
+        "payload": {
+          "decision": "allow",
+          "reasons": [],
+          "request": {
+            "vendor": "nimbus-weather",
+            "tool": "x402.pay",
+            "amount_micros": "1500",
+            "session_id": "s1"
+          }
+        }
+      },
+      "canonical": "{\"created_at\":\"2026-11-18T09:30:00.123Z\",\"payload\":{\"decision\":\"allow\",\"reasons\":[],\"request\":{\"amount_micros\":\"1500\",\"session_id\":\"s1\",\"tool\":\"x402.pay\",\"vendor\":\"nimbus-weather\"}},\"seq\":1,\"type\":\"decision\",\"workspace_id\":\"ws_demo\"}",
+      "hash": "7381b8ee14e169017cb344c1a4818dcde365cdb4f6944b9771daabdbd96e7d2c"
+    },
+    {
+      "name": "second event links to the first",
+      "prev_hash": "7381b8ee14e169017cb344c1a4818dcde365cdb4f6944b9771daabdbd96e7d2c",
+      "body": {
+        "workspace_id": "ws_demo",
+        "seq": 2,
+        "type": "rail_result",
+        "created_at": "2026-11-18T09:30:00.456Z",
+        "payload": {
+          "status": "settled",
+          "rail": "mock",
+          "rail_ref": "mock_1",
+          "decision_seq": 1
+        }
+      },
+      "canonical": "{\"created_at\":\"2026-11-18T09:30:00.456Z\",\"payload\":{\"decision_seq\":1,\"rail\":\"mock\",\"rail_ref\":\"mock_1\",\"status\":\"settled\"},\"seq\":2,\"type\":\"rail_result\",\"workspace_id\":\"ws_demo\"}",
+      "hash": "7f8d7b948aa930db5068a218b366d26f255b50ef192e9e622a92819aa9962202"
+    },
+    {
+      "name": "UTF-16 key order, string escapes, -0, and nesting",
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "body": {
+        "workspace_id": "ws_unicode",
+        "seq": 1,
+        "type": "taint",
+        "created_at": "2026-11-18T23:59:59.999Z",
+        "payload": {
+          "z": 1,
+          "A": 2,
+          "é": 3,
+          "￿": 4,
+          "😀": 5,
+          "": 6,
+          "neg_zero": 0,
+          "text": "q\"\\\n\u0001 é",
+          "nested": {
+            "b": [
+              3,
+              {
+                "y": null,
+                "x": true
+              }
+            ],
+            "a": false
+          }
+        }
+      },
+      "canonical": "{\"created_at\":\"2026-11-18T23:59:59.999Z\",\"payload\":{\"\":6,\"A\":2,\"neg_zero\":0,\"nested\":{\"a\":false,\"b\":[3,{\"x\":true,\"y\":null}]},\"text\":\"q\\\"\\\\\\n\\u0001 é\",\"z\":1,\"é\":3,\"😀\":5,\"￿\":4},\"seq\":1,\"type\":\"taint\",\"workspace_id\":\"ws_unicode\"}",
+      "hash": "6225c1e1895f9b2a946957c24ec6a0b41e8d6d6f07ce448b31b2a3a5c04f1df3"
+    }
+  ],
+  "heads": [
+    {
+      "name": "head after the second event",
+      "key_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "workspace_id": "ws_demo",
+      "seq": 2,
+      "hash": "7f8d7b948aa930db5068a218b366d26f255b50ef192e9e622a92819aa9962202",
+      "message": "{\"hash\":\"7f8d7b948aa930db5068a218b366d26f255b50ef192e9e622a92819aa9962202\",\"seq\":2,\"workspace_id\":\"ws_demo\"}",
+      "mac": "03d3cd83989a0014c8b723a5e5fd58ae19ac9972f2f879399fa62004e755bd18"
+    }
+  ]
+}
