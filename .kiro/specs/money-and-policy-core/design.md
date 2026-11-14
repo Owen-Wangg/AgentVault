@@ -101,7 +101,7 @@ export interface Decision {
 export interface ReasonDetail { code: ReasonCode; detail?: Record<string, string> }
 ```
 
-`SessionState` and `TaskScope` are defined in `taint-and-intent/design.md`. `evaluate()` calls the taint and intent rule functions from those modules.
+`SessionState`, `TaskScope`, and `ToolDef` are defined in `taint-and-intent/design.md`. `EvaluateInput` is `{ request, envelope, window, session, scope, tool }`, where `tool` is the registry entry for `request.tool` (its `privileged` flag drives the taint rule). The schema rejects a `tool` whose name differs from `request.tool`. `evaluate()` calls the taint and intent rule functions from those modules.
 
 ### Reason codes
 ```ts

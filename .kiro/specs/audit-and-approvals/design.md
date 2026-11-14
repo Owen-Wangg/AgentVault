@@ -102,7 +102,7 @@ Tools with no rail (for example `payee.update`) still go through the full flow. 
 ## Idempotency
 Each agent has its own idempotency keys (PXY-8, PXY-12 to PXY-14).
 
-- `request_hash` = `sha256(canonicalJson(body))` over the validated request body (`vendor`, `tool`, `amount_micros`, `session_id`) using the CJ rules. The hash uses the parsed body, so key order and whitespace in the client's JSON don't matter.
+- `request_hash` = `sha256(canonicalJson(body))` over the validated request body (`vendor`, `tool`, `amount_micros`, `session_id`, plus `args` for tool requests) using the CJ rules. The hash uses the parsed body, so key order and whitespace in the client's JSON don't matter.
 - A record is "live" if `created_at > now() - interval '24 hours'`. Lookups ignore records that aren't live. The reconciler cron also deletes records older than 24 hours. These are operational rows, not audit events.
 - After the envelope lock, in the same transaction:
   1. If no live row exists, delete any expired row for that key, then insert `(agent_id, key, request_hash, response: null)`. The row is claimed in the decision transaction, so a concurrent duplicate can't evaluate twice.
@@ -171,7 +171,7 @@ These rules are close to RFC 8785 (JCS) but stricter: no non-integer numbers. A 
 - Retired sandbox workspaces build up over time. Each one is small (seed data plus scenario events). Retention is out of scope.
 
 ## Event types
-`decision`, `rail_result` (`status`: `settled` / `failed` / `unknown`, optional `reconciled`, `decision_seq`), `taint`, `approval_created`, `approval_decided`, `approval_expired`, `approval_executed`, `agent_frozen`, `agent_unfrozen`, `envelope_updated`, `scenario_started`, `sandbox_created`, `sandbox_retired`.
+`decision`, `rail_result` (`status`: `settled` / `failed` / `unknown`, optional `reconciled`, `decision_seq`, `refund_of` for refunds), `taint` (URL and content SHA-256, `first_taint`), `fetch_failed` (requested URL and `FETCH_*` code; taint-and-intent), `approval_created`, `approval_decided`, `approval_expired`, `approval_executed`, `agent_frozen`, `agent_unfrozen`, `envelope_updated`, `scenario_started`, `sandbox_created`, `sandbox_retired`.
 
 ## Approvals
 ### State machine
@@ -217,7 +217,8 @@ If the re-run's decision is `allow`, the approval becomes `executed`, whatever t
 | Method and path | Auth | Purpose |
 |---|---|---|
 | `POST /api/v1/pay` | Agent key | Pay request. Body: `vendor`, `tool`, `amount_micros` (string), `session_id`. Header: `Idempotency-Key` |
-| `POST /api/v1/tool` | Agent key | High-privilege tool request (defined in `taint-and-intent`) |
+| `POST /api/v1/fetch` | Agent key | Proxied fetch with origin labels. Body: `url`, `session_id` (defined in `taint-and-intent`) |
+| `POST /api/v1/tool` | Agent key | High-privilege tool request. Body: `tool`, `session_id`, `args`. Header: `Idempotency-Key` (defined in `taint-and-intent`) |
 | `GET /api/v1/approvals` | Dashboard session or sandbox | List approvals. Runs expiry first |
 | `POST /api/v1/approvals/:id` | Dashboard session or sandbox; agent key → 403 | Body `{ action: "approve" \| "deny" }` |
 | `POST /api/v1/agents/:id/unfreeze` | Dashboard session or sandbox; agent key → 403 | HITL-9 |
