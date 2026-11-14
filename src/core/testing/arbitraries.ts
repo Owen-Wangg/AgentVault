@@ -163,6 +163,7 @@ export const evaluateInputArb = (): fc.Arbitrary<EvaluateInput> =>
 
 /** The same input as a first run, with no approval attached. */
 export function withoutApproval(input: EvaluateInput): EvaluateInput {
-  const { approvedHoldReasons: _ignored, ...rest } = input;
+  const rest = { ...input };
+  delete rest.approvedHoldReasons;
   return rest;
 }
