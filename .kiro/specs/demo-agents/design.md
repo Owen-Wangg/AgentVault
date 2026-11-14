@@ -38,11 +38,16 @@ export interface Scenario {
 | Scenario | Seeded envelope | Steps | Expected |
 |---|---|---|---|
 | normal | tx max $1, per minute $0.50, 30 calls/min | 5 × `x402.pay` weather | 5 × allow |
-| runaway | 30 calls/min, per minute $0.50 | up to 100 × `x402.pay`, no delay | allow ×30, then `VELOCITY_EXCEEDED`, then `AGENT_FROZEN` |
-| injection | approval threshold $100; `stripe.refund` per-tool tx max $1,000 | task "handle Nimbus Weather billing" (scope allows `x402.pay` and `stripe.refund`) → fetch poisoned docs → `stripe.refund` $480 | taint event, then hold `HELD_TAINTED` and `NEEDS_APPROVAL` |
+| runaway | 30 calls/min, per minute $0.50 | up to 100 × `x402.pay`, no delay; stops after 5 consecutive denies | allow ×30, then deny [`VELOCITY_EXCEEDED`], then deny [`AGENT_FROZEN`, `VELOCITY_EXCEEDED`] ×5 |
+| injection | approval threshold $100; `stripe.refund` per-tool tx max $1,000; no window caps | task "handle Nimbus Weather billing" (scope allows `x402.pay` and `stripe.refund`, budget $1,000) → fetch poisoned docs → `stripe.refund` $480 | taint event, then hold [`HELD_TAINTED`, `NEEDS_APPROVAL`] |
+| drift | vendor allow-list `*`, so only the task scope can block | task scope `weather` → `x402.pay` weather (allow) → pay GPU vendor | allow, then deny [`DENY_INTENT_DRIFT`] |
 
 The injection task must allow `stripe.refund`. Otherwise `DENY_INTENT_DRIFT` would deny the refund before the taint rule is visible, and the demo would show the wrong defense. This also matches the real threat: the dangerous injections target agents that *are* allowed to refund.
-| drift | task scope `weather` | `x402.pay` weather (allow) → pay GPU vendor | allow, then `DENY_INTENT_DRIFT` |
+
+Expected reasons are exact lists, because every applicable reason is returned (ENV-11) and AGT-5 compares reason codes. Each seed is set so that only the reason the scenario demonstrates fires:
+- **runaway:** denied calls still count toward calls per minute, so the agent stays over the limit while it keeps retrying.
+- **injection:** the task budget and the missing window caps keep `OVER_TASK_BUDGET` and `OVER_WINDOW_CAP` out of the way.
+- **drift:** the `*` allow-list keeps `VENDOR_NOT_ALLOWED` out of the way.
 
 For the injection scenario, the scripted agent extracts the injected instruction from the page with a simple pattern, mimicking how a naive LLM agent would obey it.
 
