@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Verify after spec task",
+      "enabled": false,
+      "trigger": "PostTaskExec",
+      "description": "Runs typecheck, lint, and the test suite after each spec task completes. Disabled until Task 2 adds these scripts.",
+      "action": {
+        "type": "command",
+        "command": "pnpm typecheck && pnpm lint && pnpm test --run",
+        "timeout": 300
+      }
+    }
+  ]
+}

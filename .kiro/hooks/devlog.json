@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Kiro devlog",
+      "trigger": "Stop",
+      "description": "Builds docs/KIRO_LOG.md as raw material for the Devpost Kiro write-up.",
+      "action": {
+        "type": "agent",
+        "prompt": "If this turn created or changed project files and docs/KIRO_LOG.md does not already have an entry for this work, append one entry under today's date heading: 2-4 bullets on what was done, which Kiro features were involved (spec, steering, hook, MCP, property-based test, custom agent), and anything Kiro caught or got wrong. Keep it factual and short. If the turn changed no files, or the entry already exists, do nothing and do not reply."
+      }
+    }
+  ]
+}

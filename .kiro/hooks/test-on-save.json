@@ -1,0 +1,17 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Test core on save",
+      "enabled": false,
+      "trigger": "PostFileSave",
+      "description": "Runs the pure-core unit and property tests whenever a file under src/core is saved. Disabled until Task 2 installs Vitest.",
+      "matcher": "src[\\\\/]core[\\\\/].*\\.ts$",
+      "action": {
+        "type": "command",
+        "command": "pnpm vitest run src/core",
+        "timeout": 120
+      }
+    }
+  ]
+}

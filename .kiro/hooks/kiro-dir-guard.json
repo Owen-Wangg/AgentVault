@@ -1,0 +1,17 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Keep .kiro out of .gitignore",
+      "enabled": false,
+      "trigger": "PostFileSave",
+      "description": "Fails loudly if .kiro or any file in it becomes gitignored, which would risk Devpost disqualification. Disabled until Task 2 creates the script.",
+      "matcher": "(^|[\\\\/])\\.gitignore$",
+      "action": {
+        "type": "command",
+        "command": "node scripts/check-kiro-not-ignored.mjs",
+        "timeout": 30
+      }
+    }
+  ]
+}

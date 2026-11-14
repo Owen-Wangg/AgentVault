@@ -1,0 +1,55 @@
+# Requirements: Telemetry and Dashboard
+
+## Introduction
+This spec covers the live event stream and the web dashboard: overview, live feed, agents and envelopes, approvals inbox, audit log, settings, the public sandbox, GitHub sign-in, and the Kiroween mode toggle. The dashboard is the main thing judges see, so it must feel like a finished product, not a demo.
+
+## Requirement 1: Live event stream
+**User story:** As a developer, I want decisions to appear on screen as they happen, so that I can watch my agents in real time.
+
+### Acceptance criteria
+- **TEL-1** WHEN a client connects to `GET /api/v1/events`, THE SYSTEM SHALL stream the workspace's audit events over server-sent events (SSE) in `seq` order, using `seq` as the event ID.
+- **TEL-2** WHEN a client reconnects with `Last-Event-ID`, THE SYSTEM SHALL resume from the next `seq` with no gaps and no duplicates.
+- **TEL-3** WHILE no new events exist, THE SYSTEM SHALL send a heartbeat comment at least every 15 seconds.
+- **TEL-4** WHEN the serverless function nears its duration limit, THE SYSTEM SHALL close the stream cleanly so the browser reconnects.
+- **TEL-5** THE SYSTEM SHALL only stream events from workspaces the caller can access.
+
+## Requirement 2: Access and sandbox
+**User story:** As a judge, I want to try the product without signing up; as a user, I want my own private workspace.
+
+### Acceptance criteria
+- **UI-1** WHEN a visitor opens the app without signing in, THE SYSTEM SHALL show the sandbox workspace with a visible "Sandbox" badge and mock rails.
+- **UI-2** WHEN a user signs in with GitHub, THE SYSTEM SHALL create or open their personal workspace.
+- **UI-3** THE SYSTEM SHALL reset the sandbox nightly by creating a new seeded sandbox workspace and retiring the old one (audit-and-approvals AUD-9). Scenario starts use a fresh agent instead of a reset (demo-agents AGT-2).
+- **UI-4** THE SYSTEM SHALL rate-limit sandbox actions per IP address.
+- **UI-21** WHILE a visitor is not signed in, THE SYSTEM SHALL let them approve, deny, and unfreeze in the sandbox, and SHALL show that sandbox actions use mock rails only (audit-and-approvals HITL-11).
+
+## Requirement 3: Pages
+**User story:** As a developer, I want clear views of spend, risk, and pending decisions, so that I can act quickly.
+
+### Acceptance criteria
+- **UI-5** THE overview page SHALL show total spend, blocked spend, decisions by outcome, and spend over time for the selected range.
+- **UI-6** THE live feed SHALL show each event with time, agent, vendor, amount, decision, and reasons in plain language, and SHALL update without a page reload.
+- **UI-7** THE agents page SHALL list agents with frozen and tainted status, allow creating an agent (showing the API key once), and allow unfreezing.
+- **UI-8** THE envelope editor SHALL validate every limit before saving, accept amounts as decimal dollars, and store them as micros.
+- **UI-9** THE approvals inbox SHALL show pending approvals with the request, reasons, taint source, and time left, with approve and deny buttons.
+- **UI-10** THE audit page SHALL list events with `seq` and hash, and SHALL offer a "Verify chain" button showing the result.
+- **UI-11** THE SYSTEM SHALL display amounts exactly, with up to 6 decimal places (for example `$0.0015`).
+
+## Requirement 4: Design quality
+**User story:** As a judge, I want a polished, accessible interface.
+
+### Acceptance criteria
+- **UI-12** THE SYSTEM SHALL meet WCAG 2.2 AA color contrast in both themes.
+- **UI-13** THE SYSTEM SHALL be usable with a keyboard alone, with visible focus states.
+- **UI-14** THE SYSTEM SHALL work at widths from 375 px to 1920 px.
+- **UI-15** THE SYSTEM SHALL show empty, loading, and error states for every data view.
+
+## Requirement 5: Kiroween mode
+**User story:** As a presenter, I want a spooky theme for the demo, without changing how the product behaves.
+
+### Acceptance criteria
+- **UI-16** WHEN a user turns on Kiroween mode in Settings, THE SYSTEM SHALL switch colors, fonts, and copy (for example "The Crypt" for frozen tools, "Haunted" for tainted sessions).
+- **UI-17** THE SYSTEM SHALL save the choice in the browser and restore it on the next visit without a flash of the other theme.
+- **UI-18** THE SYSTEM SHALL produce identical policy decisions, API responses, and audit events in both themes.
+- **UI-19** WHILE the user's system requests reduced motion, THE SYSTEM SHALL disable decorative animations.
+- **UI-20** THE SYSTEM SHALL use only open-licensed fonts, icons, and images.

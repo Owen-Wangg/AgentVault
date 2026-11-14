@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Spec traceability check",
+      "trigger": "PostFileSave",
+      "description": "Keeps every EARS requirement linked to a task and a planned test.",
+      "matcher": "\\.kiro[\\\\/]specs[\\\\/].*[\\\\/]requirements\\.md$",
+      "action": {
+        "type": "agent",
+        "prompt": "A spec requirements.md was just saved. Open it and the tasks.md and design.md in the same spec folder. List every requirement ID (like ENV-3 or TAINT-6) that is not referenced in a `_Requirements:` line in tasks.md, and every ID that design.md's Correctness properties or Testing strategy does not cover. If there are gaps, propose the exact lines to add, and ask before editing. If there are no gaps, reply with one line: \"Traceability OK for <spec>\"."
+      }
+    }
+  ]
+}
