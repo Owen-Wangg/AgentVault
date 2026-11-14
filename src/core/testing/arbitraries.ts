@@ -1,18 +1,15 @@
 import fc from "fast-check";
-
-/**
- * Upper bound for generated amounts, equal to MAX_MICROS ($1 billion) in
- * money-arithmetic.md. money-and-policy-core task 1 replaces this with the
- * real `MAX_MICROS` from `@/core/money` and returns branded `Micros`.
- */
-export const MAX_MICROS_FOR_TESTS = 1_000_000_000_000_000n;
+import { MAX_MICROS, type Micros, micros } from "@/core/money";
 
 /** Edge values from testing-standards.md: zero, one micro, either side of one cent, and the maximum. */
-export const MICROS_EDGE_VALUES: readonly bigint[] = [0n, 1n, 9_999n, 10_000n, MAX_MICROS_FOR_TESTS];
+export const MICROS_EDGE_VALUES: readonly Micros[] = [0n, 1n, 9_999n, 10_000n, MAX_MICROS].map(micros);
 
-/** Any valid amount in micros, uniformly distributed. */
-export const anyMicros = (): fc.Arbitrary<bigint> => fc.bigInt({ min: 0n, max: MAX_MICROS_FOR_TESTS });
+/** Any amount from 0 to `max` (default MAX_MICROS), uniformly distributed. */
+export const anyMicros = (max: Micros = MAX_MICROS): fc.Arbitrary<Micros> =>
+  fc.bigInt({ min: 0n, max }).map(micros);
 
-/** Valid amounts with the edge values mixed in, so boundaries get hit in every run. */
-export const microsWithEdges = (): fc.Arbitrary<bigint> =>
-  fc.oneof({ arbitrary: anyMicros(), weight: 4 }, { arbitrary: fc.constantFrom(...MICROS_EDGE_VALUES), weight: 1 });
+/** Amounts with the edge values (up to `max`) mixed in, so boundaries get hit in every run. */
+export const microsWithEdges = (max: Micros = MAX_MICROS): fc.Arbitrary<Micros> => {
+  const edges = MICROS_EDGE_VALUES.filter((e) => e <= max);
+  return fc.oneof({ arbitrary: anyMicros(max), weight: 4 }, { arbitrary: fc.constantFrom(...edges), weight: 1 });
+};
