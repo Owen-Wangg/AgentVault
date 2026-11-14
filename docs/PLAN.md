@@ -12,7 +12,7 @@ Deployment target: Vercel **Hobby**. Cron jobs run at most once per day (see `te
 | 4 | Nov 16–17 | money-and-policy-core tasks 3–6 | Done |
 | 5 | Nov 18 | audit-and-approvals tasks 1–3 | Done |
 | 6 | Nov 19–20 | rail-adapters tasks 1–2, then audit-and-approvals tasks 4–6 | Done |
-| 7 | Nov 21–22 | taint-and-intent tasks 1–6 | |
+| 7 | Nov 21–22 | taint-and-intent tasks 1–6 | Done |
 | 8 | Nov 23 | audit-and-approvals tasks 7–9 | |
 | 9 | Nov 24 | telemetry-dashboard task 1 | |
 | 10 | Nov 24–26 | telemetry-dashboard tasks 2–6 | |
