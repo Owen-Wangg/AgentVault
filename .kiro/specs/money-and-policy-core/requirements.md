@@ -28,6 +28,7 @@ This spec covers the pure domain core of AgentVault: the `Micros` money type and
 - **MON-8** WHEN converting a credit to Stripe cents, THE SYSTEM SHALL round down to the whole cent.
 - **MON-9** WHEN converting any amount to x402 USDC atomic units, THE SYSTEM SHALL convert exactly 1:1 with no rounding.
 - **MON-10** WHEN a debit is counted against an envelope, THE SYSTEM SHALL count the post-conversion (rounded-up) amount.
+- **MON-11** WHEN a credit (a refund the agent issues) is counted against an envelope, THE SYSTEM SHALL count the full requested amount, not the rounded-down rail amount, so that refunds use up the same caps as payments.
 
 ## Requirement 3: Spend envelope limits
 **User story:** As a developer, I want per-agent spend limits, so that a compromised or looping agent can't drain my account.

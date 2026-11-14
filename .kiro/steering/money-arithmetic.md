@@ -24,21 +24,25 @@ fromMicrosString(s: string): Micros            // "1500" -> 1500n (wire format)
 ```ts
 add(a, b): Micros          // throws if result > MAX_MICROS
 sub(a, b): Micros          // throws if result < 0
-sumWindow(items): Micros   // sum with the same guard
-mulCount(a, n: bigint)     // for velocity projections; guarded
+sum(items): Micros         // sum with the same guard
 cmp(a, b): -1 | 0 | 1
 ```
 No division on money except inside `toRailUnits`.
 
 ## Converting at the rail boundary
 ```ts
-toRailUnits(amount: Micros, rail: "stripe" | "x402", direction: "debit" | "credit"): bigint
+toRailUnits(amount: Micros, rail: "stripe" | "x402" | "mock", direction: "debit" | "credit"): bigint
+chargeableMicros(amount: Micros, rail, direction): Micros   // what the envelope counts
 ```
-- **x402 (USDC, 6 decimals):** exact, 1:1. No rounding.
+- **x402 (USDC, 6 decimals) and mock:** exact, 1:1. No rounding.
 - **Stripe (cents):** `micros / 10_000n` with **directional rounding that never favors the agent**:
   - `debit` (the agent spends): round **up** (ceiling). The amount counted against the envelope is the rounded-up value, so the envelope can never be exceeded through rounding.
-  - `credit` (a refund to the agent's side): round **down** (floor).
-- Rail minimums are enforced in the adapter, after conversion: Stripe SPT card payments require at least 50 cents; on-chain USDC settlement requires at least 10,000 micros (0.01 USDC). Below the minimum, the adapter returns `BELOW_RAIL_MINIMUM`. It never silently rounds up to the minimum.
+  - `credit` (a refund the agent issues): round **down** (floor), so the customer never gets more than was approved. The envelope still counts the full requested amount (MON-11), so a refund can't use rounding to slip under a cap.
+- `chargeableMicros` is never less than the requested amount.
+- `toRailUnits` is called only inside `src/rails/**`. The server uses `chargeableMicros`, with the rail the tool is registered to, even when the sandbox runs it on the mock adapter.
+- Rail minimums are enforced in the adapter, after conversion. Below the minimum, the adapter returns `BELOW_RAIL_MINIMUM`. It never silently rounds up to the minimum.
+  - Stripe SPT card payments: at least 50 cents.
+  - x402: USDC has no protocol minimum, but the CDP facilitator may set one. rail-adapters task 4 measures it and sets `X402_MIN_UNITS`. Until then the minimum is 1 unit, so the sandbox's `$0.0015` weather payment works on the mock rail.
 
 > Note: the original plan mentioned banker's rounding. Directional rounding replaces it, because banker's rounding can round a debit down, which favors the agent.
 

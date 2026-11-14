@@ -58,6 +58,7 @@ export type RailLookup =
 | `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET` | x402 vendor | CDP facilitator auth |
 | `X402_PAY_TO` | x402 vendor | vendor receiving address on Base Sepolia |
 | `X402_NETWORK` | x402 | must be `eip155:84532` |
+| `X402_MIN_UNITS` | x402, mock | facilitator minimum in USDC atomic units; default `1`, set from the task 4 measurement |
 | `AGENT_WALLET_PRIVATE_KEY` | x402 payer | **testnet-only** key, funded from a faucet |
 
 ## x402 adapter
@@ -72,11 +73,11 @@ export type RailLookup =
 - **Payer side**: create a test SPT with `POST /v1/test_helpers/shared_payment/granted_tokens` (`payment_method=pm_card_visa`, `usage_limits[currency]=usd`, `usage_limits[max_amount]=<cents>`, `usage_limits[expires_at]=<now+10min>`, header `Stripe-Version: 2026-09-30.preview`). Present it to the challenge with the `mppx` client (confirmed during task 8).
 - **Refunds**: `stripe.refunds.create({ payment_intent, amount }, { idempotencyKey })`. The seed creates a $500 test PaymentIntent that the prompt-injection scenario's $480 refund targets.
 - Minimum: 50 cents (RAIL-4).
-- Fallback if the payer-side SPT flow can't be completed in time: the vendor side and refunds stay real; the payer side uses the mock adapter. (This is step 3 of the scope-cut order.)
+- Fallback if the payer-side SPT flow can't be completed in time: the vendor side and refunds stay real; the payer side uses the mock adapter. (This is step 3 of the scope-cut order in `docs/PLAN.md`.)
 
 ## Mock adapter
 - Deterministic refs: `mock_tx_` + first 16 hex chars of `sha256(idempotencyKey)`.
-- Same `minimumUnits` per simulated rail.
+- Same `minimumUnits` per simulated rail: 50 cents for Stripe, `X402_MIN_UNITS` for x402.
 - `setFailureMode(code | null)` for tests (RAIL-20). `RAIL_TIMEOUT` mode records the payment and then reports a timeout, so tests cover "money moved but the caller doesn't know".
 - `setLookupResult(key, result)` for reconciler tests (RAIL-20, RAIL-21).
 - Keeps an in-memory map for idempotency inside one process (tests only). Server-level idempotency (PXY-8) is the real guarantee.

@@ -10,10 +10,10 @@ Plan (`docs/PLAN.md`): **Phase 3** = tasks 1–2. **Phase 4** = tasks 3–6.
   - _Requirements: MON-1, MON-2, MON-3, MON-4, MON-5, MON-6_
 
 - [ ] 2. Build rail conversion in `src/core/money/rail-units.ts`
-  - `toRailUnits`, `fromRailUnits`, `chargeableMicros`
-  - Property tests 3 and 4
+  - `toRailUnits`, `fromRailUnits`, `chargeableMicros` (debits rounded up, credits counted in full)
+  - Property tests 3, 4, and 9
   - Test fixture: a float-based implementation that the properties catch (save the failing seed in the write-up notes)
-  - _Requirements: MON-7, MON-8, MON-9, MON-10_
+  - _Requirements: MON-7, MON-8, MON-9, MON-10, MON-11_
 
 - [ ] 3. Define policy types, reason codes, and Zod schemas in `src/core/policy`
   - `types.ts`, `reasons.ts`, `schemas.ts`

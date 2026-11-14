@@ -39,8 +39,12 @@ export type Rail = "stripe" | "x402" | "mock";
 export type Direction = "debit" | "credit";
 export function toRailUnits(m: Micros, rail: Rail, dir: Direction): bigint;
 export function fromRailUnits(units: bigint, rail: Rail): Micros;
-export function chargeableMicros(m: Micros, rail: Rail): Micros; // amount counted against the envelope (MON-10)
+export function chargeableMicros(m: Micros, rail: Rail, dir: Direction): Micros; // amount counted against the envelope
 ```
+
+- `chargeableMicros` returns the rounded-up debit for payments (MON-10) and the unchanged requested amount for credits (MON-11). It never returns less than `m`.
+- The `mock` rail converts 1:1, like x402.
+- The server passes the **tool's registered rail** (taint-and-intent tool registry), not the adapter that runs it. A sandbox `stripe.refund` therefore rounds like Stripe even though the mock adapter executes it, so sandbox amounts match real ones.
 
 Parsing (`fromDecimalString`) uses the regex `^(0|[1-9]\d*)(\.\d{1,6})?$`, then pads the fraction to 6 digits and builds the `bigint`. No `number` is ever involved.
 
@@ -76,7 +80,7 @@ export interface WindowState {
   spentMicros: Record<Window, Micros>;          // agent-level
   vendorSpentMicros: Record<Window, Micros>;    // for this request's vendor
   toolSpentMicros: Record<Window, Micros>;      // for this request's tool
-  callsLastMinute: number;                      // excluding this request
+  callsLastMinute: number;                      // excluding this request; counts denied and held calls too (audit-and-approvals design)
 }
 
 export interface PayRequest {
@@ -147,6 +151,7 @@ ENV-5 (frozen): `frozenRule` reads `SessionState.agentFrozen`. The server fills 
 6. **Precedence** (ENV-12): if `reasons` contains any deny code, `decision === "deny"`.
 7. **Determinism** (ENV-13): `evaluate(x)` deep-equals `evaluate(x)`.
 8. **Monotonicity** (ENV-14): for any input with decision `deny`, lowering any cap keeps the decision `deny`.
+9. **Counted amount never under-counts** (MON-10, MON-11): for all `m`, rails, and directions, `chargeableMicros(m, rail, dir) >= m`.
 
 ## Testing strategy
 - Unit tests per rule function with requirement IDs in names.
