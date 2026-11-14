@@ -65,6 +65,9 @@ function harness(options: { user?: SessionUser | null } = {}): Harness {
     now: clock.now,
     railFor: deps.railFor,
     getUser: async () => options.user ?? null,
+    // Every harness clock starts at the same minute, so they'd share one rate-limit window.
+    // Only the rate-limit test sets a real limit.
+    rateLimit: { limit: 1_000_000, windowMs: 60_000 },
     ...over,
   });
   return { clock, mocks, human, agentRoute: { openDb, key: () => TEST_HEAD_KEY, now: clock.now, railFor: deps.railFor } };
