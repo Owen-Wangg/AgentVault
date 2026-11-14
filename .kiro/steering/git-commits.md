@@ -32,6 +32,7 @@ Follow these rules for every commit in this repo.
 - Never reference issue, ticket, or PR numbers (no `#12`, `Fixes #12`, `JIRA-123`).
 - Commit as the configured git user. Don't change `user.name` or `user.email`.
 - Don't push, amend, rebase, or force-push unless the user asks.
+- On Windows PowerShell 5, write the message to a temp file and run `git commit -F <file>`. Passing it with `-m` breaks on double quotes.
 
 ## Examples
 ```
