@@ -110,6 +110,19 @@ function constantTimeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/**
+ * Whether the head's MAC is genuine for this workspace. Appending checks
+ * this before extending the chain, so a forged head is never re-signed.
+ */
+export function headMacIsValid(key: Uint8Array, workspaceId: string, head: ChainHead): boolean {
+  return (
+    Number.isSafeInteger(head.seq) &&
+    typeof head.hash === "string" &&
+    typeof head.mac === "string" &&
+    constantTimeEqual(headMac(key, workspaceId, head.seq, head.hash), head.mac)
+  );
+}
+
 function hashMatches(event: StoredEvent): boolean {
   try {
     return chainHash(event.prev_hash, event) === event.hash;
@@ -146,14 +159,8 @@ export function verify(
     expectedSeq += 1;
   }
   const lastSeq = expectedSeq - 1;
-  const headIsGenuine =
-    head !== null &&
-    Number.isSafeInteger(head.seq) &&
-    typeof head.hash === "string" &&
-    typeof head.mac === "string" &&
-    constantTimeEqual(headMac(key, workspaceId, head.seq, head.hash), head.mac);
   // Without a genuine head, rows after the last one may have been deleted.
-  if (!headIsGenuine) return { ok: false, brokenAtSeq: lastSeq + 1, why: "head" };
+  if (head === null || !headMacIsValid(key, workspaceId, head)) return { ok: false, brokenAtSeq: lastSeq + 1, why: "head" };
   // Rows the head knows about are missing from the end.
   if (head.seq > lastSeq) return { ok: false, brokenAtSeq: lastSeq + 1, why: "head" };
   // Rows exist that the head never recorded.

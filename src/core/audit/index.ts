@@ -5,6 +5,7 @@ export {
   HEAD_KEY_BYTES,
   chainHash,
   headMac,
+  headMacIsValid,
   verify,
   type AuditEventBody,
   type ChainHead,
