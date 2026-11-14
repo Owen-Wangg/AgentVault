@@ -15,23 +15,23 @@ Plan (`docs/PLAN.md`): **Phase 3** = tasks 1–2. **Phase 4** = tasks 3–6.
   - Test fixture: a float-based implementation that the properties catch (save the failing seed in the write-up notes)
   - _Requirements: MON-7, MON-8, MON-9, MON-10, MON-11_
 
-- [ ] 3. Define policy types, reason codes, and Zod schemas in `src/core/policy`
+- [x] 3. Define policy types, reason codes, and Zod schemas in `src/core/policy`
   - `types.ts`, `reasons.ts`, `schemas.ts`
   - Add envelope, window-state, and request arbitraries to `src/core/testing/arbitraries.ts` (the file and its money generators are created in Phase 2, project setup)
   - _Requirements: ENV-11, ENV-15_
 
-- [ ] 4. Implement the envelope rule functions
+- [x] 4. Implement the envelope rule functions
   - `frozenRule`, `txMaxRule`, `windowCapRule`, `velocityRule`, `allowListRule`, `approvalThresholdRule`
   - Effective limit = the stricter of agent-level and vendor- or tool-level limits
   - One unit test per requirement ID
   - _Requirements: ENV-1, ENV-2, ENV-3, ENV-5, ENV-6, ENV-7, ENV-8, ENV-9, ENV-10_
 
-- [ ] 5. Implement `evaluate()` and `combine()`
+- [x] 5. Implement `evaluate()` and `combine()`
   - Collects reasons from all rules (including taint and intent rules once they exist; stub them as returning `[]` until taint-and-intent task 3, Phase 7)
   - Never throws; invalid input becomes `INVALID_REQUEST`
   - Property tests 5–8
   - _Requirements: ENV-4 (reported only), ENV-11, ENV-12, ENV-13, ENV-14, ENV-15_
 
-- [ ] 6. Add the `pnpm demo:policy` script
+- [x] 6. Add the `pnpm demo:policy` script
   - `scripts/demo-policy.ts` runs a sample sequence (normal calls, a burst, an over-cap call) and prints a table of decisions and reasons
   - _Requirements: ENV-10, ENV-11_
