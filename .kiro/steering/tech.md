@@ -16,7 +16,7 @@ inclusion: always
 |---|---|---|
 | Framework | Next.js (App Router) | Route handlers in `app/api/**` are the proxy |
 | Hosting | Vercel | Serverless, no shared memory between instances. Vercel Cron runs the reconciler and the nightly sandbox reset. Hobby allows only daily cron jobs, so nothing may depend on a more frequent schedule |
-| Database | Neon Postgres | Use `@neondatabase/serverless` in Pool/WebSocket mode when a transaction is needed |
+| Database | Neon Postgres | Use `@neondatabase/serverless` in Pool/WebSocket mode when a transaction is needed. The database is in AWS **us-west-2** (Oregon), so the Vercel function region must be **`pdx1`** (Portland), not the default `iad1`. Each pay request makes several round trips inside a locked transaction |
 | ORM | Drizzle ORM + drizzle-kit | Postgres `bigint` columns map to JS `bigint` (`mode: "bigint"`) |
 | Validation | Zod | At every trust boundary |
 | Auth | Auth.js (NextAuth v5) with GitHub provider | Agents use hashed bearer API keys instead |
