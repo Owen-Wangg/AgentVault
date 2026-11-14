@@ -42,7 +42,7 @@ This spec covers the server-side flow that wraps the pure policy engine: authent
 **User story:** As a security owner, I want money that might have moved to keep counting against the budget, so that a slow or broken rail can't be used to overspend.
 
 ### Acceptance criteria
-- **RES-1** WHEN a decision is `allow`, THE SYSTEM SHALL insert a reservation for the chargeable amount in the same transaction as the decision event. Hold and deny decisions SHALL NOT create a reservation.
+- **RES-1** WHEN a decision is `allow` for a request that moves money, THE SYSTEM SHALL insert a reservation for the chargeable amount in the same transaction as the decision event. Hold and deny decisions, and tools with no rail, SHALL NOT create a reservation.
 - **RES-2** WHILE a reservation's status is `reserved` or `settled`, THE SYSTEM SHALL count its amount in every window (for its agent, vendor, and tool) that contains its `created_at`. An unresolved reservation SHALL count the same as a settled one.
 - **RES-3** WHEN the rail confirms the payment, THE SYSTEM SHALL mark the reservation `settled`.
 - **RES-4** THE SYSTEM SHALL mark a reservation `released` only after a confirmed failure. No other outcome SHALL release a reservation.

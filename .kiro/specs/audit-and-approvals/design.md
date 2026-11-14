@@ -45,13 +45,17 @@ All money columns are `bigint` with `mode: "bigint"`.
 | `tasks` | `id`, `workspace_id`, `description`, `allowed_vendor_categories`, `allowed_tools`, `budget_micros` |
 | `sessions` | `id`, `agent_id`, `task_id`, `tainted_at`, `taint_source_url`, `taint_content_sha256` |
 | `vendors` | `id`, `workspace_id`, `origin`, `category`, `trusted` |
-| `spend_reservations` | `id`, `agent_id`, `vendor`, `tool`, `amount_micros`, `status` (`reserved`/`settled`/`released`), `rail`, `rail_idempotency_key`, `decision_seq`, `created_at`, `resolved_at` |
+| `spend_reservations` | `id`, `agent_id`, `session_id`, `vendor`, `tool`, `amount_micros`, `status` (`reserved`/`settled`/`released`), `rail`, `rail_idempotency_key`, `decision_seq`, `created_at`, `resolved_at` |
 | `idempotency` | (`agent_id`, `key`) PK, `request_hash`, `response` jsonb (null while in progress), `created_at` |
 | `approvals` | `id`, `workspace_id`, `request` jsonb, `reasons` jsonb, `status` (`pending`/`approved`/`denied`/`expired`/`failed_recheck`/`executed`), `expires_at`, `decided_by`, `decided_at` |
 | `audit_events` | `workspace_id`, `seq` (PK together), `type`, `payload` jsonb, `prev_hash`, `hash`, `created_at` (`timestamptz(3)`) |
 | `audit_heads` | `workspace_id` (PK), `seq`, `hash`, `mac`, `updated_at` |
+| `rate_limits` | (`key`, `window_start`) PK, `count` |
 
-Indexes: `spend_reservations (agent_id, created_at)`, `spend_reservations (status, created_at) WHERE status = 'reserved'` for the reconciler, `audit_events (workspace_id, seq)`, `idempotency (created_at)` for cleanup.
+Indexes: `spend_reservations (agent_id, created_at)`, `spend_reservations (session_id)` for task budgets, `spend_reservations (status, created_at) WHERE status = 'reserved'` for the reconciler, `idempotency (agent_id, created_at)` for call counts and cleanup. The `audit_events` primary key already covers (`workspace_id`, `seq`).
+
+- **Workspace members:** a workspace has one member, its `owner_user_id`. "Signed-in member of the workspace" means the owner. Shared workspaces are out of scope.
+- **Rate limits:** `rate_limits` holds the per-IP fixed windows for sandbox actions (telemetry-dashboard UI-4). The key is a SHA-256 of the IP plus the action, so raw IPs are never stored.
 
 Append-only triggers (AUD-3):
 ```sql
@@ -77,11 +81,15 @@ Each reservation stores the rail and the rail idempotency key, so the reconciler
 | `RAIL_TIMEOUT`, `INVALID_RAIL_RESPONSE`, an exception thrown after the request was sent | unknown | `unknown` | stays `reserved` (RES-5) | 202 with `rail_status: "unknown"` |
 | The process dies before the `rail_result` is written | unknown (no event) | none yet | stays `reserved` | none |
 
-`INVALID_RAIL_RESPONSE` counts as unknown because an unreadable response does not prove the vendor didn't charge. If the rail-adapters spec later makes any failure code ambiguous, it moves to the unknown row. The classification lives in one pure function, `classifyRailResult(result): "settled" | "failed" | "unknown"`, in `src/server/rails/outcome.ts`, so it can be unit-tested without a database.
+`INVALID_RAIL_RESPONSE` counts as unknown because an unreadable response does not prove the vendor didn't charge. If the rail-adapters spec later makes any failure code ambiguous, it moves to the unknown row. The classification lives in one pure function, `classifyRailResult(result): "settled" | "failed" | "unknown"`, in `src/server/payments/outcome.ts`, so it can be unit-tested without a database.
 
-Window state sums `reserved` and `settled` reservations whose `created_at` falls inside each window (RES-2). An unresolved reservation counts exactly like a settled one. This replaces the earlier "treat as spent after 10 minutes" rule, because a reservation now counts from the moment it is created.
+Window state sums `reserved` and `settled` reservations whose `created_at` falls inside each window (RES-2). Session spend for the task budget (taint-and-intent INT-4) sums the same reservations by `session_id`.
 
-**Reconciler** (`src/server/rails/reconcile.ts`, RES-6 to RES-9):
+`callsLastMinute` (ENV-3) counts the agent's `idempotency` rows created in the last minute, excluding this request. Every pay or tool request claims one row, including denied and held ones, so a retry loop counts even after it starts getting denied. Replays of the same key don't add a row, so they don't count.
+
+Tools with no rail (for example `payee.update`) still go through the full flow. On `allow` there is no rail call: the system writes a `rail_result` with `status: "settled"` and `rail: null`, and no reservation is created, because no money moves. An unresolved reservation counts exactly like a settled one. This replaces the earlier "treat as spent after 10 minutes" rule, because a reservation now counts from the moment it is created.
+
+**Reconciler** (`src/server/payments/reconcile.ts`, RES-6 to RES-9):
 - Triggers. Vercel Hobby allows cron jobs only once per day (with ±59 minutes of jitter), and more frequent expressions fail at deploy time. So the reconciler runs in three ways:
   1. After each pay or tool request, the handler uses Next.js `after()` to reconcile up to 5 of that agent's stale reservations once the response is sent. The agent's own traffic clears its backlog without slowing the response.
   2. A Vercel Cron route (`/api/cron/reconcile`, protected by `CRON_SECRET`) runs daily on Hobby, or every 5 minutes on Pro.

@@ -11,14 +11,14 @@ These rules apply to every file in the repo. When a rule conflicts with convenie
 - Field names: `amount_micros` in the database and JSON, `amountMicros` in TypeScript. Type: the branded `Micros` type from `@/core/money`.
 - Floats never touch money. Banned on any amount: `parseFloat`, `Number(...)`, unary `+`, `.toFixed()`, `Math.round/floor/ceil`, `/` on `number`, and `number`-typed amount fields.
 - JSON on the wire carries amounts as **decimal strings of integer micros** (`"1500"`), because JSON has no `bigint`.
-- Conversion to rail units (Stripe cents) happens only inside `src/rails/**`, through `toRailUnits()`. Details in `money-arithmetic.md`.
+- Conversion to rail units (Stripe cents) happens only inside `src/rails/**`, through `toRailUnits()`. The server counts amounts with `chargeableMicros()`, which never counts less than requested. Details in `money-arithmetic.md`.
 - Negative amounts are rejected at the boundary. Refunds are a separate operation, not a negative charge.
 
 ## 2. Checks before any payment executes
 Every pay or high-privilege tool request goes through these steps, in this order, inside **one database transaction**:
 1. **Authenticate** the agent: bearer API key, hashed with SHA-256 and compared with `crypto.timingSafeEqual`.
 2. **Validate** the request with Zod. Reject unknown fields.
-3. **Lock** the agent's envelope row (`SELECT … FOR UPDATE`) so concurrent requests can't both pass a cap.
+3. **Lock** the agent's envelope row (`SELECT … FOR UPDATE`) so concurrent requests can't both pass a cap, then claim the `Idempotency-Key`.
 4. **Load state**: rolling window spend, call velocity, session taint, task scope.
 5. **Evaluate** with the pure function `evaluate()` from `@/core/policy`. Result: `allow`, `hold`, or `deny` with reason codes.
 6. **Audit**: append the decision to `audit_events` *before* executing.

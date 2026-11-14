@@ -10,7 +10,7 @@ Plan (`docs/PLAN.md`): **Phase 5** = tasks 1–3. **Phase 6** = tasks 4–6. **P
   - _Requirements: AUD-2, AUD-4, AUD-8, CJ-1, CJ-2, CJ-3, CJ-4, CJ-5, CJ-6, CJ-7_
 
 - [ ] 2. Create the Drizzle schema, migrations, and the append-only triggers
-  - All tables from the design doc, including `audit_heads`, `workspaces.retired_at`, the reservation columns (`rail`, `rail_idempotency_key`, `decision_seq`, `resolved_at`), and `idempotency.request_hash`
+  - All tables from the design doc, including `audit_heads`, `rate_limits`, `workspaces.retired_at`, the reservation columns (`session_id`, `rail`, `rail_idempotency_key`, `decision_seq`, `resolved_at`), and `idempotency.request_hash`
   - `bigint` money columns with `mode: "bigint"`; `audit_events.created_at` as `timestamptz(3)`
   - Migration that adds `audit_events_block_mutation`, the row-level `UPDATE`/`DELETE` trigger, and the statement-level `TRUNCATE` trigger
   - Beginner setup notes in `docs/SETUP.md`: what a migration is, how to run `pnpm db:migrate` against Neon, and how to run local Postgres with Docker as an alternative
@@ -31,8 +31,8 @@ Plan (`docs/PLAN.md`): **Phase 5** = tasks 1–3. **Phase 6** = tasks 4–6. **P
   - _Requirements: PXY-1, PXY-2, PXY-3_
 
 - [ ] 5. Implement `runGuardedRequest()` with reservations and idempotency
-  - Locked envelope, idempotency claim (live = under 24 h; 422 on a different `request_hash`, 409 while in progress), frozen flag read after the lock, window state from `reserved` and `settled` reservations, `evaluate()`, decision event, reservation on allow, freeze on velocity, approval on hold, commit
-  - Rail call on allow, `classifyRailResult` in `src/server/rails/outcome.ts`, `rail_result` event, settle / release / keep the reservation, store the idempotency response
+  - Locked envelope, idempotency claim (live = under 24 h; 422 on a different `request_hash`, 409 while in progress), frozen flag read after the lock, window and session spend from `reserved` and `settled` reservations, `callsLastMinute` from `idempotency` rows, `evaluate()`, decision event, reservation on allow, freeze on velocity, approval on hold, commit
+  - Rail call on allow, `classifyRailResult` in `src/server/payments/outcome.ts`, `rail_result` event, settle / release / keep the reservation, store the idempotency response
   - Uses the mock rail until Phases 13–14
   - _Requirements: PXY-4, PXY-5, PXY-6, PXY-7, PXY-8, PXY-10, PXY-11, PXY-12, PXY-13, PXY-14, RES-1, RES-2, RES-3, RES-4, RES-5, HITL-1_
 
@@ -58,7 +58,7 @@ Plan (`docs/PLAN.md`): **Phase 5** = tasks 1–3. **Phase 6** = tasks 4–6. **P
   - _Requirements: HITL-6, HITL-7, HITL-12_
 
 - [ ] 9. Implement the reconciler
-  - `src/server/rails/reconcile.ts`; triggered by `after()` on each pay or tool request (up to 5 of that agent's stale reservations), `GET /api/cron/reconcile` (`CRON_SECRET`, daily on Hobby), and `pnpm reconcile` (also lists reservations unknown for over 24 hours)
+  - `src/server/payments/reconcile.ts`; triggered by `after()` on each pay or tool request (up to 5 of that agent's stale reservations), `GET /api/cron/reconcile` (`CRON_SECRET`, daily on Hobby), and `pnpm reconcile` (also lists reservations unknown for over 24 hours)
   - `FOR UPDATE SKIP LOCKED`, lookup through the adapter's `lookup()` only (rail-adapters RAIL-21), `rail_result` with `reconciled: true`, idempotency response rewrite, cleanup of idempotency rows older than 24 hours
   - Needs the mock adapter's `lookup()` (rail-adapters task 2)
   - Integration tests and property 6 (no release without confirmed failure)

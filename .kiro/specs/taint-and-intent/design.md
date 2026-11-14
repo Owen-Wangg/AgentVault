@@ -33,7 +33,7 @@ export interface SessionState {
   agentFrozen: boolean;
   taintedAt: string | null;           // ISO time, passed in
   taintSourceUrl: string | null;
-  sessionSpentMicros: Micros;
+  sessionSpentMicros: Micros;         // reserved + settled reservations for this session (audit-and-approvals RES-2)
 }
 export interface ToolDef { name: string; privileged: boolean; rail: Rail | null }
 
