@@ -101,7 +101,7 @@ export interface Decision {
 export interface ReasonDetail { code: ReasonCode; detail?: Record<string, string> }
 ```
 
-`SessionState`, `TaskScope`, and `ToolDef` are defined in `taint-and-intent/design.md`. `EvaluateInput` is `{ request, envelope, window, session, scope, tool }`, where `tool` is the registry entry for `request.tool` (its `privileged` flag drives the taint rule). The schema rejects a `tool` whose name differs from `request.tool`. `evaluate()` calls the taint and intent rule functions from those modules.
+`SessionState`, `TaskScope`, and `ToolDef` are defined in `taint-and-intent/design.md`. `EvaluateInput` is `{ request, envelope, window, session, scope, tool, approvedHoldReasons? }`, where `tool` is the registry entry for `request.tool` (its `privileged` flag drives the taint rule). The schema rejects a `tool` whose name differs from `request.tool`. `approvedHoldReasons` is set only on an approval re-run (audit-and-approvals HITL-2): a list of hold codes, and the schema rejects any deny or unknown code. `evaluate()` calls the taint and intent rule functions from those modules.
 
 ### Reason codes
 ```ts
@@ -127,11 +127,12 @@ export function evaluate(input: EvaluateInput): Decision {
     ...allowListRule(input),      // ENV-6, ENV-7
     ...intentRules(input),        // INT-* (taint-and-intent spec)
     ...taintRules(input),         // TAINT-* (taint-and-intent spec)
-    ...approvalThresholdRule(input), // ENV-8
+    ...approvalThresholdRule(input), // ENV-8, only if no deny reason fired
   ];
-  return combine(reasons);        // ENV-12 precedence
+  return combine(withoutApproved(reasons, input.approvedHoldReasons)); // HITL-2, then ENV-12 precedence
 }
 ```
+`withoutApproved` drops a reason only if it is a hold reason whose code is on the approved list. Matching is by code, not detail, so an approved `HELD_TAINTED` covers the session's taint (its source never changes, TAINT-5). A deny reason is never dropped, so an approved request runs only if every other rule still passes (HITL-3, TAINT-9).
 Each rule is a pure function `(input) => ReasonDetail[]` and is tested on its own. `combine` applies precedence. The effective limit for ENV-9 is the minimum of the agent-level and the vendor- or tool-level value.
 
 ENV-4 (freezing): `evaluate()` only reports `VELOCITY_EXCEEDED`. The server sets `agents.frozen_at` in the same transaction when it sees that code (audit-and-approvals PXY-10).

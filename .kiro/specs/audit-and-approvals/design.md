@@ -47,7 +47,7 @@ All money columns are `bigint` with `mode: "bigint"`.
 | `vendors` | `id`, `workspace_id`, `origin`, `category`, `trusted` |
 | `spend_reservations` | `id`, `agent_id`, `session_id`, `vendor`, `tool`, `amount_micros`, `status` (`reserved`/`settled`/`released`), `rail`, `rail_idempotency_key`, `decision_seq`, `created_at`, `resolved_at` |
 | `idempotency` | (`agent_id`, `key`) PK, `request_hash`, `response` jsonb (null while in progress), `created_at` |
-| `approvals` | `id`, `workspace_id`, `request` jsonb, `reasons` jsonb, `status` (`pending`/`approved`/`denied`/`expired`/`failed_recheck`/`executed`), `expires_at`, `decided_by`, `decided_at` |
+| `approvals` | `id`, `workspace_id`, `request` jsonb, `reasons` jsonb, `status` (`pending`/`approved`/`denied`/`expired`/`failed_recheck`/`executed`), `expires_at`, `decided_by`, `decided_at`, `rerun_decision_seq`, `recheck_reasons` (the re-run's reasons for `failed_recheck`; `reasons` keeps the original hold reasons) |
 | `audit_events` | `workspace_id`, `seq` (PK together), `type`, `payload` jsonb, `prev_hash`, `hash`, `created_at` (`timestamptz(3)`) |
 | `audit_heads` | `workspace_id` (PK), `seq`, `hash`, `mac`, `updated_at` |
 | `rate_limits` | (`key`, `window_start`) PK, `count` |
@@ -98,6 +98,10 @@ Tools with no rail (for example `payee.update`) still go through the full flow. 
 - Asks the adapter for the outcome with `lookup(railIdempotencyKey)` (rail-adapters RAIL-21, RAIL-22). `lookup` is read-only, so the reconciler can never start a new payment (RES-8).
 - On a confirmed result, in one transaction: appends `rail_result` with `reconciled: true` and `decision_seq`, sets the reservation to `settled` or `released`, and rewrites the `idempotency.response` (RES-9).
 - If the outcome is still unknown, it changes nothing and logs the attempt (RES-7). `pnpm reconcile` also lists reservations still unknown after 24 hours for manual review. Listing never releases anything.
+- The lookup runs outside any transaction, so no lock is held across a network call. The write then selects the reservation `FOR UPDATE SKIP LOCKED` with `status = 'reserved'`; if another run already resolved it, this run skips it.
+- RES-9 rewrites the idempotency row only if it was created no later than the reservation. A newer row belongs to a request that reused the key after 24 hours.
+- A lookup error, a rail with no adapter (real mode before Phases 13 and 14), or an unknown rail name counts as unknown.
+- The cron route and `pnpm reconcile` also delete `rate_limits` windows older than 24 hours. The daily schedule is in `vercel.json`.
 
 ## Idempotency
 Each agent has its own idempotency keys (PXY-8, PXY-12 to PXY-14).
@@ -211,7 +215,20 @@ Approving runs expiry first, then `UPDATE approvals SET status='approved' WHERE 
 
 The re-run uses `approval:<approval_id>` as its idempotency key. It can't reuse the original request's key, because the stored response for that key is the `hold`, so idempotency (PXY-8) would return the hold and never execute. Replays of the original key keep returning the hold with its `approval_id`, and the client follows the approval to get the result. At most once (HITL-7) comes from the `pending → approved` update, and the derived key adds a second guard.
 
+Approving is one transaction: lock the agent's envelope, run expiry, move the approval `pending → approved`, append `approval_decided`, run the decision part of the pay flow (`decideGuarded`), then move it to `executed` or `failed_recheck`. If any step fails, everything rolls back and the approval stays `pending`. The rail call happens after the commit, as for any allowed request. The envelope is locked first because the pay flow locks the envelope before the audit head; taking the audit head first could deadlock with a concurrent pay request from the same agent. Unfreeze locks the envelope first for the same reason.
+
+The approved hold reasons are the hold codes in the approval's stored `reasons`. `evaluate()` matches them by code (money-and-policy-core design). Agent routes reject an `Idempotency-Key` that starts with `approval:` with 400, so an agent can't claim a re-run's key before the human approves. A re-run whose key is already claimed fails closed.
+
 If the re-run's decision is `allow`, the approval becomes `executed`, whatever the rail outcome. The rail outcome is recorded on the reservation and in `rail_result`, like any allowed request. If the decision is `deny`, or `hold` with any reason that wasn't approved (for example a new `ADVISORY_DRIFT`), the approval becomes `failed_recheck` with those reasons (HITL-3). No second approval is created automatically, so one approval can't turn into a chain of approvals.
+
+Events, each with an `actor` (HITL-8): `approval_decided` with `action` and `status` (`approved` or `denied`); then on approve, `approval_executed` (with the re-run's `decision_seq`) or a second `approval_decided` with `status: "failed_recheck"` and the reasons; `approval_expired` with `actor: "system"`. The re-run's `decision` event carries `approval_id` and `approved_hold_reasons`. Unfreeze writes `agent_unfrozen` with the actor and the old `frozen_at`.
+
+Responses:
+- Approve: 200 `{ approval_id, status: "executed" | "failed_recheck", decided_by, reasons?, result }`, where `result` is the re-run's pay-flow response plus its `http_status`. Deny: 200 `{ approval_id, status: "denied", decided_by }`.
+- 409 `APPROVAL_EXPIRED` or `APPROVAL_NOT_PENDING` (with the current `status`), 404 for an unknown or malformed ID, 400 for a body other than `{ action }`.
+- Unfreeze: 200 `{ agent_id, frozen: false, unfrozen_by }`, or 409 `AGENT_NOT_FROZEN`.
+- Authorization: 403 `AGENT_KEY_FORBIDDEN` for any `Authorization` header (checked before the database is opened), 403 `SANDBOX_RETIRED`, 401 `UNAUTHORIZED`, 403 `FORBIDDEN`, 429 `RATE_LIMITED` (30 sandbox actions of each kind per IP per minute).
+- `GET /api/v1/approvals` lists the signed-in user's workspace, or the current sandbox for anyone else, newest first (at most 100), with an optional `?status=` filter. Bearer headers get 403 here too.
 
 ## API
 | Method and path | Auth | Purpose |
