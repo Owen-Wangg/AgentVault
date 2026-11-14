@@ -124,6 +124,7 @@ export const GENESIS_HASH = "0".repeat(64);
 export interface ChainHead { seq: number; hash: string; mac: string }
 export function headMac(key: Uint8Array, workspaceId: string, seq: number, hash: string): string;
 export function verify(
+  workspaceId: string,                 // rows and heads from another workspace fail
   events: readonly StoredEvent[],
   head: ChainHead | null,
   key: Uint8Array,
@@ -157,7 +158,7 @@ These rules are close to RFC 8785 (JCS) but stricter: no non-integer numbers. A 
 
 `AUDIT_HEAD_KEY` is a 32-byte secret in environment variables, validated with Zod at startup and never logged. `audit_heads` is mutable by design, so it has no append-only trigger.
 
-`verify` checks, in order: each event's link and hash (`link`, `hash`), consecutive `seq` from 1 (`gap`), then the head (`head`). The head check passes only if the MAC is valid and `head.seq` and `head.hash` equal the last event's. A missing head row, or tail rows deleted after the triggers were dropped, reports `brokenAtSeq = last remaining seq + 1`. A forged head without the key fails the MAC check.
+`verify` checks each event in `seq` order: consecutive `seq` from 1 (`gap`), its link (`link`), and its hash and workspace (`hash`), then the head (`head`). The `seq` check comes first so that a deleted row is reported at its own `seq`. The head MAC is HMAC-SHA256 over `canonicalJson({ workspace_id, seq, hash })`. The head check passes only if the MAC is valid and `head.seq` and `head.hash` equal the last event's. A missing head row, or tail rows deleted after the triggers were dropped, reports `brokenAtSeq = last remaining seq + 1`. A forged head without the key fails the MAC check.
 
 **Known limit:** an attacker with database access who saved an older signed head row can delete the rows after it and restore that head. Detecting that needs a copy of the head outside the database. The dashboard's "Verify chain" result shows the head `seq`, so a drop is visible to anyone comparing results. An external anchor is out of scope.
 
