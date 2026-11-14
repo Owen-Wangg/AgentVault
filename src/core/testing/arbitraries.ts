@@ -1,6 +1,7 @@
 import fc from "fast-check";
 import type { TaskScope } from "@/core/intent/types";
 import { MAX_MICROS, type Micros, type Rail, micros } from "@/core/money";
+import { HOLD_REASONS, type HoldReason } from "@/core/policy/reasons";
 import type { Envelope, EvaluateInput, Limits, PayRequest, Window, WindowState } from "@/core/policy/types";
 import type { SessionState, ToolDef } from "@/core/taint/types";
 
@@ -136,15 +137,32 @@ export const toolDefArb = (name: string): fc.Arbitrary<ToolDef> =>
     rail: fc.constantFrom<Rail | null>("stripe", "x402", "mock", null),
   });
 
-/** A complete, valid input for `evaluate()`. The tool definition always matches `request.tool`. */
+/** Hold codes an approval re-run might carry (HITL-2). Duplicates are allowed: the schema accepts them. */
+export const approvedHoldReasonsArb = (): fc.Arbitrary<HoldReason[]> => fc.array(fc.constantFrom(...HOLD_REASONS), { maxLength: 4 });
+
+/**
+ * A complete, valid input for `evaluate()`. The tool definition always
+ * matches `request.tool`. Most inputs are first runs with no approval
+ * attached; about a third are approval re-runs with `approvedHoldReasons`.
+ */
 export const evaluateInputArb = (): fc.Arbitrary<EvaluateInput> =>
   payRequestArb().chain((request) =>
-    fc.record({
-      request: fc.constant(request),
-      envelope: envelopeArb(),
-      window: windowStateArb(),
-      session: sessionStateArb(),
-      scope: taskScopeArb(),
-      tool: toolDefArb(request.tool),
-    }),
+    fc
+      .record({
+        request: fc.constant(request),
+        envelope: envelopeArb(),
+        window: windowStateArb(),
+        session: sessionStateArb(),
+        scope: taskScopeArb(),
+        tool: toolDefArb(request.tool),
+        approved: fc.oneof({ arbitrary: fc.constant(undefined), weight: 2 }, { arbitrary: approvedHoldReasonsArb(), weight: 1 }),
+      })
+      // exactOptionalPropertyTypes: a first run has no approvedHoldReasons key at all.
+      .map(({ approved, ...input }): EvaluateInput => (approved === undefined ? input : { ...input, approvedHoldReasons: approved })),
   );
+
+/** The same input as a first run, with no approval attached. */
+export function withoutApproval(input: EvaluateInput): EvaluateInput {
+  const { approvedHoldReasons: _ignored, ...rest } = input;
+  return rest;
+}

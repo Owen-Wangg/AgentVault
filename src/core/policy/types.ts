@@ -1,7 +1,7 @@
 import type { TaskScope } from "@/core/intent/types";
 import type { Micros } from "@/core/money";
 import type { SessionState, ToolDef } from "@/core/taint/types";
-import type { ReasonCode } from "./reasons";
+import type { HoldReason, ReasonCode } from "./reasons";
 
 export type Window = "minute" | "hour" | "day";
 
@@ -62,6 +62,13 @@ export interface EvaluateInput {
   scope: TaskScope;
   /** The registry entry for `request.tool`. Its `privileged` flag drives the taint rule (TAINT-6). */
   tool: ToolDef;
+  /**
+   * Hold reasons a human approved (HITL-2), set only on an approval's
+   * re-run. Matching hold reasons are dropped from the decision. Deny
+   * reasons can't be approved: the schema rejects them, and they are never
+   * dropped (HITL-3, TAINT-9).
+   */
+  approvedHoldReasons?: readonly HoldReason[];
 }
 
 export interface ReasonDetail {

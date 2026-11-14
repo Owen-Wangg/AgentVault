@@ -1,6 +1,6 @@
 import { intentRules } from "@/core/intent/rules";
 import { taintRules } from "@/core/taint/rules";
-import { isDenyReason, isHoldReason } from "./reasons";
+import { type HoldReason, isDenyReason, isHoldReason } from "./reasons";
 import { allowListRule, approvalThresholdRule, frozenRule, txMaxRule, velocityRule, windowCapRule } from "./rules";
 import { EvaluateInputSchema } from "./schemas";
 import type { Decision, EvaluateInput, ReasonDetail, Rule } from "./types";
@@ -32,6 +32,18 @@ export function combine(reasons: readonly ReasonDetail[]): Decision {
   return { decision: "allow", reasons: [] };
 }
 
+/**
+ * HITL-2: drop the hold reasons a human approved, matched by code. A deny
+ * reason is never dropped, whatever the list says (HITL-3, TAINT-9), so an
+ * approved request runs only if every other rule still passes. A hold
+ * reason that wasn't approved stays, so the re-run fails its recheck.
+ */
+export function withoutApproved(reasons: readonly ReasonDetail[], approved: readonly HoldReason[] | undefined): ReasonDetail[] {
+  if (!approved || approved.length === 0) return [...reasons];
+  const set: ReadonlySet<string> = new Set(approved);
+  return reasons.filter((r) => !(isHoldReason(r.code) && set.has(r.code)));
+}
+
 function invalid(path?: readonly PropertyKey[]): Decision {
   const detail = path && path.length > 0 ? { detail: { path: path.map(String).join(".") } } : {};
   return { decision: "deny", reasons: [{ code: "INVALID_REQUEST", ...detail }] };
@@ -55,7 +67,7 @@ export function evaluate(input: EvaluateInput): Decision {
     const reasons = RULES.flatMap((rule) => rule(checked));
     // ENV-8: the approval threshold applies only to requests that pass every deny rule.
     if (!reasons.some((r) => isDenyReason(r.code))) reasons.push(...approvalThresholdRule(checked));
-    return combine(reasons);
+    return combine(withoutApproved(reasons, checked.approvedHoldReasons));
   } catch {
     return invalid();
   }

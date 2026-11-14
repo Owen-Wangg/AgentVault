@@ -7,15 +7,17 @@ import {
   SESSION_ID,
   TOOLS,
   VENDORS,
+  approvedHoldReasonsArb,
   envelopeArb,
   evaluateInputArb,
   limitKeys,
   limitsArb,
   microsWithEdges,
+  withoutApproval,
 } from "@/core/testing/arbitraries";
 import { baseInput } from "@/core/testing/policy-fixtures";
 import { combine, evaluate, intentRule, taintRule } from "./evaluate";
-import { REASON_CODES, isDenyReason, isHoldReason } from "./reasons";
+import { type HoldReason, REASON_CODES, isDenyReason, isHoldReason } from "./reasons";
 import { allowListRule, frozenRule, txMaxRule, velocityRule, windowCapRule } from "./rules";
 import { EvaluateInputSchema } from "./schemas";
 import type { Decision, Envelope, EvaluateInput, Limits, Window } from "./types";
@@ -64,9 +66,10 @@ const own = (map: Record<string, Limits>, key: string): Limits | undefined => (O
 /**
  * Run a sequence the way the server would: compute window state from the
  * history, evaluate, and record allowed requests as executed. Every call
- * counts toward calls per minute, including denied and held ones.
+ * counts toward calls per minute, including denied and held ones. When
+ * `approved` lists hold codes, every request runs as an approved re-run.
  */
-function simulate(envelope: Envelope, steps: readonly Step[]): Executed[] {
+function simulate(envelope: Envelope, steps: readonly Step[], approved: readonly HoldReason[] = []): Executed[] {
   const calls: { t: number }[] = [];
   const executed: Executed[] = [];
   let now = 0;
@@ -98,6 +101,7 @@ function simulate(envelope: Envelope, steps: readonly Step[]): Executed[] {
       session: { sessionId: SESSION_ID, agentFrozen: false, taintedAt: null, taintSourceUrl: null, sessionSpentMicros: micros(0n) },
       scope: { taskId: "task-1", allowedVendorCategories: ["weather"], allowedTools: [...TOOLS], budgetMicros: POLICY_MAX },
       tool: { name: step.tool, privileged: false, rail: null },
+      approvedHoldReasons: approved,
     };
     const decision = evaluate(input);
     expect(codes(decision)).not.toContain("INVALID_REQUEST");
@@ -112,11 +116,12 @@ describe("policy properties", () => {
   // any sequence of requests, where each allowed request updates the window
   // state, the sum of allowed amounts in any window never exceeds that
   // window's cap. Checked at every level (agent, vendor, tool), along with
-  // the per-transaction maximum and calls per minute.
-  it("ENV-1, ENV-2, ENV-3, ENV-9: allowed spend never exceeds any cap over a request sequence", () => {
+  // the per-transaction maximum and calls per minute. Requests may run as
+  // approval re-runs (HITL-2), so an approval can never lift a cap.
+  it("ENV-1, ENV-2, ENV-3, ENV-9, HITL-2: allowed spend never exceeds any cap over a request sequence", () => {
     fc.assert(
-      fc.property(envelopeArb(), fc.array(stepArb, { maxLength: 40 }), (envelope, steps) => {
-        const executed = simulate(envelope, steps);
+      fc.property(envelopeArb(), fc.array(stepArb, { maxLength: 40 }), approvedHoldReasonsArb(), (envelope, steps, approved) => {
+        const executed = simulate(envelope, steps, approved);
         executed.forEach((e, i) => {
           // Everything executed up to and including e. Steps can share a timestamp, so use order, not time.
           const upToE = executed.slice(0, i + 1);
@@ -206,13 +211,40 @@ describe("policy properties", () => {
     );
   });
 
-  // ENV-11: every reason a rule finds on its own appears in the decision.
+  // ENV-11: every reason a rule finds on its own appears in the decision,
+  // except a hold reason a human approved on a re-run (HITL-2).
   it("ENV-11: every rule's reasons appear in the decision", () => {
     fc.assert(
       fc.property(evaluateInputArb(), (input) => {
         const d = evaluate(input);
+        const approved: readonly string[] = input.approvedHoldReasons ?? [];
         for (const rule of [frozenRule, txMaxRule, windowCapRule, velocityRule, allowListRule, intentRule, taintRule]) {
-          for (const reason of rule(input)) expect(d.reasons).toContainEqual(reason);
+          for (const reason of rule(input)) {
+            if (isHoldReason(reason.code) && approved.includes(reason.code)) expect(d.reasons).not.toContainEqual(reason);
+            else expect(d.reasons).toContainEqual(reason);
+          }
+        }
+      }),
+      RUNS,
+    );
+  });
+
+  // HITL-2, HITL-3: an approval re-run satisfies only the hold reasons that
+  // were approved. Its reasons are exactly the first run's reasons minus
+  // the approved hold codes, so no deny reason is ever dropped, and the
+  // decision is deny whenever the first run had a deny reason.
+  it("HITL-2, HITL-3: approving hold reasons drops exactly those and never a deny reason", () => {
+    fc.assert(
+      fc.property(evaluateInputArb(), approvedHoldReasonsArb(), (input, approved) => {
+        const first = evaluate(withoutApproval(input));
+        const rerun = evaluate({ ...withoutApproval(input), approvedHoldReasons: approved });
+        expect(rerun.reasons).toEqual(first.reasons.filter((r) => !(isHoldReason(r.code) && (approved as string[]).includes(r.code))));
+        if (first.decision === "deny") expect(rerun.decision).toBe("deny");
+        expect(SEVERITY[rerun.decision]).toBeLessThanOrEqual(SEVERITY[first.decision]);
+        // Approving every hold reason of a held request allows it: nothing else stood in the way.
+        if (first.decision === "hold") {
+          const all = first.reasons.map((r) => r.code).filter(isHoldReason);
+          expect(evaluate({ ...withoutApproval(input), approvedHoldReasons: all })).toEqual({ decision: "allow", reasons: [] });
         }
       }),
       RUNS,

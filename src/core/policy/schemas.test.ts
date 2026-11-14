@@ -36,7 +36,11 @@ describe("ENV-15: input schemas", () => {
     ["an empty vendor", (i) => (i.request!.vendor = "")],
     ["a missing tool", (i) => delete i.request!.tool],
     ["an unknown request field", (i) => (i.request!.extra = "x")],
-    ["an unknown top-level field", (i) => ((i as Record<string, unknown>).approvedHoldReasons = [])],
+    ["an unknown top-level field", (i) => ((i as Record<string, unknown>).approved = ["HELD_TAINTED"])],
+    ["a deny code as an approved hold reason (HITL-3)", (i) => ((i as Record<string, unknown>).approvedHoldReasons = ["AGENT_FROZEN"])],
+    ["an unknown code as an approved hold reason", (i) => ((i as Record<string, unknown>).approvedHoldReasons = ["EVERYTHING"])],
+    ["approved hold reasons that aren't an array", (i) => ((i as Record<string, unknown>).approvedHoldReasons = "HELD_TAINTED")],
+    ["an approved hold reason with detail", (i) => ((i as Record<string, unknown>).approvedHoldReasons = [{ code: "HELD_TAINTED" }])],
     ["a fractional call count", (i) => (i.window!.callsLastMinute = 1.5)],
     ["a negative call count", (i) => (i.window!.callsLastMinute = -1)],
     ["a missing window", (i) => (i.window!.spentMicros = { minute: 0n, hour: 0n })],
@@ -56,6 +60,12 @@ describe("ENV-15: input schemas", () => {
     ["a non-string task category", (i) => (i.scope!.allowedVendorCategories = [1])],
   ])("ENV-15: rejects %s", (_name, change) => {
     expect(EvaluateInputSchema.safeParse(broken(change)).success).toBe(false);
+  });
+
+  it("HITL-2: accepts approved hold reasons on an approval re-run, including none", () => {
+    for (const approvedHoldReasons of [[], ["NEEDS_APPROVAL"], ["HELD_TAINTED", "NEEDS_APPROVAL", "ADVISORY_DRIFT"]] as const) {
+      expect(EvaluateInputSchema.safeParse({ ...validInput(), approvedHoldReasons }).success).toBe(true);
+    }
   });
 
   it.each([null, undefined, 42, "input", [], {}])("ENV-15: rejects %s as the whole input", (value) => {

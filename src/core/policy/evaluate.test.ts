@@ -297,3 +297,50 @@ describe("TAINT-6, INT-2, INT-3, INT-4: taint and intent through evaluate()", ()
     expect(evaluate(input)).toEqual({ decision: "deny", reasons: [{ code: "INVALID_REQUEST", detail: { path: "tool.name" } }] });
   });
 });
+
+describe("HITL-2, HITL-3, TAINT-9: approved hold reasons on a re-run", () => {
+  const SOURCE = "https://agentvault.example/vendor/docs/integration";
+  /** The injection scenario's $480 refund after the poisoned fetch: HELD_TAINTED and NEEDS_APPROVAL. */
+  const heldRefund = (): EvaluateInput => {
+    const input = withTool(withLimits({ agent: { approvalThresholdMicros: usd(100n) } }), REFUND_TOOL);
+    input.scope = { taskId: "billing", allowedVendorCategories: ["weather"], allowedTools: ["x402.pay", "stripe.refund"], budgetMicros: usd(1_000n) };
+    input.request.amountMicros = usd(480n);
+    input.session.taintedAt = "2026-11-21T10:00:00.000Z";
+    input.session.taintSourceUrl = SOURCE;
+    return input;
+  };
+
+  it("TAINT-9: approving both hold reasons allows the tainted refund when every other rule passes", () => {
+    expect(evaluate({ ...heldRefund(), approvedHoldReasons: ["HELD_TAINTED", "NEEDS_APPROVAL"] })).toEqual({ decision: "allow", reasons: [] });
+  });
+
+  it("HITL-2: only the approved hold reasons are dropped", () => {
+    expect(evaluate({ ...heldRefund(), approvedHoldReasons: ["NEEDS_APPROVAL"] })).toMatchObject({
+      decision: "hold",
+      reasons: [{ code: "HELD_TAINTED", detail: { sourceUrl: SOURCE } }],
+    });
+    expect(codes(evaluate({ ...heldRefund(), approvedHoldReasons: ["HELD_TAINTED"] }))).toEqual(["NEEDS_APPROVAL"]);
+    expect(codes(evaluate({ ...heldRefund(), approvedHoldReasons: ["ADVISORY_DRIFT"] }))).toEqual(["HELD_TAINTED", "NEEDS_APPROVAL"]);
+    expect(codes(evaluate({ ...heldRefund(), approvedHoldReasons: [] }))).toEqual(["HELD_TAINTED", "NEEDS_APPROVAL"]);
+  });
+
+  it("TAINT-9, HITL-3: an approved tainted refund is still denied when another rule now fails", () => {
+    const frozen = heldRefund();
+    frozen.session.agentFrozen = true;
+    expect(evaluate({ ...frozen, approvedHoldReasons: ["HELD_TAINTED", "NEEDS_APPROVAL"] })).toEqual({
+      decision: "deny",
+      reasons: [{ code: "AGENT_FROZEN" }],
+    });
+
+    const overBudget = heldRefund();
+    overBudget.session.sessionSpentMicros = usd(600n);
+    expect(codes(evaluate({ ...overBudget, approvedHoldReasons: ["HELD_TAINTED", "NEEDS_APPROVAL"] }))).toEqual(["OVER_TASK_BUDGET"]);
+  });
+
+  it("HITL-3: a deny code in the approved list is INVALID_REQUEST, never a way to drop a deny", () => {
+    const input = heldRefund();
+    input.session.agentFrozen = true;
+    const smuggled = { ...input, approvedHoldReasons: ["AGENT_FROZEN"] } as unknown as EvaluateInput;
+    expect(evaluate(smuggled)).toEqual({ decision: "deny", reasons: [{ code: "INVALID_REQUEST", detail: { path: "approvedHoldReasons.0" } }] });
+  });
+});

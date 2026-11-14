@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { MAX_MICROS, micros } from "@/core/money";
 import { evaluate } from "@/core/policy/evaluate";
 import type { EvaluateInput } from "@/core/policy/types";
-import { evaluateInputArb } from "@/core/testing/arbitraries";
+import { evaluateInputArb, withoutApproval } from "@/core/testing/arbitraries";
 import { isHighPrivilege } from "./rules";
 import { type FetchOutcome, type TaintState, afterFetch } from "./session";
 
@@ -31,8 +31,8 @@ describe("taint properties", () => {
   // any sequence of fetches and tool requests in which at least one
   // untrusted fetch happens, no privileged tool request after it reaches
   // `allow` unless an approval for `HELD_TAINTED` is attached.
-  // (Approvals arrive with HITL-2 in Phase 8; until then nothing can be attached.)
-  it("TAINT-5, TAINT-6: after an untrusted fetch, no privileged tool request is allowed", () => {
+  // About a third of the generated requests are approval re-runs (HITL-2).
+  it("TAINT-5, TAINT-6: after an untrusted fetch, no privileged tool request is allowed without an approval", () => {
     fc.assert(
       fc.property(fc.array(fc.oneof(fetchOp, requestOp), { minLength: 1, maxLength: 20 }), (ops) => {
         let taint: TaintState = { taintedAt: null, taintSourceUrl: null, taintContentSha256: null };
@@ -49,11 +49,13 @@ describe("taint properties", () => {
           };
           const decision = evaluate(input);
           const held = decision.reasons.some((r) => r.code === "HELD_TAINTED");
-          if (sawUntrusted && isHighPrivilege(input.tool)) {
+          const taintApproved = input.approvedHoldReasons?.includes("HELD_TAINTED") ?? false;
+          if (sawUntrusted && isHighPrivilege(input.tool) && !taintApproved) {
             expect(decision.decision).not.toBe("allow");
             expect(held).toBe(true);
           } else {
             // TAINT-7: without a taint, or for an ordinary tool, the taint rule adds nothing.
+            // HITL-2: with the taint approved, HELD_TAINTED is dropped.
             expect(held).toBe(false);
           }
         }
@@ -66,7 +68,7 @@ describe("taint properties", () => {
   // taint rule is the only thing between the request and `allow`.
   it("TAINT-6: a high-privilege request that would otherwise be allowed is held once the session is tainted", () => {
     const permissive = evaluateInputArb().map((input): EvaluateInput => ({
-      ...input,
+      ...withoutApproval(input),
       request: { ...input.request, vendorCategory: "weather" },
       envelope: { ...input.envelope, limits: {}, vendorLimits: {}, toolLimits: {}, allowedVendors: "*", allowedTools: "*" },
       window: { ...input.window, callsLastMinute: 0 },
@@ -80,6 +82,43 @@ describe("taint properties", () => {
         const decision = evaluate(tainted);
         if (isHighPrivilege(input.tool)) expect(decision).toMatchObject({ decision: "hold", reasons: [{ code: "HELD_TAINTED" }] });
         else expect(decision).toEqual({ decision: "allow", reasons: [] });
+      }),
+      RUNS,
+    );
+  });
+
+  // TAINT-9 (HITL-2): an approved HELD_TAINTED request executes only if all
+  // other rules still pass. Checked on requests that every other rule
+  // allows, then with exactly one other rule broken.
+  it("TAINT-9: an approved tainted request is allowed only while every other rule passes", () => {
+    const TAINTED = { taintedAt: "2026-11-21T10:00:00.000Z", taintSourceUrl: "https://example.com/" };
+    const breakOne = fc.constantFrom<[string, (i: EvaluateInput) => EvaluateInput]>(
+      ["frozen", (i) => ({ ...i, session: { ...i.session, agentFrozen: true } })],
+      ["tx max", (i) => ({ ...i, envelope: { ...i.envelope, limits: { txMaxMicros: micros(0n) } } })],
+      ["tool not allowed", (i) => ({ ...i, envelope: { ...i.envelope, allowedTools: [] } })],
+      ["intent drift", (i) => ({ ...i, scope: { ...i.scope, allowedTools: [] } })],
+      ["task budget", (i) => ({ ...i, scope: { ...i.scope, budgetMicros: micros(0n) } })],
+      ["velocity", (i) => ({ ...i, envelope: { ...i.envelope, limits: { callsPerMinute: 0 } } })],
+    );
+    const permissivePrivileged = evaluateInputArb()
+      .filter((input) => input.request.amountMicros > 0n)
+      .map((input): EvaluateInput => ({
+        ...withoutApproval(input),
+        request: { ...input.request, vendorCategory: "weather" },
+        envelope: { ...input.envelope, limits: {}, vendorLimits: {}, toolLimits: {}, allowedVendors: "*", allowedTools: "*" },
+        window: { ...input.window, callsLastMinute: 0 },
+        session: { ...input.session, agentFrozen: false, sessionSpentMicros: micros(0n), ...TAINTED },
+        scope: { ...input.scope, allowedVendorCategories: ["weather"], allowedTools: [input.request.tool], budgetMicros: MAX_MICROS },
+        tool: { ...input.tool, privileged: true },
+      }));
+    fc.assert(
+      fc.property(permissivePrivileged, breakOne, (input, [, broken]) => {
+        expect(evaluate(input)).toMatchObject({ decision: "hold", reasons: [{ code: "HELD_TAINTED" }] });
+        const approved: EvaluateInput = { ...input, approvedHoldReasons: ["HELD_TAINTED"] };
+        expect(evaluate(approved)).toEqual({ decision: "allow", reasons: [] });
+        const failing = evaluate(broken(approved));
+        expect(failing.decision).toBe("deny");
+        expect(failing.reasons.map((r) => r.code)).not.toContain("HELD_TAINTED");
       }),
       RUNS,
     );

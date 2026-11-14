@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { MAX_MICROS, type Micros } from "@/core/money";
+import { HOLD_REASONS } from "./reasons";
 
 /**
  * Zod schemas for `evaluate()` input. The server has already parsed the wire
@@ -111,6 +112,8 @@ export const EvaluateInputSchema = z
     session: SessionStateSchema,
     scope: TaskScopeSchema,
     tool: ToolDefSchema,
+    // Hold codes only: a deny code here is a wiring mistake and fails closed (HITL-3).
+    approvedHoldReasons: z.array(z.enum(HOLD_REASONS)).readonly().optional(),
   })
   .superRefine((input, ctx) => {
     // Pieces loaded for a different agent or session must never be combined.
