@@ -7,7 +7,8 @@ inclusion: always
 ## Runtime and language
 - **TypeScript** with `strict: true`, `noUncheckedIndexedAccess: true`, and `exactOptionalPropertyTypes: true`.
 - **Node.js 22+** (required by the CDP x402 SDK).
-- **pnpm** as the package manager. Do not commit `package-lock.json` or `yarn.lock`.
+- **pnpm** (12.x) as the package manager. Do not commit `package-lock.json` or `yarn.lock`. pnpm runs no install scripts unless they're approved in `pnpm-workspace.yaml` (`allowBuilds`). Approve only packages that need one, by name.
+- **TypeScript 6.0**, pinned with `~6.0`. TypeScript 7 (the native compiler) is out, but `typescript-eslint`, which `eslint-config-next` depends on, supports only TypeScript below 6.1. Revisit when it adds TypeScript 7 support.
 - The developer works on **Windows with PowerShell**. When giving commands, give PowerShell versions where they differ from bash.
 
 ## Application
