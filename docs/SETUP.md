@@ -82,6 +82,25 @@ This only writes a SQL file. It doesn't touch any database. Read the file before
 
 Stop the container with `docker stop agentvault-db` and start it again with `docker start agentvault-db`. The data survives a restart.
 
+### Audit key and the first sandbox
+
+The audit log signs each workspace's latest entry with a secret key, so rows deleted from the end of the log are detected. Generate a key and put it in `.env.local` as `AUDIT_HEAD_KEY`:
+
+```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Keep the key once you've used it. If it changes, every existing log fails verification, because the old signatures no longer match. Generate `CRON_SECRET` the same way.
+
+Then create the public sandbox workspace and check the audit log:
+
+```powershell
+pnpm db:seed
+pnpm audit:verify
+```
+
+`pnpm audit:verify` prints one line per workspace, such as `OK, 1 events`, or the first broken entry. `pnpm sandbox:reset` replaces the sandbox with a fresh one. The old one is kept, read-only, and still verifies.
+
 ### Integration tests
 
 Files named `*.int.test.ts` need Postgres. With `DATABASE_URL_TEST` set, each test file creates its own throwaway database on that server and drops it afterwards. Without it, they run on [PGlite](https://pglite.dev), a real Postgres compiled to WebAssembly that runs in memory, so `pnpm test` works with no setup. PGlite has a single connection, so the concurrency tests in later phases need `DATABASE_URL_TEST`.
@@ -107,6 +126,9 @@ pnpm test --run
 | `pnpm check:kiro` | Fails if `.kiro` or anything in it is gitignored. |
 | `pnpm db:generate` | Writes a new SQL migration from `src/server/db/schema.ts`. |
 | `pnpm db:migrate` | Applies new migrations to `DATABASE_URL`. |
+| `pnpm db:seed` | Creates the first sandbox workspace if there is none. |
+| `pnpm sandbox:reset` | Replaces the sandbox with a fresh seeded one. Nothing is deleted. |
+| `pnpm audit:verify` | Checks every workspace's audit hash chain. Pass workspace IDs to check only those. |
 | `pnpm demo:policy` | Prints a table of policy decisions for a sample request sequence. |
 
 ## 6. Kiro hooks
