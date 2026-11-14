@@ -24,7 +24,8 @@
     "db:migrate": "tsx scripts/db-migrate.ts",
     "db:seed": "tsx scripts/db-seed.ts",
     "sandbox:reset": "tsx scripts/sandbox-reset.ts",
-    "audit:verify": "tsx scripts/audit-verify.ts"
+    "audit:verify": "tsx scripts/audit-verify.ts",
+    "env:check": "tsx scripts/env-check.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.0",
