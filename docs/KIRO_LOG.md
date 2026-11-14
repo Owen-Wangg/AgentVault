@@ -31,3 +31,6 @@ Raw notes for the Devpost "How Kiro was used" write-up. The `devlog` hook (Stop 
   - The `.kiro` gitignore check first reported false matches. Git's `check-ignore` misreports paths that end in a slash, so the script now passes folders without one.
   - TypeScript 7 is the latest, but `typescript-eslint` supports only versions below 6.1, so TypeScript is pinned to 6.0.
   - pnpm 12 blocks install scripts by default. Only `esbuild` is approved.
+- **Phase 3: money core** (money-and-policy-core tasks 1–2). `Micros`, exact parsing and display, guarded arithmetic, and rail conversion, with 88 new tests.
+  - **Property test catching a float bug (write-up demo).** A fixture converts micros to Stripe cents with floats and rounds to the nearest cent. Property 3 ("a debit never rounds below the amount") fails on it with seed `20261114`, and fast-check shrinks the counterexample to `1n`: one micro is charged as 0 cents. The real version rounds up and passes 1,000 runs.
+  - Zod 4 runs `.refine()` even after a `.regex()` check fails, so `BigInt("1.5")` would have thrown instead of returning a validation error. The refine now converts only well-formed strings, and a test covers the bad inputs.

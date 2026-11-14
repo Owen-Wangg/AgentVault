@@ -8,7 +8,7 @@ Deployment target: Vercel **Hobby**. Cron jobs run at most once per day (see `te
 |---|---|---|---|
 | 1 | Nov 13 | Planning: research, 7 specs, steering, hooks | Done |
 | 2 | Nov 14 | Project setup (checklist below) | Done |
-| 3 | Nov 15 | money-and-policy-core tasks 1–2 | |
+| 3 | Nov 15 | money-and-policy-core tasks 1–2 | Done |
 | 4 | Nov 16–17 | money-and-policy-core tasks 3–6 | |
 | 5 | Nov 18 | audit-and-approvals tasks 1–3 | |
 | 6 | Nov 19–20 | rail-adapters tasks 1–2, then audit-and-approvals tasks 4–6 | |

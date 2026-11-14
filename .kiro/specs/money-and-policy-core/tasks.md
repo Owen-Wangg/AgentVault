@@ -2,14 +2,14 @@
 
 Plan (`docs/PLAN.md`): **Phase 3** = tasks 1–2. **Phase 4** = tasks 3–6.
 
-- [ ] 1. Build the `Micros` type and arithmetic in `src/core/money/micros.ts`
+- [x] 1. Build the `Micros` type and arithmetic in `src/core/money/micros.ts`
   - Branded type, `micros`, `fromDecimalString`, `fromMicrosString`, `toMicrosString`, `toDecimalString`, `toDisplay`, `add`, `sub`, `sum`, `cmp`, and `MicrosSchema` (Zod)
   - Typed errors `InvalidAmountError`, `AmountOutOfRangeError`
   - Unit tests for edge cases: `"0"`, `"0.000001"`, `"1."`, `".5"`, `"1e3"`, `"-1"`, 7 decimals, `MAX_MICROS`
   - Property tests 1 and 2 from the design doc
   - _Requirements: MON-1, MON-2, MON-3, MON-4, MON-5, MON-6_
 
-- [ ] 2. Build rail conversion in `src/core/money/rail-units.ts`
+- [x] 2. Build rail conversion in `src/core/money/rail-units.ts`
   - `toRailUnits`, `fromRailUnits`, `chargeableMicros` (debits rounded up, credits counted in full)
   - Property tests 3, 4, and 9
   - Test fixture: a float-based implementation that the properties catch (save the failing seed in the write-up notes)
