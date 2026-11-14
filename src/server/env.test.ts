@@ -1,0 +1,66 @@
+import { afterEach, describe, expect, it } from "vitest";
+import { EnvError, env, resetEnvCache } from "./env";
+
+const saved = { ...process.env };
+afterEach(() => {
+  process.env = { ...saved };
+  resetEnvCache();
+});
+
+function set(name: string, value: string | undefined) {
+  if (value === undefined) delete process.env[name];
+  else process.env[name] = value;
+  resetEnvCache();
+}
+
+describe("AUD-7: AUDIT_HEAD_KEY", () => {
+  it("AUD-7: accepts 32 bytes in base64 or base64url", () => {
+    const bytes = Buffer.from(Array.from({ length: 32 }, (_, i) => i * 7));
+    set("AUDIT_HEAD_KEY", bytes.toString("base64"));
+    expect(Buffer.from(env.auditHeadKey()).equals(bytes)).toBe(true);
+    set("AUDIT_HEAD_KEY", bytes.toString("base64url"));
+    expect(Buffer.from(env.auditHeadKey()).equals(bytes)).toBe(true);
+  });
+
+  it.each([16, 31, 33, 64])("AUD-7: rejects a %s-byte key", (n) => {
+    set("AUDIT_HEAD_KEY", Buffer.alloc(n, 1).toString("base64"));
+    expect(() => env.auditHeadKey()).toThrow("exactly 32 bytes");
+  });
+
+  it("AUD-7: rejects a missing or non-base64 key", () => {
+    set("AUDIT_HEAD_KEY", undefined);
+    expect(() => env.auditHeadKey()).toThrow("AUDIT_HEAD_KEY is not set");
+    set("AUDIT_HEAD_KEY", "replace-with-32-random-bytes-base64!");
+    expect(() => env.auditHeadKey()).toThrow(EnvError);
+  });
+
+  it("AUD-5: error messages never contain the value", () => {
+    const secret = Buffer.alloc(20, 9).toString("base64");
+    set("AUDIT_HEAD_KEY", secret);
+    expect(() => env.auditHeadKey()).toThrow();
+    try {
+      env.auditHeadKey();
+    } catch (error) {
+      expect(String(error)).not.toContain(secret);
+    }
+  });
+});
+
+describe("environment variables", () => {
+  it("rejects a short CRON_SECRET", () => {
+    set("CRON_SECRET", "short");
+    expect(() => env.cronSecret()).toThrow("at least 32 characters");
+  });
+
+  it("rejects a DATABASE_URL that isn't a postgres URL", () => {
+    set("DATABASE_URL", "mysql://x");
+    expect(() => env.databaseUrl()).toThrow("DATABASE_URL");
+  });
+
+  it("defaults APP_ORIGIN to localhost and normalizes it to an origin", () => {
+    set("APP_ORIGIN", undefined);
+    expect(env.appOrigin()).toBe("http://localhost:3000");
+    set("APP_ORIGIN", "https://agentvault.example/some/path");
+    expect(env.appOrigin()).toBe("https://agentvault.example");
+  });
+});
