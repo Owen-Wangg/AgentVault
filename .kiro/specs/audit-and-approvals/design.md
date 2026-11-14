@@ -263,4 +263,4 @@ Response shape: `{ decision, reasons, approval_id?, rail_ref?, rail_status?, eve
 - `pnpm audit:verify` and `pnpm reconcile` CLIs for the demo.
 
 ## Open items
-- **x402 and Stripe `lookup()` details** are confirmed during rail-adapters Tasks 12 and 13. Until a rail's `lookup` can prove an outcome, that rail's unknown outcomes stay `reserved` and show up in `pnpm reconcile` for manual review.
+- **x402 and Stripe `lookup()` details** are confirmed during rail-adapters tasks 5 and 8 (Phases 13 and 14). Until a rail's `lookup` can prove an outcome, that rail's unknown outcomes stay `reserved` and show up in `pnpm reconcile` for manual review.

@@ -1,6 +1,6 @@
 # Tasks: Money and Policy Core
 
-Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entries here are items): **Task 3** (Nov 15) = items 1–2. **Task 4** (Nov 16–17) = items 3–6.
+Plan (`docs/PLAN.md`): **Phase 3** = tasks 1–2. **Phase 4** = tasks 3–6.
 
 - [ ] 1. Build the `Micros` type and arithmetic in `src/core/money/micros.ts`
   - Branded type, `micros`, `fromDecimalString`, `fromMicrosString`, `toMicrosString`, `toDecimalString`, `toDisplay`, `add`, `sub`, `sum`, `cmp`, and `MicrosSchema` (Zod)
@@ -17,7 +17,7 @@ Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entrie
 
 - [ ] 3. Define policy types, reason codes, and Zod schemas in `src/core/policy`
   - `types.ts`, `reasons.ts`, `schemas.ts`
-  - Add envelope, window-state, and request arbitraries to `src/core/testing/arbitraries.ts` (the file and its money generators are created in Task 2)
+  - Add envelope, window-state, and request arbitraries to `src/core/testing/arbitraries.ts` (the file and its money generators are created in Phase 2, project setup)
   - _Requirements: ENV-11, ENV-15_
 
 - [ ] 4. Implement the envelope rule functions
@@ -27,7 +27,7 @@ Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entrie
   - _Requirements: ENV-1, ENV-2, ENV-3, ENV-5, ENV-6, ENV-7, ENV-8, ENV-9, ENV-10_
 
 - [ ] 5. Implement `evaluate()` and `combine()`
-  - Collects reasons from all rules (including taint and intent rules once they exist; stub them as returning `[]` until Task 7)
+  - Collects reasons from all rules (including taint and intent rules once they exist; stub them as returning `[]` until taint-and-intent task 3, Phase 7)
   - Never throws; invalid input becomes `INVALID_REQUEST`
   - Property tests 5–8
   - _Requirements: ENV-4 (reported only), ENV-11, ENV-12, ENV-13, ENV-14, ENV-15_

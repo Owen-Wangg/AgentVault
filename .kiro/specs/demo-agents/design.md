@@ -53,7 +53,7 @@ For the injection scenario, the scripted agent extracts the injected instruction
 - Concurrency: one run per scenario at a time, enforced with a Postgres advisory lock.
 
 ## Gemini agent (optional)
-- `@google/genai` with function calling. Model: a current Flash-tier model available on the free tier, chosen in Task 16 after checking AI Studio's rate-limit page.
+- `@google/genai` with function calling. Model: a current Flash-tier model available on the free tier, chosen in task 5 (Phase 17) after checking AI Studio's rate-limit page.
 - System prompt states the task. The agent gets the three tools only. Each tool call is Zod-validated (AGT-13).
 - After each `pay` or `request_tool` call, a second short Gemini call rates "does this action match the task?" from 0 to 100 and passes it as `advisory_drift_score` (AGT-16).
 - Hard cap of 15 tool calls (AGT-15). On 429, stop and show the scripted fallback (AGT-14).

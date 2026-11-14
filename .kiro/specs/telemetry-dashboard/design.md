@@ -71,4 +71,4 @@ The `satisfies` check makes a missing string a compile error.
 - Property 1 against a fake event source in the stream module; property 3 shared with the money tests.
 - Component tests (Vitest + Testing Library) for amount display and the envelope form.
 - Playwright: open the sandbox without signing in, run the prompt-injection scenario, approve the held refund in the inbox, see it in the feed (UI-21).
-- Lighthouse accessibility score ≥ 95 on the overview page in both themes (manual check, Task 17).
+- Lighthouse accessibility score ≥ 95 on the overview page in both themes (manual check, task 9).

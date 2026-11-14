@@ -5,7 +5,7 @@
       "name": "Keep .kiro out of .gitignore",
       "enabled": false,
       "trigger": "PostFileSave",
-      "description": "Fails loudly if .kiro or any file in it becomes gitignored, which would risk Devpost disqualification. Disabled until Task 2 creates the script.",
+      "description": "Fails loudly if .kiro or any file in it becomes gitignored, which would risk Devpost disqualification. Disabled until project setup (Phase 2 in docs/PLAN.md) creates the script.",
       "matcher": "(^|[\\\\/])\\.gitignore$",
       "action": {
         "type": "command",

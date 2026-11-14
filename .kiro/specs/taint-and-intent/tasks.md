@@ -1,6 +1,6 @@
 # Tasks: Taint Tracking and Intent Scope
 
-Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entries here are items): **Task 7** (Nov 20–21) = items 1–6. **Task 16** (Nov 30, optional) uses item 7.
+Plan (`docs/PLAN.md`): **Phase 7** = tasks 1–6. **Phase 17** (optional) uses task 7.
 
 - [ ] 1. Implement origin labeling and taint rules in `src/core/taint`
   - `labelOrigin` with origin and path-prefix matching
@@ -14,7 +14,7 @@ Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entrie
   - _Requirements: INT-1, INT-2, INT-3, INT-4, INT-5, INT-6_
 
 - [ ] 3. Wire taint and intent rules into `evaluate()`
-  - Replace the Task 4 stubs; re-run all money-and-policy-core properties
+  - Replace the stubs from money-and-policy-core task 5; re-run all money-and-policy-core properties
   - _Requirements: TAINT-6, INT-2, INT-3, INT-4_
 
 - [ ] 4. Build the SSRF-safe fetcher and `POST /api/v1/fetch`

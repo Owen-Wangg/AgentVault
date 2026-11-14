@@ -1,6 +1,6 @@
 # Tasks: Telemetry and Dashboard
 
-Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entries here are items): **Task 9** (Nov 23) = item 1. **Task 10** (Nov 23–25) = items 2–7. **Task 14** (Nov 29) = item 8. **Task 17** (Dec 1) = item 9.
+Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase 12** = task 7 (after demo-agents tasks 1–4, which its Playwright test needs). **Phase 15** = task 8. **Phase 18** = task 9.
 
 - [ ] 1. Build the SSE endpoint `GET /api/v1/events`
   - Cursor polling, heartbeat, clean close before the duration limit, workspace scoping
@@ -13,6 +13,7 @@ Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entrie
 
 - [ ] 3. Add Auth.js with GitHub, workspace resolution, and the sandbox
   - Step-by-step GitHub OAuth app setup in `docs/SETUP.md`
+  - Replace the `getSessionUser()` stub from audit-and-approvals task 7 with the Auth.js session
   - Sandbox badge, rate limiting on sandbox mutations, anonymous approve/deny/unfreeze in the sandbox with a "mock rails only" note
   - _Requirements: UI-1, UI-2, UI-4, UI-21_
 
@@ -41,5 +42,5 @@ Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entrie
 
 - [ ] 9. Polish and accessibility pass
   - Contrast check of every color pair in both themes, keyboard walkthrough, 375 px layout check, Lighthouse ≥ 95
-  - Nightly sandbox reset: Vercel Cron entry for `/api/cron/sandbox-reset` (route built in audit-and-approvals item 3), client reload when the sandbox ID changes
+  - Nightly sandbox reset: Vercel Cron entry for `/api/cron/sandbox-reset` (route built in audit-and-approvals task 3), client reload when the sandbox ID changes
   - _Requirements: UI-3, UI-12, UI-13, UI-14_

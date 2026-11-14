@@ -5,7 +5,7 @@
       "name": "Guard dangerous shell commands",
       "enabled": false,
       "trigger": "PreToolUse",
-      "description": "AgentVault's own rule applied to Kiro: blocks rm -rf / Remove-Item -Recurse -Force, git push --force, git reset --hard, and reading .env files. The script exits 2 to block. Disabled until Task 2 creates the script.",
+      "description": "AgentVault's own rule applied to Kiro: blocks rm -rf / Remove-Item -Recurse -Force, git push --force, git reset --hard, and reading .env files. The script exits 2 to block. Disabled until project setup (Phase 2 in docs/PLAN.md) creates the script.",
       "matcher": "shell",
       "action": {
         "type": "command",

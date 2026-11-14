@@ -5,7 +5,7 @@
       "name": "No floats for money",
       "enabled": false,
       "trigger": "PostFileSave",
-      "description": "Flags parseFloat, toFixed, Number() on amounts, and number-typed *Micros fields (security-standards.md section 1). Disabled until Task 2 creates the script.",
+      "description": "Flags parseFloat, toFixed, Number() on amounts, and number-typed *Micros fields (security-standards.md section 1). Disabled until project setup (Phase 2 in docs/PLAN.md) creates the script.",
       "matcher": "\\.(ts|tsx)$",
       "action": {
         "type": "command",

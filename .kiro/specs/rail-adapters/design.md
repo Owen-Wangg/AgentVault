@@ -44,8 +44,8 @@ export type RailLookup =
 | Rail | How it finds the outcome |
 |---|---|
 | Mock | Reads its record for the key, or the result a test set with `setLookupResult(key, result)` |
-| x402 | The USDC payment is an EIP-3009 authorization. `lookup` reads `authorizationState(payer, nonce)` on the Base Sepolia USDC contract. Used means `settled` (the transaction hash comes from the `AuthorizationUsed` event). Unused **and** past `validBefore` means `failed`. Unused before `validBefore` means `unknown`, because the facilitator can still submit it. This needs the nonce and `validBefore` for the key: derive the nonce from `sha256(idempotencyKey)` if the x402 client allows a custom nonce, otherwise store both on the reservation before sending. Confirm in Task 12. |
-| Stripe | Refunds: list refunds for the PaymentIntent and match the `metadata.idempotency_key` set at creation. Payments: find the PaymentIntent created from the SPT by its `metadata.idempotency_key`, if the MPP flow allows metadata. Confirm in Task 13. If absence can't be proven, return `unknown`. |
+| x402 | The USDC payment is an EIP-3009 authorization. `lookup` reads `authorizationState(payer, nonce)` on the Base Sepolia USDC contract. Used means `settled` (the transaction hash comes from the `AuthorizationUsed` event). Unused **and** past `validBefore` means `failed`. Unused before `validBefore` means `unknown`, because the facilitator can still submit it. This needs the nonce and `validBefore` for the key: derive the nonce from `sha256(idempotencyKey)` if the x402 client allows a custom nonce, otherwise store both on the reservation before sending. Confirm in task 5. |
+| Stripe | Refunds: list refunds for the PaymentIntent and match the `metadata.idempotency_key` set at creation. Payments: find the PaymentIntent created from the SPT by its `metadata.idempotency_key`, if the MPP flow allows metadata. Confirm in task 8. If absence can't be proven, return `unknown`. |
 
 `lookup` never re-sends a request. Retrying `execute` with the same key is not used as a lookup, because only Stripe guarantees idempotent replays.
 
@@ -62,14 +62,14 @@ export type RailLookup =
 
 ## x402 adapter
 - **Vendor side** (`app/vendor/api/weather/route.ts`): `createX402Server({ environment: "development", payToConfig: { type: "address", evm: X402_PAY_TO }, routes: { "GET /vendor/api/weather": { price, networks: ["eip155:84532"] } } })` with the Next.js adapter from the CDP runnable examples.
-- **Payer side**: an x402 client (expected: `@x402/fetch` or the client in `@x402/core` with `@x402/evm` signer, confirmed during Task 12) with a `viem` account from `AGENT_WALLET_PRIVATE_KEY`.
+- **Payer side**: an x402 client (expected: `@x402/fetch` or the client in `@x402/core` with `@x402/evm` signer, confirmed during task 5) with a `viem` account from `AGENT_WALLET_PRIVATE_KEY`.
 - Flow: `quote()` makes an unpaid request and parses the 402 requirements. `execute()` checks the challenge amount equals `toRailUnits(approvedMicros, "x402", "debit")` (RAIL-13), signs, retries, and reads the settlement transaction hash from the response header.
 - Explorer link: `https://sepolia.basescan.org/tx/<hash>`.
-- **Price:** start at `$0.01` per call on the real rail. Whether the CDP facilitator settles sub-cent amounts (for example `$0.0015`) on Base Sepolia is unconfirmed; test it in Task 12. The mock rail uses `$0.0015` to show sub-cent accounting either way.
+- **Price:** start at `$0.01` per call on the real rail. Whether the CDP facilitator settles sub-cent amounts (for example `$0.0015`) on Base Sepolia is unconfirmed; test it in task 4. The mock rail uses `$0.0015` to show sub-cent accounting either way.
 
 ## Stripe MPP adapter
 - **Vendor side** (`app/vendor/api/report/route.ts`): `Mppx.create({ methods: stripe.create({ client, networkId: STRIPE_PROFILE_ID, livemode: false }).defaultMethods(), secretKey })`, then `mppx.charge({ amount: "0.50" })(request)`. A 402 returns `response.challenge`.
-- **Payer side**: create a test SPT with `POST /v1/test_helpers/shared_payment/granted_tokens` (`payment_method=pm_card_visa`, `usage_limits[currency]=usd`, `usage_limits[max_amount]=<cents>`, `usage_limits[expires_at]=<now+10min>`, header `Stripe-Version: 2026-09-30.preview`). Present it to the challenge with the `mppx` client (confirmed during Task 13).
+- **Payer side**: create a test SPT with `POST /v1/test_helpers/shared_payment/granted_tokens` (`payment_method=pm_card_visa`, `usage_limits[currency]=usd`, `usage_limits[max_amount]=<cents>`, `usage_limits[expires_at]=<now+10min>`, header `Stripe-Version: 2026-09-30.preview`). Present it to the challenge with the `mppx` client (confirmed during task 8).
 - **Refunds**: `stripe.refunds.create({ payment_intent, amount }, { idempotencyKey })`. The seed creates a $500 test PaymentIntent that the prompt-injection scenario's $480 refund targets.
 - Minimum: 50 cents (RAIL-4).
 - Fallback if the payer-side SPT flow can't be completed in time: the vendor side and refunds stay real; the payer side uses the mock adapter. (This is step 3 of the scope-cut order.)

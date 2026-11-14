@@ -1,6 +1,6 @@
 # Tasks: Audit, Proxy Flow, and Approvals
 
-Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entries here are items): **Task 5** (Nov 18) = items 1–3. **Task 6** (Nov 19) = items 4–6. **Task 8** (Nov 22) = items 7–9.
+Plan (`docs/PLAN.md`): **Phase 5** = tasks 1–3. **Phase 6** = tasks 4–6. **Phase 8** = tasks 7–9.
 
 - [ ] 1. Implement the pure canonical-JSON and hash-chain modules in `src/core/audit/`
   - `canonical.ts`: `canonicalJson` with the CJ rules table from the design doc; `CanonicalJsonError`
@@ -33,7 +33,7 @@ Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entrie
 - [ ] 5. Implement `runGuardedRequest()` with reservations and idempotency
   - Locked envelope, idempotency claim (live = under 24 h; 422 on a different `request_hash`, 409 while in progress), frozen flag read after the lock, window state from `reserved` and `settled` reservations, `evaluate()`, decision event, reservation on allow, freeze on velocity, approval on hold, commit
   - Rail call on allow, `classifyRailResult` in `src/server/rails/outcome.ts`, `rail_result` event, settle / release / keep the reservation, store the idempotency response
-  - Uses the mock rail until Tasks 12–13
+  - Uses the mock rail until Phases 13–14
   - _Requirements: PXY-4, PXY-5, PXY-6, PXY-7, PXY-8, PXY-10, PXY-11, PXY-12, PXY-13, PXY-14, RES-1, RES-2, RES-3, RES-4, RES-5, HITL-1_
 
 - [ ] 6. Add `POST /api/v1/pay` and its tests
@@ -46,6 +46,7 @@ Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entrie
 - [ ] 7. Implement the approvals service and endpoints
   - `GET /api/v1/approvals`, `POST /api/v1/approvals/:id`, `POST /api/v1/agents/:id/unfreeze`
   - Authorization order: any bearer header → 403; current sandbox → allowed as `sandbox_visitor` (rate-limited); otherwise a session in the target workspace; retired sandbox → 403
+  - Read the user through `getSessionUser()` in `src/server/auth/session.ts`, which returns `null` until telemetry-dashboard task 3 wires in Auth.js; tests inject a fake user
   - Expiry on every read and action, with one `approval_expired` event per approval; 409 `APPROVAL_EXPIRED` and `APPROVAL_NOT_PENDING`
   - Re-run through `runGuardedRequest` with `approvedHoldReasons` and the idempotency key `approval:<id>`; an unapproved hold reason on re-run → `failed_recheck`
   - Integration tests: agent key → 403 in a normal workspace and in the sandbox; anonymous approve works in the sandbox, 401 elsewhere; approving for a frozen agent → `failed_recheck`
@@ -59,6 +60,6 @@ Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entrie
 - [ ] 9. Implement the reconciler
   - `src/server/rails/reconcile.ts`; triggered by `after()` on each pay or tool request (up to 5 of that agent's stale reservations), `GET /api/cron/reconcile` (`CRON_SECRET`, daily on Hobby), and `pnpm reconcile` (also lists reservations unknown for over 24 hours)
   - `FOR UPDATE SKIP LOCKED`, lookup through the adapter's `lookup()` only (rail-adapters RAIL-21), `rail_result` with `reconciled: true`, idempotency response rewrite, cleanup of idempotency rows older than 24 hours
-  - Needs the mock adapter's `lookup()` (rail-adapters item 2)
+  - Needs the mock adapter's `lookup()` (rail-adapters task 2)
   - Integration tests and property 6 (no release without confirmed failure)
   - _Requirements: RES-3, RES-4, RES-6, RES-7, RES-8, RES-9, PXY-13_

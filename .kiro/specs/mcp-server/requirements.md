@@ -1,7 +1,7 @@
 # Requirements: MCP Server
 
 ## Introduction
-This spec covers an MCP (Model Context Protocol) server that lets any MCP client, such as Kiro or Claude Desktop, route payments and web reads through AgentVault. It reuses `runGuardedRequest` and the fetcher, so MCP calls get exactly the same protections as the HTTP API. This milestone comes after the core is done (global Task 15).
+This spec covers an MCP (Model Context Protocol) server that lets any MCP client, such as Kiro or Claude Desktop, route payments and web reads through AgentVault. It reuses `runGuardedRequest` and the fetcher, so MCP calls get exactly the same protections as the HTTP API. This milestone comes after the core is done (Phase 16 in `docs/PLAN.md`).
 
 ## Requirement 1: Tools
 **User story:** As a developer using an MCP client, I want AgentVault's protections as tools, so that my existing agent gets spend limits without code changes.

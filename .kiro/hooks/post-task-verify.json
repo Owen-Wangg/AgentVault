@@ -5,7 +5,7 @@
       "name": "Verify after spec task",
       "enabled": false,
       "trigger": "PostTaskExec",
-      "description": "Runs typecheck, lint, and the test suite after each spec task completes. Disabled until Task 2 adds these scripts.",
+      "description": "Runs typecheck, lint, and the test suite after each spec task completes. Disabled until project setup (Phase 2 in docs/PLAN.md) adds these scripts.",
       "action": {
         "type": "command",
         "command": "pnpm typecheck && pnpm lint && pnpm test --run",

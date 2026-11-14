@@ -1,6 +1,6 @@
 # Tasks: Rail Adapters
 
-Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entries here are items): **Task 6** (Nov 19) = items 1–2. **Task 12** (Nov 26–27) = items 3–5. **Task 13** (Nov 27–28) = items 6–8.
+Plan (`docs/PLAN.md`): **Phase 6** = tasks 1–2. **Phase 13** = tasks 3–5. **Phase 14** = tasks 6–8.
 
 - [ ] 1. Define the adapter interface and startup config validation
   - `src/rails/types.ts`, `src/rails/config.ts` (Zod env schema)
@@ -9,7 +9,7 @@ Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entrie
 
 - [ ] 2. Build the mock adapter and `railFor()` selector
   - Deterministic refs, minimums, failure modes (including a timeout after the payment is recorded)
-  - `lookup()` and `setLookupResult()` for the reconciler (audit-and-approvals item 9)
+  - `lookup()` and `setLookupResult()` for the reconciler (audit-and-approvals task 9)
   - Properties 1, 2, and 4
   - _Requirements: RAIL-2, RAIL-3, RAIL-4, RAIL-5, RAIL-6, RAIL-19, RAIL-20, RAIL-21, RAIL-22_
 

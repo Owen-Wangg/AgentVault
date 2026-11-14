@@ -5,7 +5,7 @@
       "name": "Test core on save",
       "enabled": false,
       "trigger": "PostFileSave",
-      "description": "Runs the pure-core unit and property tests whenever a file under src/core is saved. Disabled until Task 2 installs Vitest.",
+      "description": "Runs the pure-core unit and property tests whenever a file under src/core is saved. Disabled until project setup (Phase 2 in docs/PLAN.md) installs Vitest.",
       "matcher": "src[\\\\/]core[\\\\/].*\\.ts$",
       "action": {
         "type": "command",
