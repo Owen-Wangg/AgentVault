@@ -3,7 +3,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { drizzle as drizzlePglite } from "drizzle-orm/pglite";
 import { migrate as migratePglite } from "drizzle-orm/pglite/migrator";
 import pg from "pg";
-import { type Database, type Db, createDb } from "./client";
+import { type Database, type Db, createDb, guardConnectionErrors } from "./client";
 import { MIGRATIONS_FOLDER, runMigrations } from "./migrate";
 import * as schema from "./schema";
 
@@ -44,7 +44,7 @@ export async function queryError(query: PromiseLike<unknown>): Promise<string> {
 
 async function throwawayDatabase(url: string): Promise<Database> {
   const name = `agentvault_test_${randomBytes(6).toString("hex")}`;
-  const admin = new pg.Client({ connectionString: url });
+  const admin = guardConnectionErrors(new pg.Client({ connectionString: url }));
   await admin.connect();
   // The name is generated above from hex digits only, so it is safe to quote here.
   await admin.query(`CREATE DATABASE "${name}"`);
@@ -55,6 +55,7 @@ async function throwawayDatabase(url: string): Promise<Database> {
   return {
     db: database.db,
     close: async () => {
+      // FORCE ends any connection still closing. The guarded pool logs that instead of crashing.
       await database.close();
       await admin.query(`DROP DATABASE "${name}" WITH (FORCE)`);
       await admin.end();

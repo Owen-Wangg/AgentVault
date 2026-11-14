@@ -5,7 +5,7 @@ import { migrate as migrateNeon } from "drizzle-orm/neon-serverless/migrator";
 import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
 import { migrate as migratePg } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
-import { isNeonUrl } from "./client";
+import { guardConnectionErrors, isNeonUrl } from "./client";
 
 /**
  * Applying migrations, kept out of client.ts so that app routes never
@@ -16,7 +16,7 @@ export const MIGRATIONS_FOLDER = fileURLToPath(new URL("./migrations", import.me
 /** Apply every pending migration in src/server/db/migrations to the database at `url`. */
 export async function runMigrations(url: string): Promise<void> {
   if (isNeonUrl(url)) {
-    const pool = new NeonPool({ connectionString: url });
+    const pool = guardConnectionErrors(new NeonPool({ connectionString: url }));
     try {
       await migrateNeon(drizzleNeon(pool), { migrationsFolder: MIGRATIONS_FOLDER });
     } finally {
@@ -24,7 +24,7 @@ export async function runMigrations(url: string): Promise<void> {
     }
     return;
   }
-  const pool = new pg.Pool({ connectionString: url });
+  const pool = guardConnectionErrors(new pg.Pool({ connectionString: url }));
   try {
     await migratePg(drizzlePg(pool), { migrationsFolder: MIGRATIONS_FOLDER });
   } finally {
