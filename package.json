@@ -21,7 +21,10 @@
     "check:kiro": "node scripts/check-kiro-not-ignored.mjs",
     "demo:policy": "tsx scripts/demo-policy.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx scripts/db-migrate.ts"
+    "db:migrate": "tsx scripts/db-migrate.ts",
+    "db:seed": "tsx scripts/db-seed.ts",
+    "sandbox:reset": "tsx scripts/sandbox-reset.ts",
+    "audit:verify": "tsx scripts/audit-verify.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.0",
