@@ -28,6 +28,12 @@ Deployment target: Vercel **Hobby**. Cron jobs run at most once per day (see `te
 
 Deadline: Dec 4, 2:00 PM PT.
 
+**Scope-cut order** (if behind schedule, cut from the top):
+1. Phase 17: the Gemini agent and advisory drift score.
+2. mcp-server task 3: the Streamable HTTP transport. stdio stays.
+3. Stripe MPP payer side: the payer uses the mock adapter. The MPP vendor endpoint and real test-mode refunds stay.
+4. Kiroween mode polish beyond the palette and copy swap (telemetry-dashboard task 8).
+
 Why this order (each phase only depends on earlier ones):
 - **Rail adapters before the pay route.** audit-and-approvals task 5 calls the mock rail, so rail-adapters tasks 1–2 come first within Phase 6.
 - **Scenarios before the end-to-end test.** The Playwright test in telemetry-dashboard task 7 runs the prompt-injection scenario, so demo-agents tasks 1–4 (Phase 11) come before it.
@@ -50,7 +56,7 @@ Setup only: no product features and no database. Every spec task needs it first.
   - `scripts/guard-shell.mjs`: blocks recursive force deletes, `git push --force`, `git reset --hard`, and reading `.env` files; exits 2 to block
   - `scripts/check-kiro-not-ignored.mjs`: fails if `.kiro` or any file in it is gitignored
   - `scripts/check-money.ts`: flags `parseFloat`, `toFixed`, `Number()` on amounts, and `number`-typed `*Micros` fields
-- [ ] 2.7 Enable the five disabled hooks once their scripts pass
+- [ ] 2.7 Enable the five disabled hooks once their scripts pass. First confirm that the `shell` matcher in `guard-shell.json` matches Kiro's shell tool name, so the guard actually runs
 - [ ] 2.8 Add `.gitattributes` (text files stored with LF) and renormalize the existing files in a separate commit
 - [ ] 2.9 Add `LICENSE` (Apache-2.0, copyright Owen Wang), `.gitignore` (ignores `.env*` except `.env.example`, never `.kiro`), and `.env.example` with placeholders
 - [ ] 2.10 Write `docs/SETUP.md`: install Node 22 and pnpm, install dependencies, run the dev server and tests (PowerShell commands)
