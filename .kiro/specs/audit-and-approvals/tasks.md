@@ -2,14 +2,14 @@
 
 Plan (`docs/PLAN.md`): **Phase 5** = tasks 1–3. **Phase 6** = tasks 4–6. **Phase 8** = tasks 7–9.
 
-- [ ] 1. Implement the pure canonical-JSON and hash-chain modules in `src/core/audit/`
+- [x] 1. Implement the pure canonical-JSON and hash-chain modules in `src/core/audit/`
   - `canonical.ts`: `canonicalJson` with the CJ rules table from the design doc; `CanonicalJsonError`
   - `chain.ts`: `chainHash`, `GENESIS_HASH`, `headMac`, `verify(events, head, key)` with `why: "hash" | "link" | "gap" | "head"`
   - Test vectors in `src/core/audit/vectors.json` (property 8)
   - Property tests 4 (tamper detection, including suffix deletion and forged heads) and 7 (canonical encoding)
   - _Requirements: AUD-2, AUD-4, AUD-8, CJ-1, CJ-2, CJ-3, CJ-4, CJ-5, CJ-6, CJ-7_
 
-- [ ] 2. Create the Drizzle schema, migrations, and the append-only triggers
+- [x] 2. Create the Drizzle schema, migrations, and the append-only triggers
   - All tables from the design doc, including `audit_heads`, `rate_limits`, `workspaces.retired_at`, the reservation columns (`session_id`, `rail`, `rail_idempotency_key`, `decision_seq`, `resolved_at`), and `idempotency.request_hash`
   - `bigint` money columns with `mode: "bigint"`; `audit_events.created_at` as `timestamptz(3)`
   - Migration that adds `audit_events_block_mutation`, the row-level `UPDATE`/`DELETE` trigger, and the statement-level `TRUNCATE` trigger
@@ -17,7 +17,7 @@ Plan (`docs/PLAN.md`): **Phase 5** = tasks 1–3. **Phase 6** = tasks 4–6. **P
   - Integration test: `UPDATE`, `DELETE`, and `TRUNCATE` on `audit_events` all fail
   - _Requirements: AUD-3, AUD-5_
 
-- [ ] 3. Implement `appendEvent()`, `verifyChain()`, the seed script, sandbox create and retire, and `pnpm audit:verify`
+- [x] 3. Implement `appendEvent()`, `verifyChain()`, the seed script, sandbox create and retire, and `pnpm audit:verify`
   - `appendEvent` locks the `audit_heads` row, inserts the event, and updates the head and its MAC in the caller's transaction
   - `AUDIT_HEAD_KEY` in the Zod env schema (32 bytes, never logged); placeholder in `.env.example`
   - Seed creates the sandbox workspace with its head row, demo agents, envelopes, tasks, and vendors
