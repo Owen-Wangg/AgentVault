@@ -132,6 +132,7 @@ To run on PGlite instead, comment out the `DATABASE_URL_TEST` line in `.env.loca
 | `pnpm sandbox:reset` | Replaces the sandbox with a fresh seeded one. Nothing is deleted. |
 | `pnpm env:check` | Checks every environment variable and prints pass, fail, unset, or skipped. Never prints values. |
 | `pnpm audit:verify` | Checks every workspace's audit hash chain. Pass workspace IDs to check only those. |
+| `pnpm reconcile` | Asks the rails what happened to payments with an unknown outcome, deletes idempotency records older than 24 hours, and lists payments still unknown after 24 hours. It only looks payments up and never pays. On the mock rail it can't resolve anything a different process paid, so those stay listed. |
 | `pnpm demo:policy` | Prints a table of policy decisions for a sample request sequence. |
 
 ## 6. Kiro hooks

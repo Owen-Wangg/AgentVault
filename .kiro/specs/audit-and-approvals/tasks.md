@@ -43,7 +43,7 @@ Plan (`docs/PLAN.md`): **Phase 5** = tasks 1–3. **Phase 6** = tasks 4–6. **P
   - Property 1 (audit before spend) asserted across the suite; property 3 (idempotency)
   - _Requirements: PXY-4 through PXY-14, RES-1 through RES-5_
 
-- [ ] 7. Implement the approvals service and endpoints
+- [x] 7. Implement the approvals service and endpoints
   - `GET /api/v1/approvals`, `POST /api/v1/approvals/:id`, `POST /api/v1/agents/:id/unfreeze`
   - Authorization order: any bearer header → 403; current sandbox → allowed as `sandbox_visitor` (rate-limited); otherwise a session in the target workspace; retired sandbox → 403
   - Read the user through `getSessionUser()` in `src/server/auth/session.ts`, which returns `null` until telemetry-dashboard task 3 wires in Auth.js; tests inject a fake user
@@ -52,12 +52,12 @@ Plan (`docs/PLAN.md`): **Phase 5** = tasks 1–3. **Phase 6** = tasks 4–6. **P
   - Integration tests: agent key → 403 in a normal workspace and in the sandbox; anonymous approve works in the sandbox, 401 elsewhere; approving for a frozen agent → `failed_recheck`
   - _Requirements: HITL-2, HITL-3, HITL-4, HITL-5, HITL-6, HITL-8, HITL-9, HITL-10, HITL-11, HITL-12_
 
-- [ ] 8. Model-based approval tests with fast-check
+- [x] 8. Model-based approval tests with fast-check
   - `fc.commands` over approve, deny, expire (advance a fake clock), read, and duplicate approve
   - Property 5 (at most once, exactly one `approval_expired` event per expired approval)
   - _Requirements: HITL-6, HITL-7, HITL-12_
 
-- [ ] 9. Implement the reconciler
+- [x] 9. Implement the reconciler
   - `src/server/payments/reconcile.ts`; triggered by `after()` on each pay or tool request (up to 5 of that agent's stale reservations), `GET /api/cron/reconcile` (`CRON_SECRET`, daily on Hobby), and `pnpm reconcile` (also lists reservations unknown for over 24 hours)
   - `FOR UPDATE SKIP LOCKED`, lookup through the adapter's `lookup()` only (rail-adapters RAIL-21), `rail_result` with `reconciled: true`, idempotency response rewrite, cleanup of idempotency rows older than 24 hours
   - Needs the mock adapter's `lookup()` (rail-adapters task 2)
