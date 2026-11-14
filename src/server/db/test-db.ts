@@ -3,7 +3,8 @@ import { PGlite } from "@electric-sql/pglite";
 import { drizzle as drizzlePglite } from "drizzle-orm/pglite";
 import { migrate as migratePglite } from "drizzle-orm/pglite/migrator";
 import pg from "pg";
-import { type Database, type Db, MIGRATIONS_FOLDER, createDb } from "./client";
+import { type Database, type Db, createDb } from "./client";
+import { MIGRATIONS_FOLDER, runMigrations } from "./migrate";
 import * as schema from "./schema";
 
 /**
@@ -22,13 +23,8 @@ export async function createTestDb(): Promise<Database & { driver: "postgres" | 
   if (url) return { ...(await throwawayDatabase(url)), driver: "postgres" };
   const client = new PGlite();
   const db = drizzlePglite(client, { schema });
-  const database: Database = {
-    db: db as unknown as Db,
-    migrate: () => migratePglite(db, { migrationsFolder: MIGRATIONS_FOLDER }),
-    close: () => client.close(),
-  };
-  await database.migrate();
-  return { ...database, driver: "pglite" };
+  await migratePglite(db, { migrationsFolder: MIGRATIONS_FOLDER });
+  return { db: db as unknown as Db, close: () => client.close(), driver: "pglite" };
 }
 
 /**
@@ -54,11 +50,10 @@ async function throwawayDatabase(url: string): Promise<Database> {
   await admin.query(`CREATE DATABASE "${name}"`);
   const testUrl = new URL(url);
   testUrl.pathname = `/${name}`;
+  await runMigrations(testUrl.toString());
   const database = createDb(testUrl.toString());
-  await database.migrate();
   return {
     db: database.db,
-    migrate: database.migrate,
     close: async () => {
       await database.close();
       await admin.query(`DROP DATABASE "${name}" WITH (FORCE)`);

@@ -1,10 +1,7 @@
-import { fileURLToPath } from "node:url";
 import { Pool as NeonPool } from "@neondatabase/serverless";
 import type { ExtractTablesWithRelations, SQL } from "drizzle-orm";
 import { drizzle as drizzleNeon } from "drizzle-orm/neon-serverless";
-import { migrate as migrateNeon } from "drizzle-orm/neon-serverless/migrator";
 import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
-import { migrate as migratePg } from "drizzle-orm/node-postgres/migrator";
 import type { PgDatabase, PgQueryResultHKT, PgTransaction } from "drizzle-orm/pg-core";
 import pg from "pg";
 import * as schema from "./schema";
@@ -17,8 +14,6 @@ export type Tx = PgTransaction<PgQueryResultHKT, Schema, ExtractTablesWithRelati
 
 export interface Database {
   db: Db;
-  /** Apply the SQL migrations in src/server/db/migrations. */
-  migrate(): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -31,9 +26,7 @@ export async function queryRows<T>(db: Db | Tx, query: SQL): Promise<T[]> {
   return result.rows;
 }
 
-export const MIGRATIONS_FOLDER = fileURLToPath(new URL("./migrations", import.meta.url));
-
-function isNeon(url: string): boolean {
+export function isNeonUrl(url: string): boolean {
   try {
     return new URL(url).hostname.endsWith(".neon.tech");
   } catch {
@@ -48,20 +41,10 @@ function isNeon(url: string): boolean {
  * per request and close it when the request ends.
  */
 export function createDb(url: string): Database {
-  if (isNeon(url)) {
+  if (isNeonUrl(url)) {
     const pool = new NeonPool({ connectionString: url });
-    const db = drizzleNeon(pool, { schema });
-    return {
-      db: db as unknown as Db,
-      migrate: () => migrateNeon(db, { migrationsFolder: MIGRATIONS_FOLDER }),
-      close: () => pool.end(),
-    };
+    return { db: drizzleNeon(pool, { schema }) as unknown as Db, close: () => pool.end() };
   }
   const pool = new pg.Pool({ connectionString: url });
-  const db = drizzlePg(pool, { schema });
-  return {
-    db: db as unknown as Db,
-    migrate: () => migratePg(db, { migrationsFolder: MIGRATIONS_FOLDER }),
-    close: () => pool.end(),
-  };
+  return { db: drizzlePg(pool, { schema }) as unknown as Db, close: () => pool.end() };
 }
