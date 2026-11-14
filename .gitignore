@@ -1,0 +1,29 @@
+# Never ignore .kiro: Devpost requires /.kiro in the public repo.
+# scripts/check-kiro-not-ignored.mjs fails if a rule here matches it.
+
+# Dependencies
+node_modules/
+
+# Next.js and builds
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Tests
+coverage/
+playwright-report/
+test-results/
+
+# Secrets: only the placeholder file is committed
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel/
+
+# OS and editors
+.DS_Store
+Thumbs.db
+*.log
