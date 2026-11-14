@@ -18,7 +18,8 @@
     "test:live": "vitest run --mode live",
     "verify": "pnpm typecheck && pnpm lint && pnpm test --run",
     "check:money": "tsx scripts/check-money.ts",
-    "check:kiro": "node scripts/check-kiro-not-ignored.mjs"
+    "check:kiro": "node scripts/check-kiro-not-ignored.mjs",
+    "demo:policy": "tsx scripts/demo-policy.ts"
   },
   "dependencies": {
     "next": "16.4.6",
