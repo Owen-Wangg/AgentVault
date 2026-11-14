@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { canonicalJson } from "@/core/audit";
 import { type Micros, type Rail, chargeableMicros, micros } from "@/core/money";
-import { type Decision, type EvaluateInput, type ReasonDetail, type Window, evaluate } from "@/core/policy";
+import { type Decision, type EvaluateInput, type HoldReason, type ReasonDetail, type Window, evaluate } from "@/core/policy";
 import type { RailAdapter, RailResult } from "@/rails/types";
 import { RAIL_TIMEOUT_MS } from "@/rails/types";
 import { appendEvent } from "@/server/audit/append";
@@ -41,7 +41,17 @@ export interface GuardedRequest {
   agent: AuthenticatedAgent;
   idempotencyKey: string;
   body: GuardedBody;
+  /**
+   * Set only when an approval re-runs its held request (HITL-2). The key
+   * is then `approval:<id>`, the approved hold reasons are passed to
+   * evaluate(), and a hold creates no second approval.
+   */
+  approval?: { id: string; approvedHoldReasons: readonly HoldReason[] };
 }
+
+/** Prefix of the idempotency keys approval re-runs use. Agent routes reject client keys with it. */
+export const APPROVAL_KEY_PREFIX = "approval:";
+export const approvalKey = (approvalId: string): string => `${APPROVAL_KEY_PREFIX}${approvalId}`;
 
 export interface GuardedDeps {
   db: Db;
@@ -165,7 +175,7 @@ async function storeResponse(tx: Tx, agentId: string, key: string, response: Gua
 
 const invalid = (field: string): Decision => ({ decision: "deny", reasons: [{ code: "INVALID_REQUEST", detail: { field } }] });
 
-interface Pending {
+export interface Pending {
   decisionSeq: number;
   decision: Decision;
   workspaceId: string;
@@ -181,9 +191,29 @@ interface Pending {
   };
 }
 
-type Phase1 = { kind: "final"; response: GuardedResponse } | { kind: "execute"; pending: Pending };
+/**
+ * The outcome of the decision transaction. `final` carries the decision
+ * when one was made (not for idempotent replays); `execute` means allow,
+ * with the rail call still to come.
+ */
+export type Decided =
+  | { kind: "final"; response: GuardedResponse; decision?: Decision; decisionSeq?: number }
+  | { kind: "execute"; pending: Pending };
 
-async function decide(tx: Tx, req: GuardedRequest, deps: GuardedDeps, now: Date): Promise<Phase1> {
+/** The policy decision behind a Decided, or undefined for an idempotent replay. */
+export function decisionOf(decided: Decided): { decision: Decision; decisionSeq: number } | undefined {
+  if (decided.kind === "execute") return { decision: decided.pending.decision, decisionSeq: decided.pending.decisionSeq };
+  return decided.decision && decided.decisionSeq !== undefined ? { decision: decided.decision, decisionSeq: decided.decisionSeq } : undefined;
+}
+
+/**
+ * Steps 3 to 7 inside the caller's transaction: lock, claim the key, load
+ * state, evaluate, audit, and reserve on allow. runGuardedRequest opens
+ * the transaction itself; the approvals service calls this inside the
+ * transaction that moves the approval out of `pending`, so both commit or
+ * roll back together.
+ */
+export async function decideGuarded(tx: Tx, req: GuardedRequest, deps: GuardedDeps, now: Date): Promise<Decided> {
   const { agent, body } = req;
   const workspaceId = agent.workspaceId;
 
@@ -192,7 +222,11 @@ async function decide(tx: Tx, req: GuardedRequest, deps: GuardedDeps, now: Date)
   if (!envelopeRow) throw new Error("Agent has no envelope");
 
   const claim = await claimKey(tx, agent.id, req.idempotencyKey, requestHash(body), now);
-  if (claim.kind === "done") return { kind: "final", response: claim.response };
+  if (claim.kind === "done") {
+    // A re-run's key is new by construction. Finding it used means something is wrong: fail closed.
+    if (req.approval) throw new Error("Approval re-run key was already used");
+    return { kind: "final", response: claim.response };
+  }
 
   // PXY-11: the frozen flag is read after the lock, so a freeze committed by a concurrent request is seen.
   const [agentRow] = await tx
@@ -262,6 +296,7 @@ async function decide(tx: Tx, req: GuardedRequest, deps: GuardedDeps, now: Date)
         budgetMicros: taskRow.budgetMicros,
       },
       tool: policyTool(tool),
+      ...(req.approval ? { approvedHoldReasons: req.approval.approvedHoldReasons } : {}),
     };
     decision = evaluate(input);
   }
@@ -278,7 +313,18 @@ async function decide(tx: Tx, req: GuardedRequest, deps: GuardedDeps, now: Date)
   };
   const decisionEvent = await appendEvent(
     tx,
-    { workspaceId, type: "decision", payload: { agent_id: agent.id, request: requestPayload, decision: decision.decision, reasons: decision.reasons } },
+    {
+      workspaceId,
+      type: "decision",
+      payload: {
+        agent_id: agent.id,
+        request: requestPayload,
+        decision: decision.decision,
+        reasons: decision.reasons,
+        approval_id: req.approval?.id,
+        approved_hold_reasons: req.approval?.approvedHoldReasons,
+      },
+    },
     { key: deps.key, now },
   );
   const decisionSeq = decisionEvent.seq;
@@ -298,7 +344,14 @@ async function decide(tx: Tx, req: GuardedRequest, deps: GuardedDeps, now: Date)
   if (decision.decision === "deny") {
     const response: GuardedResponse = { status: 403, body: { decision: "deny", reasons: decision.reasons, event_seq: decisionSeq } };
     await storeResponse(tx, agent.id, req.idempotencyKey, response);
-    return { kind: "final", response };
+    return { kind: "final", response, decision, decisionSeq };
+  }
+
+  if (decision.decision === "hold" && req.approval) {
+    // A re-run held for a reason nobody approved fails its recheck. No second approval (HITL-3).
+    const response: GuardedResponse = { status: 202, body: { decision: "hold", reasons: decision.reasons, event_seq: decisionSeq } };
+    await storeResponse(tx, agent.id, req.idempotencyKey, response);
+    return { kind: "final", response, decision, decisionSeq };
   }
 
   if (decision.decision === "hold") {
@@ -325,7 +378,7 @@ async function decide(tx: Tx, req: GuardedRequest, deps: GuardedDeps, now: Date)
       body: { decision: "hold", reasons: decision.reasons, approval_id: approval.id, event_seq: decisionSeq },
     };
     await storeResponse(tx, agent.id, req.idempotencyKey, response);
-    return { kind: "final", response };
+    return { kind: "final", response, decision, decisionSeq };
   }
 
   // allow. A tool can only be allowed if it is registered.
@@ -394,26 +447,47 @@ async function recordOutcome(tx: Tx, req: GuardedRequest, deps: GuardedDeps, pen
       .where(and(eq(spendReservations.id, pending.rail.reservationId), eq(spendReservations.status, "reserved")));
   }
 
-  const base: ResponseBody = { decision: "allow", reasons: pending.decision.reasons, event_seq: pending.decisionSeq };
-  const response: GuardedResponse =
-    outcome === "settled"
-      ? {
-          status: 200,
-          body: { ...base, rail_status: "settled", ...(ok?.ref ? { rail_ref: ok.ref } : {}), ...(ok?.explorerUrl ? { explorer_url: ok.explorerUrl } : {}) },
-        }
-      : outcome === "failed"
-        ? { status: 502, body: { ...base, rail_status: "failed", error: failure?.code ?? "RAIL_REJECTED" } }
-        : { status: 202, body: { ...base, rail_status: "unknown" } };
+  const response = allowedResponse(pending.decisionSeq, outcome, { ref: ok?.ref, explorerUrl: ok?.explorerUrl, code: failure?.code });
   await storeResponse(tx, req.agent.id, req.idempotencyKey, response);
   return response;
 }
 
+/**
+ * The response to an allowed request once its rail outcome is known. The
+ * reconciler builds the same response when it resolves an unknown outcome
+ * later, so replays of the original key return the resolved result (RES-9).
+ */
+export function allowedResponse(
+  decisionSeq: number,
+  outcome: RailOutcome,
+  rail: { ref?: string | undefined; explorerUrl?: string | undefined; code?: string | undefined } = {},
+): GuardedResponse {
+  // Allow carries no reasons (ENV-10).
+  const base: ResponseBody = { decision: "allow", reasons: [], event_seq: decisionSeq };
+  if (outcome === "settled") {
+    return {
+      status: 200,
+      body: { ...base, rail_status: "settled", ...(rail.ref ? { rail_ref: rail.ref } : {}), ...(rail.explorerUrl ? { explorer_url: rail.explorerUrl } : {}) },
+    };
+  }
+  if (outcome === "failed") return { status: 502, body: { ...base, rail_status: "failed", error: rail.code ?? "RAIL_REJECTED" } };
+  return { status: 202, body: { ...base, rail_status: "unknown" } };
+}
+
+/** Store a response for an idempotency key (the reconciler rewrites them, RES-9). */
+export { storeResponse };
+
 export async function runGuardedRequest(req: GuardedRequest, deps: GuardedDeps): Promise<GuardedResponse> {
   const now = deps.now();
-  const phase1 = await deps.db.transaction((tx) => decide(tx, req, deps, now));
-  if (phase1.kind === "final") return phase1.response;
+  const decided = await deps.db.transaction((tx) => decideGuarded(tx, req, deps, now));
+  return executeGuarded(req, deps, decided);
+}
 
-  const { pending } = phase1;
+/** Steps 8 and 9, after the decision transaction committed: call the rail on allow and record the outcome. */
+export async function executeGuarded(req: GuardedRequest, deps: GuardedDeps, decided: Decided): Promise<GuardedResponse> {
+  if (decided.kind === "final") return decided.response;
+
+  const { pending } = decided;
   // A tool with no rail (for example payee.update) has nothing to call, so its outcome is settled.
   let result: RailResult | { thrown: true } = { ok: true, ref: "", settledMicros: micros(0n) };
   if (pending.rail) {

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { z } from "zod";
 import { type AuthenticatedAgent, authenticateAgent } from "@/server/auth/agent-keys";
 import type { Database, Db } from "@/server/db/client";
+import { APPROVAL_KEY_PREFIX } from "@/server/payments/guarded";
 
 /**
  * Shared plumbing for the agent API routes (/api/v1/pay, fetch, tool):
@@ -16,14 +17,23 @@ const IDEMPOTENCY_KEY = /^[\x21-\x7e]{1,255}$/;
 
 export const json = (status: number, body: unknown): Response => Response.json(body, { status });
 
-/** The Idempotency-Key header if it is well formed, else null. */
+
+/**
+ * The Idempotency-Key header if it is well formed, else null. Keys that
+ * start with `approval:` are reserved for approval re-runs (HITL-2): an
+ * agent that claimed one first could make a human's approval replay the
+ * agent's own stored result instead of running.
+ */
 export function idempotencyKeyOf(request: Request): string | null {
   const key = request.headers.get("idempotency-key");
-  return key && IDEMPOTENCY_KEY.test(key) ? key : null;
+  return key && IDEMPOTENCY_KEY.test(key) && !key.toLowerCase().startsWith(APPROVAL_KEY_PREFIX) ? key : null;
 }
 
 export const invalidIdempotencyKey = (): Response =>
-  json(400, { error: "INVALID_IDEMPOTENCY_KEY", message: "Send an Idempotency-Key header of 1 to 255 printable characters" });
+  json(400, {
+    error: "INVALID_IDEMPOTENCY_KEY",
+    message: "Send an Idempotency-Key header of 1 to 255 printable characters that doesn't start with approval:",
+  });
 
 /** Parse the JSON body (at most 16 KB) with a strict schema. Returns the 400 response on failure. */
 export async function parseBody<S extends z.ZodType>(request: Request, schema: S): Promise<{ ok: true; value: z.output<S> } | { ok: false; response: Response }> {
