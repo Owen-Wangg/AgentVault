@@ -79,11 +79,14 @@ Each reservation stores the rail and the rail idempotency key, so the reconciler
 
 `INVALID_RAIL_RESPONSE` counts as unknown because an unreadable response does not prove the vendor didn't charge. If the rail-adapters spec later makes any failure code ambiguous, it moves to the unknown row. The classification lives in one pure function, `classifyRailResult(result): "settled" | "failed" | "unknown"`, in `src/server/rails/outcome.ts`, so it can be unit-tested without a database.
 
-Window state sums `reserved` and `settled` reservations by `created_at`, at any age (RES-2). This replaces the earlier "treat as spent after 10 minutes" rule, because a reservation now counts from the moment it is created.
+Window state sums `reserved` and `settled` reservations whose `created_at` falls inside each window (RES-2). An unresolved reservation counts exactly like a settled one. This replaces the earlier "treat as spent after 10 minutes" rule, because a reservation now counts from the moment it is created.
 
 **Reconciler** (`src/server/rails/reconcile.ts`, RES-6 to RES-9):
-- Runs from a Vercel Cron route (`/api/cron/reconcile`, every 5 minutes, protected by `CRON_SECRET`) and from `pnpm reconcile`.
-- Selects `reserved` reservations whose latest `rail_result` is `unknown`, or that have no `rail_result` and are older than 10 minutes. It locks each one with `FOR UPDATE SKIP LOCKED`, so two runs can't resolve the same reservation.
+- Triggers. Vercel Hobby allows cron jobs only once per day (with ±59 minutes of jitter), and more frequent expressions fail at deploy time. So the reconciler runs in three ways:
+  1. After each pay or tool request, the handler uses Next.js `after()` to reconcile up to 5 of that agent's stale reservations once the response is sent. The agent's own traffic clears its backlog without slowing the response.
+  2. A Vercel Cron route (`/api/cron/reconcile`, protected by `CRON_SECRET`) runs daily on Hobby, or every 5 minutes on Pro.
+  3. `pnpm reconcile` runs it by hand.
+- Selects reservations still `reserved` 10 minutes after creation. The rail timeout is 30 seconds, so by then the original request has either written a `rail_result` or died. It locks each one with `FOR UPDATE SKIP LOCKED`, so two runs can't resolve the same reservation.
 - Asks the adapter for the outcome with `lookup(railIdempotencyKey)` (rail-adapters RAIL-21, RAIL-22). `lookup` is read-only, so the reconciler can never start a new payment (RES-8).
 - On a confirmed result, in one transaction: appends `rail_result` with `reconciled: true` and `decision_seq`, sets the reservation to `settled` or `released`, and rewrites the `idempotency.response` (RES-9).
 - If the outcome is still unknown, it changes nothing and logs the attempt (RES-7). `pnpm reconcile` also lists reservations still unknown after 24 hours for manual review. Listing never releases anything.
@@ -152,7 +155,7 @@ These rules are close to RFC 8785 (JCS) but stricter: no non-integer numbers. A 
 
 ## Sandbox (AUD-9, HITL-11)
 - The public sandbox is the newest workspace with `is_sandbox = true AND retired_at IS NULL`. Public sandbox routes resolve it on each request.
-- **Reset** = in one transaction, create a new sandbox workspace with its `audit_heads` row, run the seed into it, write `sandbox_created` as its first event, then set `retired_at` on the old workspace and write `sandbox_retired` as the old chain's last event. No `audit_events` row is deleted or changed. Old sandbox workspaces stay readable and verifiable.
+- **Reset** = in one transaction, create a new sandbox workspace with its `audit_heads` row, run the seed into it, write `sandbox_created` as its first event, then set `retired_at` on the old workspace, set `revoked_at` on its agents, and write `sandbox_retired` to the old chain. No `audit_events` row is deleted or changed. Old sandbox workspaces stay readable and verifiable. A scenario run in progress during the reset gets 401 on its next request (PXY-3), so the only later writes to a retired workspace are the reconciler's `rail_result` events for reservations already in flight.
 - Sandbox workspaces always use the mock adapter (rail-adapters RAIL-2). `runGuardedRequest` checks `workspace.is_sandbox` itself, in addition to `RAIL_MODE`, so a misconfigured environment can't send sandbox requests to a real rail.
 - Starting a scenario does not reset the workspace. It creates a fresh agent, task, and session in the current sandbox (demo-agents AGT-2), so freezes and reservations from earlier runs don't carry over and no row is deleted.
 - Reset runs nightly from Vercel Cron (telemetry-dashboard UI-3) and from `pnpm sandbox:reset`. It is not a public endpoint, so one visitor can't wipe the sandbox another visitor is using.
@@ -170,7 +173,7 @@ stateDiagram-v2
   pending --> denied: authorized approver denies
   pending --> expired: read or acted on after expires_at
   approved --> executed: re-run allows
-  approved --> failed_recheck: re-run denies
+  approved --> failed_recheck: re-run denies or holds for an unapproved reason
 ```
 
 ### Authorization (HITL-10, HITL-11)
@@ -196,6 +199,10 @@ This choice fits Vercel's serverless model without a background worker. If the d
 
 ### Approve and deny
 Approving runs expiry first, then `UPDATE approvals SET status='approved' WHERE id=$1 AND status='pending' AND expires_at > now()`. If zero rows are updated, re-read the row: `expired` returns **409** `APPROVAL_EXPIRED` (HITL-5), and any other status returns **409** `APPROVAL_NOT_PENDING` (HITL-6). The re-run passes `approvedHoldReasons` to `evaluate()`, which drops only those hold reasons.
+
+The re-run uses `approval:<approval_id>` as its idempotency key. It can't reuse the original request's key, because the stored response for that key is the `hold`, so idempotency (PXY-8) would return the hold and never execute. Replays of the original key keep returning the hold with its `approval_id`, and the client follows the approval to get the result. At most once (HITL-7) comes from the `pending → approved` update, and the derived key adds a second guard.
+
+If the re-run's decision is `allow`, the approval becomes `executed`, whatever the rail outcome. The rail outcome is recorded on the reservation and in `rail_result`, like any allowed request. If the decision is `deny`, or `hold` with any reason that wasn't approved (for example a new `ADVISORY_DRIFT`), the approval becomes `failed_recheck` with those reasons (HITL-3). No second approval is created automatically, so one approval can't turn into a chain of approvals.
 
 ## API
 | Method and path | Auth | Purpose |

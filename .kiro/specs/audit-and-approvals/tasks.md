@@ -21,7 +21,7 @@ Global plan mapping: **Task 5** (Nov 18) = items 1–3. **Task 6** (Nov 19) = it
   - `appendEvent` locks the `audit_heads` row, inserts the event, and updates the head and its MAC in the caller's transaction
   - `AUDIT_HEAD_KEY` in the Zod env schema (32 bytes, never logged); placeholder in `.env.example`
   - Seed creates the sandbox workspace with its head row, demo agents, envelopes, tasks, and vendors
-  - `createSandboxWorkspace()` / `retireSandboxWorkspace()` with `sandbox_created` and `sandbox_retired` events; `pnpm sandbox:reset` and `GET /api/cron/sandbox-reset` (`CRON_SECRET`)
+  - `createSandboxWorkspace()` / `retireSandboxWorkspace()` (revokes the retired workspace's agent keys) with `sandbox_created` and `sandbox_retired` events; `pnpm sandbox:reset` and `GET /api/cron/sandbox-reset` (`CRON_SECRET`)
   - Integration tamper tests: drop the triggers on the test DB, edit a row, confirm the exact `seq` is reported; delete the last N rows, confirm `why: "head"` at the first missing `seq`
   - Integration test: a sandbox reset leaves the old chain verifiable and never lowers the `audit_events` row count
   - _Requirements: AUD-1, AUD-2, AUD-4, AUD-7, AUD-8, AUD-9, CJ-8_
@@ -47,7 +47,7 @@ Global plan mapping: **Task 5** (Nov 18) = items 1–3. **Task 6** (Nov 19) = it
   - `GET /api/v1/approvals`, `POST /api/v1/approvals/:id`, `POST /api/v1/agents/:id/unfreeze`
   - Authorization order: any bearer header → 403; current sandbox → allowed as `sandbox_visitor` (rate-limited); otherwise a session in the target workspace; retired sandbox → 403
   - Expiry on every read and action, with one `approval_expired` event per approval; 409 `APPROVAL_EXPIRED` and `APPROVAL_NOT_PENDING`
-  - Re-run through `runGuardedRequest` with `approvedHoldReasons`
+  - Re-run through `runGuardedRequest` with `approvedHoldReasons` and the idempotency key `approval:<id>`; an unapproved hold reason on re-run → `failed_recheck`
   - Integration tests: agent key → 403 in a normal workspace and in the sandbox; anonymous approve works in the sandbox, 401 elsewhere; approving for a frozen agent → `failed_recheck`
   - _Requirements: HITL-2, HITL-3, HITL-4, HITL-5, HITL-6, HITL-8, HITL-9, HITL-10, HITL-11, HITL-12_
 
@@ -57,7 +57,7 @@ Global plan mapping: **Task 5** (Nov 18) = items 1–3. **Task 6** (Nov 19) = it
   - _Requirements: HITL-6, HITL-7, HITL-12_
 
 - [ ] 9. Implement the reconciler
-  - `src/server/rails/reconcile.ts`, `GET /api/cron/reconcile` (`CRON_SECRET`, every 5 minutes), `pnpm reconcile` (also lists reservations unknown for over 24 hours)
+  - `src/server/rails/reconcile.ts`; triggered by `after()` on each pay or tool request (up to 5 of that agent's stale reservations), `GET /api/cron/reconcile` (`CRON_SECRET`, daily on Hobby), and `pnpm reconcile` (also lists reservations unknown for over 24 hours)
   - `FOR UPDATE SKIP LOCKED`, lookup through the adapter's `lookup()` only (rail-adapters RAIL-21), `rail_result` with `reconciled: true`, idempotency response rewrite, cleanup of idempotency rows older than 24 hours
   - Needs the mock adapter's `lookup()` (rail-adapters item 2)
   - Integration tests and property 6 (no release without confirmed failure)

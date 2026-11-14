@@ -43,11 +43,11 @@ This spec covers the server-side flow that wraps the pure policy engine: authent
 
 ### Acceptance criteria
 - **RES-1** WHEN a decision is `allow`, THE SYSTEM SHALL insert a reservation for the chargeable amount in the same transaction as the decision event. Hold and deny decisions SHALL NOT create a reservation.
-- **RES-2** WHILE a reservation's status is `reserved` or `settled`, THE SYSTEM SHALL count its amount in the window state for its agent, vendor, and tool, regardless of the reservation's age.
+- **RES-2** WHILE a reservation's status is `reserved` or `settled`, THE SYSTEM SHALL count its amount in every window (for its agent, vendor, and tool) that contains its `created_at`. An unresolved reservation SHALL count the same as a settled one.
 - **RES-3** WHEN the rail confirms the payment, THE SYSTEM SHALL mark the reservation `settled`.
 - **RES-4** THE SYSTEM SHALL mark a reservation `released` only after a confirmed failure. No other outcome SHALL release a reservation.
 - **RES-5** IF the rail call times out or returns an unknown outcome, THEN THE SYSTEM SHALL append a `rail_result` event with `status: "unknown"`, keep the reservation `reserved`, and return HTTP 202 with `rail_status: "unknown"`.
-- **RES-6** WHEN the reconciler runs, THE SYSTEM SHALL find every `reserved` reservation whose latest `rail_result` is `unknown`, or that has no `rail_result` 10 minutes after creation, and resolve it with the rail. It SHALL append a `rail_result` event that references the original decision and either settle the reservation (RES-3) or release it (RES-4).
+- **RES-6** WHEN the reconciler runs, THE SYSTEM SHALL find every reservation still `reserved` 10 minutes after creation and resolve it with the rail. It SHALL append a `rail_result` event that references the original decision and either settle the reservation (RES-3) or release it (RES-4).
 - **RES-7** IF the reconciler can't determine the outcome, THEN THE SYSTEM SHALL leave the reservation `reserved` and try again on the next run.
 - **RES-8** THE reconciler SHALL query or retry the rail only with the reservation's original rail idempotency key, and SHALL never start a new payment.
 - **RES-9** WHEN the reconciler resolves a reservation, THE SYSTEM SHALL update the stored idempotency response so that replays of the original request return the resolved result.
@@ -64,7 +64,7 @@ This spec covers the server-side flow that wraps the pure policy engine: authent
 - **AUD-6** WHEN a user clicks "Verify chain" in the dashboard, THE SYSTEM SHALL run AUD-4 and show the result.
 - **AUD-7** WHEN an event is appended, THE SYSTEM SHALL update the workspace's chain head to the new `seq` and `hash` in the same transaction, with an HMAC that only the server can compute, so that deleting rows from the end of the chain is detected.
 - **AUD-8** IF the chain head is missing, has an invalid HMAC, or its `seq` and `hash` do not match the last event, THEN verification SHALL fail and report the first missing or mismatched `seq`.
-- **AUD-9** WHEN the sandbox is reset, THE SYSTEM SHALL create and seed a new sandbox workspace and retire the previous one. THE SYSTEM SHALL NOT delete `audit_events` rows to reset the sandbox.
+- **AUD-9** WHEN the sandbox is reset, THE SYSTEM SHALL create and seed a new sandbox workspace, retire the previous one, and revoke the retired workspace's agent API keys. THE SYSTEM SHALL NOT delete `audit_events` rows to reset the sandbox.
 
 ## Requirement 5: Canonical JSON for hashing
 **User story:** As an auditor, I want one exact byte encoding for every event, so that anyone can recompute the hashes and get the same result.
@@ -85,7 +85,7 @@ This spec covers the server-side flow that wraps the pure policy engine: authent
 ### Acceptance criteria
 - **HITL-1** WHEN a decision is `hold`, THE SYSTEM SHALL create a pending approval that stores the full request, the reasons, and an expiry time (default 15 minutes).
 - **HITL-2** WHEN an authorized approver (HITL-10, HITL-11) approves a pending approval, THE SYSTEM SHALL re-run the full pay flow (PXY-4 to PXY-6) with the approval attached, which satisfies only the hold reasons that were approved.
-- **HITL-3** IF the re-run produces any deny reason, including `AGENT_FROZEN`, THEN THE SYSTEM SHALL not execute and SHALL mark the approval `failed_recheck`.
+- **HITL-3** IF the re-run produces any deny reason, including `AGENT_FROZEN`, or any hold reason that was not approved, THEN THE SYSTEM SHALL not execute and SHALL mark the approval `failed_recheck` with those reasons.
 - **HITL-4** WHEN an authorized approver denies a pending approval, THE SYSTEM SHALL mark it `denied` and not execute.
 - **HITL-5** IF an approval is acted on after its expiry, THEN THE SYSTEM SHALL mark it `expired`, not execute, and return HTTP 409 with `APPROVAL_EXPIRED`.
 - **HITL-6** IF an approval that is not `pending` is approved or denied again, THEN THE SYSTEM SHALL reject the action with HTTP 409.
