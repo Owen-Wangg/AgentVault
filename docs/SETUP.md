@@ -130,6 +130,7 @@ To run on PGlite instead, comment out the `DATABASE_URL_TEST` line in `.env.loca
 | `pnpm db:migrate` | Applies new migrations to `DATABASE_URL`. |
 | `pnpm db:seed` | Creates the first sandbox workspace if there is none. |
 | `pnpm sandbox:reset` | Replaces the sandbox with a fresh seeded one. Nothing is deleted. |
+| `pnpm env:check` | Checks every environment variable and prints pass, fail, unset, or skipped. Never prints values. |
 | `pnpm audit:verify` | Checks every workspace's audit hash chain. Pass workspace IDs to check only those. |
 | `pnpm demo:policy` | Prints a table of policy decisions for a sample request sequence. |
 

@@ -26,17 +26,17 @@ Plan (`docs/PLAN.md`): **Phase 5** = tasks 1–3. **Phase 6** = tasks 4–6. **P
   - Integration test: a sandbox reset leaves the old chain verifiable and never lowers the `audit_events` row count
   - _Requirements: AUD-1, AUD-2, AUD-4, AUD-7, AUD-8, AUD-9, CJ-8_
 
-- [ ] 4. Implement agent API keys and authentication
+- [x] 4. Implement agent API keys and authentication
   - Key generation (`crypto.randomBytes(32)`, base64url, prefix `av_test_`), SHA-256 hash storage, `timingSafeEqual` lookup
   - _Requirements: PXY-1, PXY-2, PXY-3_
 
-- [ ] 5. Implement `runGuardedRequest()` with reservations and idempotency
+- [x] 5. Implement `runGuardedRequest()` with reservations and idempotency
   - Locked envelope, idempotency claim (live = under 24 h; 422 on a different `request_hash`, 409 while in progress), frozen flag read after the lock, window and session spend from `reserved` and `settled` reservations, `callsLastMinute` from `idempotency` rows, `evaluate()`, decision event, reservation on allow, freeze on velocity, approval on hold, commit
   - Rail call on allow, `classifyRailResult` in `src/server/payments/outcome.ts`, `rail_result` event, settle / release / keep the reservation, store the idempotency response
   - Uses the mock rail until Phases 13–14
   - _Requirements: PXY-4, PXY-5, PXY-6, PXY-7, PXY-8, PXY-10, PXY-11, PXY-12, PXY-13, PXY-14, RES-1, RES-2, RES-3, RES-4, RES-5, HITL-1_
 
-- [ ] 6. Add `POST /api/v1/pay` and its tests
+- [x] 6. Add `POST /api/v1/pay` and its tests
   - Route tests: allow, deny, hold, idempotent replay, 422 key reuse, 409 in progress, expired key treated as new, 401, unknown rail outcome (202), confirmed rail failure (502), fail-closed 503
   - Frozen agent returns `AGENT_FROZEN`
   - Concurrency integration test: 50 parallel requests, cap holds, with some mock rail calls set to `RAIL_TIMEOUT` (property 2)

@@ -2,13 +2,13 @@
 
 Plan (`docs/PLAN.md`): **Phase 6** = tasks 1–2. **Phase 13** = tasks 3–5. **Phase 14** = tasks 6–8.
 
-- [ ] 1. Define the adapter interface and startup config validation
+- [x] 1. Define the adapter interface and startup config validation
   - `src/rails/types.ts`, `src/rails/config.ts` (Zod env schema)
   - Refuse `sk_live_` keys and non-Base-Sepolia networks
   - `pnpm env:check`: validates the env schema and prints only pass or fail per variable, never values (used by `/validate-mpp`)
   - _Requirements: RAIL-1, RAIL-5, RAIL-7, RAIL-8, RAIL-9_
 
-- [ ] 2. Build the mock adapter and `railFor()` selector
+- [x] 2. Build the mock adapter and `railFor()` selector
   - Deterministic refs, minimums, failure modes (including a timeout after the payment is recorded)
   - `lookup()` and `setLookupResult()` for the reconciler (audit-and-approvals task 9)
   - Properties 1, 2, and 4
