@@ -1,12 +1,11 @@
-import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { MicrosSchema, type Rail } from "@/core/money";
 import { loadRailConfig } from "@/rails/config";
 import { railFor } from "@/rails/select";
 import type { RailAdapter } from "@/rails/types";
-import { authenticateAgent } from "@/server/auth/agent-keys";
 import { type Database, createDb } from "@/server/db/client";
 import { env } from "@/server/env";
+import { idempotencyKeyOf, invalidIdempotencyKey, json, parseBody, withAgent } from "@/server/http/agent-route";
 import { PAY_TOOLS } from "@/server/tools/registry";
 import { runGuardedRequest } from "./guarded";
 
@@ -34,10 +33,6 @@ export function defaultPayDeps(): PayDeps {
   };
 }
 
-const MAX_BODY_BYTES = 16 * 1024;
-/** Printable ASCII, no spaces, up to 255 characters. */
-const IDEMPOTENCY_KEY = /^[\x21-\x7e]{1,255}$/;
-
 export const PayBodySchema = z.strictObject({
   vendor: z.string().min(1).max(200),
   tool: z.enum(PAY_TOOLS as [string, ...string[]]),
@@ -45,57 +40,20 @@ export const PayBodySchema = z.strictObject({
   session_id: z.uuid(),
 });
 
-const json = (status: number, body: unknown) => Response.json(body, { status });
+export function handlePay(request: Request, deps: PayDeps = defaultPayDeps()): Promise<Response> {
+  // PXY-2, PXY-3: authenticate before reading anything else.
+  return withAgent(request, deps.openDb, "pay", async (db, agent) => {
+    const idempotencyKey = idempotencyKeyOf(request);
+    if (!idempotencyKey) return invalidIdempotencyKey();
 
-async function readJson(request: Request): Promise<{ ok: true; value: unknown } | { ok: false }> {
-  const text = await request.text();
-  if (new TextEncoder().encode(text).length > MAX_BODY_BYTES) return { ok: false };
-  try {
-    return { ok: true, value: JSON.parse(text) };
-  } catch {
-    return { ok: false };
-  }
-}
-
-export async function handlePay(request: Request, deps: PayDeps = defaultPayDeps()): Promise<Response> {
-  let database: Database | undefined;
-  try {
-    database = deps.openDb();
-
-    // PXY-2, PXY-3: authenticate before reading anything else.
-    const agent = await authenticateAgent(database.db, request.headers.get("authorization"));
-    if (!agent) return json(401, { error: "UNAUTHORIZED" });
-
-    const idempotencyKey = request.headers.get("idempotency-key");
-    if (!idempotencyKey || !IDEMPOTENCY_KEY.test(idempotencyKey)) {
-      return json(400, { error: "INVALID_IDEMPOTENCY_KEY", message: "Send an Idempotency-Key header of 1 to 255 printable characters" });
-    }
-
-    const raw = await readJson(request);
-    if (!raw.ok) return json(400, { error: "INVALID_REQUEST", message: "The body must be JSON, at most 16 KB" });
-    const parsed = PayBodySchema.safeParse(raw.value);
-    if (!parsed.success) {
-      return json(400, {
-        error: "INVALID_REQUEST",
-        issues: parsed.error.issues.map((i) => ({ path: i.path.map(String).join("."), message: i.message })),
-      });
-    }
+    const parsed = await parseBody(request, PayBodySchema);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.value;
 
     const result = await runGuardedRequest(
-      {
-        agent,
-        idempotencyKey,
-        body: { vendor: parsed.data.vendor, tool: parsed.data.tool, amountMicros: parsed.data.amount_micros, sessionId: parsed.data.session_id },
-      },
-      { db: database.db, key: deps.key(), now: deps.now, railFor: deps.railFor },
+      { agent, idempotencyKey, body: { vendor: body.vendor, tool: body.tool, amountMicros: body.amount_micros, sessionId: body.session_id } },
+      { db, key: deps.key(), now: deps.now, railFor: deps.railFor },
     );
     return json(result.status, result.body);
-  } catch (error) {
-    const correlationId = randomUUID();
-    // Only the message: driver errors can reference connection settings.
-    console.error(`pay failed [${correlationId}]:`, error instanceof Error ? error.message : "unknown error");
-    return json(503, { error: "SERVICE_UNAVAILABLE", correlation_id: correlationId });
-  } finally {
-    await database?.close();
-  }
+  });
 }
