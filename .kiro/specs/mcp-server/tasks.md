@@ -1,6 +1,6 @@
 # Tasks: MCP Server
 
-Global plan mapping: **Task 15** (Nov 29–30). If behind schedule, ship items 1–2 and 4 only (stdio), and skip item 3.
+Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entries here are items): **Task 15** (Nov 29–30). If behind schedule, ship items 1–2 and 4 only (stdio), and skip item 3.
 
 - [ ] 1. Define shared tool schemas and handlers in `src/mcp/tools.ts`
   - Zod inputs, JSON Schema output, plain-language explanations from `copy.ts`, including the unknown-rail-outcome message

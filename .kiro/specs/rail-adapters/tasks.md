@@ -1,6 +1,6 @@
 # Tasks: Rail Adapters
 
-Global plan mapping: **Task 6** (Nov 19) = items 1–2. **Task 12** (Nov 26–27) = items 3–5. **Task 13** (Nov 27–28) = items 6–8.
+Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entries here are items): **Task 6** (Nov 19) = items 1–2. **Task 12** (Nov 26–27) = items 3–5. **Task 13** (Nov 27–28) = items 6–8.
 
 - [ ] 1. Define the adapter interface and startup config validation
   - `src/rails/types.ts`, `src/rails/config.ts` (Zod env schema)

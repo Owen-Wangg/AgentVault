@@ -1,6 +1,6 @@
 # Tasks: Demo Agents
 
-Global plan mapping: **Task 11** (Nov 25–26) = items 1–4. **Task 16** (Nov 30, optional, cut first) = items 5–6.
+Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entries here are items): **Task 11** (Nov 25–26) = items 1–4. **Task 16** (Nov 30, optional, cut first) = items 5–6.
 
 - [ ] 1. Build `AgentClient` in `src/agents/client.ts`
   - Typed wrappers for fetch, pay, and tool; Zod-validated responses

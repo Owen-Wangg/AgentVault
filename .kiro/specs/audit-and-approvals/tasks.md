@@ -1,6 +1,6 @@
 # Tasks: Audit, Proxy Flow, and Approvals
 
-Global plan mapping: **Task 5** (Nov 18) = items 1–3. **Task 6** (Nov 19) = items 4–6. **Task 8** (Nov 22) = items 7–9.
+Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entries here are items): **Task 5** (Nov 18) = items 1–3. **Task 6** (Nov 19) = items 4–6. **Task 8** (Nov 22) = items 7–9.
 
 - [ ] 1. Implement the pure canonical-JSON and hash-chain modules in `src/core/audit/`
   - `canonical.ts`: `canonicalJson` with the CJ rules table from the design doc; `CanonicalJsonError`

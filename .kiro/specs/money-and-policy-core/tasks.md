@@ -1,6 +1,6 @@
 # Tasks: Money and Policy Core
 
-Global plan mapping: **Task 3** (Nov 15) = items 1–2. **Task 4** (Nov 16–17) = items 3–6.
+Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entries here are items): **Task 3** (Nov 15) = items 1–2. **Task 4** (Nov 16–17) = items 3–6.
 
 - [ ] 1. Build the `Micros` type and arithmetic in `src/core/money/micros.ts`
   - Branded type, `micros`, `fromDecimalString`, `fromMicrosString`, `toMicrosString`, `toDecimalString`, `toDisplay`, `add`, `sub`, `sum`, `cmp`, and `MicrosSchema` (Zod)
@@ -17,7 +17,7 @@ Global plan mapping: **Task 3** (Nov 15) = items 1–2. **Task 4** (Nov 16–17)
 
 - [ ] 3. Define policy types, reason codes, and Zod schemas in `src/core/policy`
   - `types.ts`, `reasons.ts`, `schemas.ts`
-  - Shared fast-check arbitraries in `src/core/testing/arbitraries.ts` (envelopes, window states, requests)
+  - Add envelope, window-state, and request arbitraries to `src/core/testing/arbitraries.ts` (the file and its money generators are created in Task 2)
   - _Requirements: ENV-11, ENV-15_
 
 - [ ] 4. Implement the envelope rule functions

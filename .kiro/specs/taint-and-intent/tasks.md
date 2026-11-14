@@ -1,6 +1,6 @@
 # Tasks: Taint Tracking and Intent Scope
 
-Global plan mapping: **Task 7** (Nov 20–21) = items 1–6. **Task 16** (Nov 30, optional) uses item 7.
+Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entries here are items): **Task 7** (Nov 20–21) = items 1–6. **Task 16** (Nov 30, optional) uses item 7.
 
 - [ ] 1. Implement origin labeling and taint rules in `src/core/taint`
   - `labelOrigin` with origin and path-prefix matching

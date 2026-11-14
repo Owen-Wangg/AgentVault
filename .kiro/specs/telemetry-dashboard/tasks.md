@@ -1,6 +1,6 @@
 # Tasks: Telemetry and Dashboard
 
-Global plan mapping: **Task 9** (Nov 23) = item 1. **Task 10** (Nov 23–25) = items 2–7. **Task 14** (Nov 29) = item 8. **Task 17** (Dec 1) = item 9.
+Global plan mapping (see `docs/PLAN.md`; "Task N" is a plan row, numbered entries here are items): **Task 9** (Nov 23) = item 1. **Task 10** (Nov 23–25) = items 2–7. **Task 14** (Nov 29) = item 8. **Task 17** (Dec 1) = item 9.
 
 - [ ] 1. Build the SSE endpoint `GET /api/v1/events`
   - Cursor polling, heartbeat, clean close before the duration limit, workspace scoping
