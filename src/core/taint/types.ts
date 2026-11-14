@@ -1,9 +1,12 @@
-import type { Micros } from "@/core/money";
+import type { Micros, Rail } from "@/core/money";
+
+/** How `/api/v1/fetch` labels a response (TAINT-1). */
+export type Label = "trusted" | "untrusted";
 
 /**
  * Per-session state the server loads for `evaluate()` (taint-and-intent
- * design). The taint rules that read `taintedAt` arrive in taint-and-intent
- * task 1; `agentFrozen` is read by the policy's `frozenRule` (ENV-5).
+ * design). `taintedAt` is read by `taintRules` (TAINT-6); `agentFrozen` is
+ * read by the policy's `frozenRule` (ENV-5).
  */
 export interface SessionState {
   sessionId: string;
@@ -14,4 +17,13 @@ export interface SessionState {
   taintSourceUrl: string | null;
   /** Reserved plus settled reservations for this session (audit-and-approvals RES-2). */
   sessionSpentMicros: Micros;
+}
+
+/** The part of a tool registry entry the policy needs (taint-and-intent design). */
+export interface ToolDef {
+  name: string;
+  /** High-privilege tools are held in tainted sessions (TAINT-6). */
+  privileged: boolean;
+  /** Null for tools that move no money, such as payee.update. */
+  rail: Rail | null;
 }
