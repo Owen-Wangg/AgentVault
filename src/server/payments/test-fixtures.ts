@@ -1,6 +1,6 @@
 import { asc, eq, sql } from "drizzle-orm";
 import { expect } from "vitest";
-import { fromDecimalString } from "@/core/money";
+import { type Micros, fromDecimalString } from "@/core/money";
 import type { Envelope } from "@/core/policy";
 import { TEST_HEAD_KEY } from "@/core/testing/audit-fixtures";
 import type { RailConfig } from "@/rails/config";
@@ -51,12 +51,23 @@ export interface Scene {
   body: (over?: Partial<GuardedBody>) => GuardedBody;
 }
 
-const OPEN_ENVELOPE: Omit<Envelope, "agentId"> = { limits: {}, vendorLimits: {}, toolLimits: {}, allowedVendors: "*", allowedTools: "*" };
+export interface SceneTask {
+  allowedVendorCategories: string[];
+  allowedTools: string[];
+  budgetMicros: Micros;
+}
+
+/** Mark a session tainted, as a poisoned fetch through /api/v1/fetch would. */
+export async function taintSession(db: Db, sessionId: string, sourceUrl = "https://agentvault.example/vendor/docs/integration", at = new Date()) {
+  await db.update(sessions).set({ taintedAt: at, taintSourceUrl: sourceUrl, taintContentSha256: "ab".repeat(32) }).where(eq(sessions.id, sessionId));
+}
+
+export const OPEN_ENVELOPE: Omit<Envelope, "agentId"> = { limits: {}, vendorLimits: {}, toolLimits: {}, allowedVendors: "*", allowedTools: "*" };
 
 /** A workspace with one vendor, one task, one agent, and one session. */
 export async function createScene(
   db: Db,
-  options: { envelope?: Omit<Envelope, "agentId">; isSandbox?: boolean; now?: Date; workspaceId?: string } = {},
+  options: { envelope?: Omit<Envelope, "agentId">; isSandbox?: boolean; now?: Date; workspaceId?: string; task?: Partial<SceneTask> } = {},
 ): Promise<Scene> {
   return db.transaction(async (tx) => {
     let workspaceId = options.workspaceId;
@@ -75,6 +86,7 @@ export async function createScene(
         allowedVendorCategories: ["weather"],
         allowedTools: ["x402.pay", "mpp.pay"],
         budgetMicros: fromDecimalString("1000"),
+        ...options.task,
       })
       .returning({ id: tasks.id });
     const { agentId, apiKey } = await createAgent(tx, { workspaceId, name: "agent", envelope: options.envelope ?? OPEN_ENVELOPE });

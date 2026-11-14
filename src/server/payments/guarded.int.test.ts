@@ -129,6 +129,48 @@ describe("deny and hold", () => {
   });
 });
 
+describe("INT-2 to INT-6: intent scope through the database", () => {
+  it("INT-5, INT-6: a vendor that isn't in the workspace registry is denied as the unknown category", async () => {
+    const scene = await createScene(db());
+    const { deps, mocks } = testDeps(db());
+    const response = await runGuardedRequest({ agent: scene.agent, idempotencyKey: key(), body: scene.body({ vendor: "weather-free-for-all" }) }, deps);
+    expect(response).toMatchObject({
+      status: 403,
+      body: { decision: "deny", reasons: [{ code: "DENY_INTENT_DRIFT", detail: { check: "vendor_category", expected: "weather", actual: "unknown" } }] },
+    });
+    expect(mocks.x402.calls).toBe(0);
+  });
+
+  it("INT-2: a registered vendor in another category is denied with exactly DENY_INTENT_DRIFT (drift scenario)", async () => {
+    const scene = await createScene(db());
+    const { deps } = testDeps(db());
+    expect((await runGuardedRequest({ agent: scene.agent, idempotencyKey: key(), body: scene.body() }, deps)).body.decision).toBe("allow");
+    const gpu = await runGuardedRequest({ agent: scene.agent, idempotencyKey: key(), body: scene.body({ vendor: "gpu-cloud" }) }, deps);
+    expect(gpu.body.reasons).toEqual([{ code: "DENY_INTENT_DRIFT", detail: { check: "vendor_category", expected: "weather", actual: "compute" } }]);
+  });
+
+  it("INT-4: session spend from reservations counts toward the task budget", async () => {
+    const scene = await createScene(db(), { task: { budgetMicros: micros(3_000n) } });
+    const { deps } = testDeps(db());
+    const decisions: string[] = [];
+    for (let i = 0; i < 3; i += 1) {
+      const r = await runGuardedRequest({ agent: scene.agent, idempotencyKey: key(), body: scene.body() }, deps);
+      decisions.push([r.body.decision, ...(r.body.reasons ?? []).map((x) => x.code)].join(" "));
+    }
+    expect(decisions).toEqual(["allow", "allow", "deny OVER_TASK_BUDGET"]);
+  });
+
+  it("INT-4: an unknown rail outcome keeps counting toward the task budget", async () => {
+    const scene = await createScene(db(), { task: { budgetMicros: micros(1_500n) } });
+    const { deps, mocks } = testDeps(db());
+    mocks.x402.setFailureMode("RAIL_TIMEOUT");
+    await runGuardedRequest({ agent: scene.agent, idempotencyKey: key(), body: scene.body() }, deps);
+    mocks.x402.setFailureMode(null);
+    const r = await runGuardedRequest({ agent: scene.agent, idempotencyKey: key(), body: scene.body() }, deps);
+    expect(r.body.reasons?.map((x) => x.code)).toEqual(["OVER_TASK_BUDGET"]);
+  });
+});
+
 describe("PXY-8, PXY-12, PXY-13, PXY-14: idempotency", () => {
   it("PXY-8: replaying a key with the same body returns the original response without paying again", async () => {
     const scene = await createScene(db());

@@ -29,6 +29,12 @@ export interface GuardedBody {
   /** As requested. The amount counted against the envelope is derived from the tool's rail. */
   amountMicros: Micros;
   sessionId: string;
+  /**
+   * Tool-specific arguments from /api/v1/tool, already validated, for
+   * example `payment_ref` for stripe.refund. Part of the request hash, the
+   * audit event, and the approval, so an approved re-run gets them back.
+   */
+  args?: Readonly<Record<string, string>>;
 }
 
 export interface GuardedRequest {
@@ -73,7 +79,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** sha256 of the canonical validated body, so key order and whitespace in the client's JSON don't matter. */
 export function requestHash(body: GuardedBody): string {
-  const canonical = canonicalJson({ vendor: body.vendor, tool: body.tool, amount_micros: body.amountMicros, session_id: body.sessionId });
+  // canonicalJson omits undefined properties, so a body without args hashes as it did before args existed.
+  const canonical = canonicalJson({ vendor: body.vendor, tool: body.tool, amount_micros: body.amountMicros, session_id: body.sessionId, args: body.args });
   return createHash("sha256").update(canonical, "utf8").digest("hex");
 }
 
@@ -163,7 +170,15 @@ interface Pending {
   decision: Decision;
   workspaceId: string;
   /** Set when the decision is allow and the tool moves money. */
-  rail?: { adapter: RailAdapter; reservationId: string; counted: Micros; vendorUrl: string; railName: Rail };
+  rail?: {
+    adapter: RailAdapter;
+    reservationId: string;
+    counted: Micros;
+    vendorUrl: string;
+    railName: Rail;
+    /** Set for credit tools (stripe.refund): the payment being refunded. */
+    refundOf?: string;
+  };
 }
 
 type Phase1 = { kind: "final"; response: GuardedResponse } | { kind: "execute"; pending: Pending };
@@ -206,6 +221,9 @@ async function decide(tx: Tx, req: GuardedRequest, deps: GuardedDeps, now: Date)
   let decision: Decision;
   if (!tool) {
     decision = { decision: "deny", reasons: [{ code: "TOOL_NOT_ALLOWED", detail: { tool: body.tool, reason: "not in the tool registry" } }] };
+  } else if (tool.direction === "credit" && !body.args?.payment_ref) {
+    // A refund must name the payment it refunds. The tool route checks this too.
+    decision = invalid("args.payment_ref");
   } else if (!sessionRow || !taskRow) {
     // A session that doesn't exist or belongs to another agent can't be evaluated: fail closed.
     decision = invalid("session_id");
@@ -256,6 +274,7 @@ async function decide(tx: Tx, req: GuardedRequest, deps: GuardedDeps, now: Date)
     counted_micros: counted,
     session_id: body.sessionId,
     idempotency_key: req.idempotencyKey,
+    args: body.args,
   };
   const decisionEvent = await appendEvent(
     tx,
@@ -311,7 +330,6 @@ async function decide(tx: Tx, req: GuardedRequest, deps: GuardedDeps, now: Date)
 
   // allow. A tool can only be allowed if it is registered.
   if (!tool) throw new Error("Allowed an unregistered tool");
-  if (tool.direction === "credit") throw new Error("Credit tools go through the tool route, which isn't built yet");
   if (tool.rail === null) return { kind: "execute", pending: { decisionSeq, decision, workspaceId } };
 
   // RES-1: reserve the counted amount in the same transaction as the decision.
@@ -337,7 +355,14 @@ async function decide(tx: Tx, req: GuardedRequest, deps: GuardedDeps, now: Date)
       decisionSeq,
       decision,
       workspaceId,
-      rail: { adapter, reservationId, counted, vendorUrl: vendorRow?.origin ?? "", railName: tool.rail },
+      rail: {
+        adapter,
+        reservationId,
+        counted,
+        vendorUrl: vendorRow?.origin ?? "",
+        railName: tool.rail,
+        ...(tool.direction === "credit" && body.args?.payment_ref ? { refundOf: body.args.payment_ref } : {}),
+      },
     },
   };
 }
@@ -353,6 +378,7 @@ async function recordOutcome(tx: Tx, req: GuardedRequest, deps: GuardedDeps, pen
     rail: pending.rail?.railName ?? null,
     decision_seq: pending.decisionSeq,
     reservation_id: pending.rail?.reservationId,
+    refund_of: pending.rail?.refundOf,
     rail_ref: ok?.ref || undefined,
     explorer_url: ok?.explorerUrl,
     // A tool with no rail moves no money, so it has no settled amount.
@@ -392,11 +418,14 @@ export async function runGuardedRequest(req: GuardedRequest, deps: GuardedDeps):
   let result: RailResult | { thrown: true } = { ok: true, ref: "", settledMicros: micros(0n) };
   if (pending.rail) {
     // Step 8: the rail call happens after commit, never while holding the lock.
+    const { adapter, reservationId, counted, vendorUrl, refundOf } = pending.rail;
+    const ctx = { signal: AbortSignal.timeout(deps.railTimeoutMs ?? RAIL_TIMEOUT_MS) };
     try {
-      result = await pending.rail.adapter.execute(
-        { vendorUrl: pending.rail.vendorUrl, approvedMicros: pending.rail.counted, idempotencyKey: pending.rail.reservationId },
-        { signal: AbortSignal.timeout(deps.railTimeoutMs ?? RAIL_TIMEOUT_MS) },
-      );
+      // Credit tools refund an earlier payment; the rail rounds the amount down (MON-8).
+      result =
+        refundOf !== undefined
+          ? await adapter.refund({ paymentRef: refundOf, amountMicros: counted, idempotencyKey: reservationId }, ctx)
+          : await adapter.execute({ vendorUrl, approvedMicros: counted, idempotencyKey: reservationId }, ctx);
     } catch {
       // The request may have reached the rail, so this proves nothing (RES-5).
       result = { thrown: true };
