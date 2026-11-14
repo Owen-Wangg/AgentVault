@@ -26,3 +26,8 @@ Raw notes for the Devpost "How Kiro was used" write-up. The `devlog` hook (Stop 
   - Refunds round down at the rail, so the envelope now counts the full requested refund (MON-11).
   - The scenario seeds now make each demo produce exactly one intended reason code.
 - **Steering and planning.** Added an always-included `git-commits.md` steering file for commit format. Added `docs/PLAN.md` with dependency-ordered phases and a scope-cut order. "Task" now always means a `tasks.md` entry, which matches Kiro's task UI.
+- **Phase 2: project setup.** Next.js 16, strict TypeScript, ESLint layering rules, Vitest and fast-check, and the three hook scripts with 75 tests. Five hooks are now enabled.
+  - Kiro's hook docs (checked with the `introspect` subagent) showed that `timeout` belongs on the hook, not the action. All hook files were fixed.
+  - The `.kiro` gitignore check first reported false matches. Git's `check-ignore` misreports paths that end in a slash, so the script now passes folders without one.
+  - TypeScript 7 is the latest, but `typescript-eslint` supports only versions below 6.1, so TypeScript is pinned to 6.0.
+  - pnpm 12 blocks install scripts by default. Only `esbuild` is approved.

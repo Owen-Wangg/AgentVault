@@ -7,7 +7,7 @@ Deployment target: Vercel **Hobby**. Cron jobs run at most once per day (see `te
 | Phase | Dates | Work | Status |
 |---|---|---|---|
 | 1 | Nov 13 | Planning: research, 7 specs, steering, hooks | Done |
-| 2 | Nov 14 | Project setup (checklist below) | Not started |
+| 2 | Nov 14 | Project setup (checklist below) | Done |
 | 3 | Nov 15 | money-and-policy-core tasks 1–2 | |
 | 4 | Nov 16–17 | money-and-policy-core tasks 3–6 | |
 | 5 | Nov 18 | audit-and-approvals tasks 1–3 | |
@@ -47,19 +47,19 @@ Why this order (each phase only depends on earlier ones):
 ## Phase 2: Project setup
 Setup only: no product features and no database. Every spec task needs it first. The database schema is audit-and-approvals task 2 (Phase 5).
 
-- [ ] 2.1 Install pnpm and scaffold Next.js (App Router) with TypeScript `strict`, `noUncheckedIndexedAccess`, and `exactOptionalPropertyTypes` (`tech.md`)
-- [ ] 2.2 Create the folder layout from `structure.md`, with the `@/` import alias
-- [ ] 2.3 Add ESLint, including a rule that blocks `src/core/**` from importing `src/server`, `src/rails`, `app/`, and I/O modules (`structure.md` layering rules)
-- [ ] 2.4 Add Vitest and fast-check, `src/core/testing/arbitraries.ts` with the money generators from `testing-standards.md`, and one smoke test
-- [ ] 2.5 Add `package.json` scripts: `dev`, `build`, `typecheck`, `lint`, `test`, `test:live`
-- [ ] 2.6 Write the hook scripts, each with tests:
+- [x] 2.1 Install pnpm and scaffold Next.js (App Router) with TypeScript `strict`, `noUncheckedIndexedAccess`, and `exactOptionalPropertyTypes` (`tech.md`)
+- [x] 2.2 Create the folder layout from `structure.md`, with the `@/` import alias
+- [x] 2.3 Add ESLint, including a rule that blocks `src/core/**` from importing `src/server`, `src/rails`, `app/`, and I/O modules (`structure.md` layering rules)
+- [x] 2.4 Add Vitest and fast-check, `src/core/testing/arbitraries.ts` with the money generators from `testing-standards.md`, and one smoke test
+- [x] 2.5 Add `package.json` scripts: `dev`, `build`, `typecheck`, `lint`, `test`, `test:live`
+- [x] 2.6 Write the hook scripts, each with tests:
   - `scripts/guard-shell.mjs`: blocks recursive force deletes, `git push --force`, `git reset --hard`, and reading `.env` files; exits 2 to block
   - `scripts/check-kiro-not-ignored.mjs`: fails if `.kiro` or any file in it is gitignored
   - `scripts/check-money.ts`: flags `parseFloat`, `toFixed`, `Number()` on amounts, and `number`-typed `*Micros` fields
-- [ ] 2.7 Enable the five disabled hooks once their scripts pass. First confirm that the `shell` matcher in `guard-shell.json` matches Kiro's shell tool name, so the guard actually runs
-- [ ] 2.8 Add `.gitattributes` (text files stored with LF) and renormalize the existing files in a separate commit
-- [ ] 2.9 Add `LICENSE` (Apache-2.0, copyright Owen Wang), `.gitignore` (ignores `.env*` except `.env.example`, never `.kiro`), and `.env.example` with placeholders
-- [ ] 2.10 Write `docs/SETUP.md`: install Node 22 and pnpm, install dependencies, run the dev server and tests (PowerShell commands)
+- [x] 2.7 Enable the five disabled hooks once their scripts pass. Kiro's docs confirm that the `shell` matcher covers `execute_pwsh` on Windows, and that `timeout` belongs on the hook, not the action
+- [x] 2.8 Add `.gitattributes` (text files stored with LF). No committed file needed renormalizing
+- [x] 2.9 Add `LICENSE` (Apache-2.0, copyright Owen Wang), `.gitignore` (ignores `.env*` except `.env.example`, never `.kiro`), and `.env.example` with placeholders
+- [x] 2.10 Write `docs/SETUP.md`: install Node 22 and pnpm, install dependencies, run the dev server and tests (PowerShell commands)
 
 Commit messages follow `.kiro/steering/git-commits.md`; there is no git hook that enforces them.
 
