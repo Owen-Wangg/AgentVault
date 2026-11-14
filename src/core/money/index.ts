@@ -14,3 +14,4 @@ export {
   toMicrosString,
   type Micros,
 } from "./micros";
+export { chargeableMicros, fromRailUnits, toRailUnits, type Direction, type Rail } from "./rail-units";
