@@ -105,12 +105,14 @@ pnpm audit:verify
 
 Files named `*.int.test.ts` need Postgres. With `DATABASE_URL_TEST` set, each test file creates its own throwaway database on that server and drops it afterwards. Without it, they run on [PGlite](https://pglite.dev), a real Postgres compiled to WebAssembly that runs in memory, so `pnpm test` works with no setup. PGlite has a single connection, so the concurrency tests in later phases need `DATABASE_URL_TEST`.
 
-Note that `pnpm test` reads `DATABASE_URL_TEST` from the shell, not from `.env.local`. To run the integration tests against your test database, set it for the session first:
+`pnpm test` reads `DATABASE_URL_TEST` from `.env.local`, and loads no other variable from that file. A value set in the terminal takes priority, so you can point one run at another server:
 
 ```powershell
 $env:DATABASE_URL_TEST = "postgres://postgres:postgres@localhost:5432/postgres"
 pnpm test --run
 ```
+
+To run on PGlite instead, comment out the `DATABASE_URL_TEST` line in `.env.local`.
 
 ## 5. Run it
 | Command | What it does |
