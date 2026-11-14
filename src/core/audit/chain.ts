@@ -14,6 +14,7 @@ export const EVENT_TYPES = [
   "decision",
   "rail_result",
   "taint",
+  "fetch_failed",
   "approval_created",
   "approval_decided",
   "approval_expired",
