@@ -1,4 +1,5 @@
-import type { Direction, Rail } from "@/core/money";
+import type { Direction } from "@/core/money";
+import type { ToolDef as PolicyToolDef } from "@/core/taint";
 
 /**
  * The built-in tool registry (taint-and-intent design). The pay flow uses
@@ -7,14 +8,14 @@ import type { Direction, Rail } from "@/core/money";
  * sandbox amounts match real ones. The /api/v1/tool route arrives in
  * taint-and-intent task 5.
  */
-export interface ToolDef {
-  name: string;
-  /** High-privilege tools are held in tainted sessions (TAINT-6). */
-  privileged: boolean;
-  /** Null for tools that move no money, such as payee.update. */
-  rail: Rail | null;
+export interface ToolDef extends PolicyToolDef {
   /** debit: the agent spends. credit: the agent refunds or pays out. */
   direction: Direction;
+}
+
+/** The fields `evaluate()` takes. Its schema is strict, so `direction` must not be passed. */
+export function policyTool(tool: ToolDef): PolicyToolDef {
+  return { name: tool.name, privileged: tool.privileged, rail: tool.rail };
 }
 
 const TOOLS: readonly ToolDef[] = [

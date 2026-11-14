@@ -97,6 +97,12 @@ export const TaskScopeSchema = z.strictObject({
   budgetMicros: MicrosValueSchema,
 });
 
+export const ToolDefSchema = z.strictObject({
+  name: Id,
+  privileged: z.boolean(),
+  rail: z.enum(["stripe", "x402", "mock"]).nullable(),
+});
+
 export const EvaluateInputSchema = z
   .strictObject({
     request: PayRequestSchema,
@@ -104,6 +110,7 @@ export const EvaluateInputSchema = z
     window: WindowStateSchema,
     session: SessionStateSchema,
     scope: TaskScopeSchema,
+    tool: ToolDefSchema,
   })
   .superRefine((input, ctx) => {
     // Pieces loaded for a different agent or session must never be combined.
@@ -112,5 +119,9 @@ export const EvaluateInputSchema = z
     }
     if (input.request.sessionId !== input.session.sessionId) {
       ctx.addIssue({ code: "custom", path: ["session", "sessionId"], message: "Session state belongs to a different session" });
+    }
+    // Otherwise a privileged tool could be evaluated with another tool's (unprivileged) flag.
+    if (input.request.tool !== input.tool.name) {
+      ctx.addIssue({ code: "custom", path: ["tool", "name"], message: "Tool definition is for a different tool" });
     }
   });

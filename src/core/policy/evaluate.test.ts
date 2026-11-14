@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { micros } from "@/core/money";
-import { baseInput, usd, withLimits } from "@/core/testing/policy-fixtures";
+import { REFUND_TOOL, baseInput, usd, withLimits, withTool } from "@/core/testing/policy-fixtures";
 import { combine, evaluate } from "./evaluate";
 import type { Decision, EvaluateInput, Limits } from "./types";
 
@@ -210,12 +210,90 @@ describe("demo scenario envelopes", () => {
     ]);
   });
 
-  it("ENV-8: injection: a $480 refund under a $100 threshold and a $1,000 tool max gets only NEEDS_APPROVAL from the envelope", () => {
-    const input = withLimits({ agent: { approvalThresholdMicros: usd(100n) } });
-    input.request.kind = "tool";
-    input.request.tool = "stripe.refund";
+  /** The injection scenario's refund: billing task, billing envelope, $480. */
+  const injectionRefund = (taintedAt: string | null): EvaluateInput => {
+    const input = withTool(withLimits({ agent: { approvalThresholdMicros: usd(100n) } }), REFUND_TOOL);
     input.envelope.toolLimits = { "stripe.refund": { txMaxMicros: usd(1_000n) } };
+    input.envelope.allowedTools = ["x402.pay", "stripe.refund"];
+    input.scope = { taskId: "billing", allowedVendorCategories: ["weather"], allowedTools: ["x402.pay", "stripe.refund"], budgetMicros: usd(1_000n) };
     input.request.amountMicros = usd(480n);
-    expect(codes(evaluate(input))).toEqual(["NEEDS_APPROVAL"]);
+    input.session.taintedAt = taintedAt;
+    input.session.taintSourceUrl = taintedAt ? "https://agentvault.example/vendor/docs/integration" : null;
+    return input;
+  };
+
+  it("ENV-8, TAINT-7: injection before the poisoned fetch: the $480 refund gets only NEEDS_APPROVAL", () => {
+    expect(codes(evaluate(injectionRefund(null)))).toEqual(["NEEDS_APPROVAL"]);
+  });
+
+  it("TAINT-6, ENV-8: injection: after the poisoned fetch the refund is held with exactly HELD_TAINTED and NEEDS_APPROVAL", () => {
+    expect(evaluate(injectionRefund("2026-11-21T10:00:00.000Z"))).toEqual({
+      decision: "hold",
+      reasons: [
+        {
+          code: "HELD_TAINTED",
+          detail: { tool: "stripe.refund", sourceUrl: "https://agentvault.example/vendor/docs/integration", taintedAt: "2026-11-21T10:00:00.000Z" },
+        },
+        { code: "NEEDS_APPROVAL", detail: { level: "agent", thresholdMicros: "100000000" } },
+      ],
+    });
+  });
+
+  it("ENV-10, INT-2: drift: a weather payment is allowed, then a GPU payment is denied with exactly DENY_INTENT_DRIFT", () => {
+    const limits: Limits = { txMaxMicros: usd(1n), windowCapsMicros: { minute: m(500_000n) }, callsPerMinute: 30 };
+    const weather = weatherCall(limits, 0, 0n, false);
+    weather.scope = { taskId: "weather", allowedVendorCategories: ["weather"], allowedTools: ["x402.pay"], budgetMicros: usd(1n) };
+    expect(evaluate(weather)).toEqual({ decision: "allow", reasons: [] });
+
+    const gpu = weatherCall(limits, 1, 1_500n, false);
+    gpu.scope = weather.scope;
+    gpu.request.vendor = "gpu-cloud";
+    gpu.request.vendorCategory = "compute";
+    gpu.session.sessionSpentMicros = m(1_500n);
+    expect(evaluate(gpu)).toEqual({
+      decision: "deny",
+      reasons: [{ code: "DENY_INTENT_DRIFT", detail: { check: "vendor_category", expected: "weather", actual: "compute" } }],
+    });
+  });
+});
+
+describe("TAINT-6, INT-2, INT-3, INT-4: taint and intent through evaluate()", () => {
+  const tainted = () => {
+    const input = withTool(baseInput(), REFUND_TOOL);
+    input.scope.allowedTools = ["stripe.refund"];
+    input.session.taintedAt = "2026-11-21T10:00:00.000Z";
+    input.session.taintSourceUrl = "https://example.com/";
+    return input;
+  };
+
+  it("TAINT-6: a privileged tool in a tainted session is held", () => {
+    expect(evaluate(tainted())).toMatchObject({ decision: "hold", reasons: [{ code: "HELD_TAINTED" }] });
+  });
+
+  it("TAINT-6, ENV-12: a deny reason still wins over HELD_TAINTED", () => {
+    const input = tainted();
+    input.scope.allowedTools = [];
+    expect(codes(evaluate(input))).toEqual(["DENY_INTENT_DRIFT", "HELD_TAINTED"]);
+    expect(evaluate(input).decision).toBe("deny");
+  });
+
+  it("TAINT-6, ENV-8: NEEDS_APPROVAL is not added when an intent rule denies", () => {
+    const input = tainted();
+    input.envelope.limits = { approvalThresholdMicros: usd(1n) };
+    input.request.amountMicros = usd(2_000n);
+    expect(codes(evaluate(input))).toEqual(["OVER_TASK_BUDGET", "HELD_TAINTED"]);
+  });
+
+  it("INT-6: an unknown vendor is denied through evaluate()", () => {
+    const input = baseInput();
+    input.request.vendorCategory = "unknown";
+    input.scope.allowedVendorCategories = ["weather", "unknown"];
+    expect(codes(evaluate(input))).toEqual(["DENY_INTENT_DRIFT"]);
+  });
+
+  it("ENV-15: a tool definition for a different tool is INVALID_REQUEST", () => {
+    const input = baseInput();
+    input.tool = REFUND_TOOL;
+    expect(evaluate(input)).toEqual({ decision: "deny", reasons: [{ code: "INVALID_REQUEST", detail: { path: "tool.name" } }] });
   });
 });

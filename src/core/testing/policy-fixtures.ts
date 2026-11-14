@@ -1,5 +1,6 @@
 import { micros } from "@/core/money";
 import type { EvaluateInput, Limits } from "@/core/policy/types";
+import type { ToolDef } from "@/core/taint/types";
 
 const m = micros;
 
@@ -34,8 +35,20 @@ export function baseInput(): EvaluateInput {
     window: { spentMicros: { ...zero }, vendorSpentMicros: { ...zero }, toolSpentMicros: { ...zero }, callsLastMinute: 0 },
     session: { sessionId: "session-1", agentFrozen: false, taintedAt: null, taintSourceUrl: null, sessionSpentMicros: m(0n) },
     scope: { taskId: "task-1", allowedVendorCategories: ["weather"], allowedTools: ["x402.pay"], budgetMicros: usd(1_000n) },
+    tool: { name: "x402.pay", privileged: false, rail: "x402" },
   };
 }
+
+/** Switch the input to another tool, keeping `request.tool` and the tool definition in step. */
+export function withTool(input: EvaluateInput, tool: ToolDef): EvaluateInput {
+  input.request.kind = tool.name === "x402.pay" || tool.name === "mpp.pay" ? "pay" : "tool";
+  input.request.tool = tool.name;
+  input.tool = tool;
+  return input;
+}
+
+/** stripe.refund as the registry defines it. */
+export const REFUND_TOOL: ToolDef = { name: "stripe.refund", privileged: true, rail: "stripe" };
 
 /** The base input with some limits set at the agent, vendor, or tool level. */
 export function withLimits(levels: { agent?: Limits; vendor?: Limits; tool?: Limits }): EvaluateInput {

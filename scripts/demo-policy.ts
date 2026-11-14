@@ -77,6 +77,7 @@ export function runDemo(envelope: Envelope = DEMO_ENVELOPE, steps: readonly Demo
     ) as Record<Window, Micros>;
     const callsLastMinute = calls.filter((t) => now - t < WINDOW_SECONDS.minute).length;
     const amount = typeof step.amount === "string" ? fromDecimalString(step.amount) : step.amount;
+    const refund = step.tool === "stripe.refund";
     const input = {
       request: {
         kind: step.tool === "x402.pay" ? "pay" : "tool",
@@ -93,6 +94,7 @@ export function runDemo(envelope: Envelope = DEMO_ENVELOPE, steps: readonly Demo
       window: { spentMicros: spent, vendorSpentMicros: spent, toolSpentMicros: spent, callsLastMinute },
       session: { sessionId: "demo-session", agentFrozen: frozen, taintedAt: null, taintSourceUrl: null, sessionSpentMicros: micros(0n) },
       scope: { taskId: "demo-task", allowedVendorCategories: ["weather"], allowedTools: ["x402.pay", "stripe.refund"], budgetMicros: fromDecimalString("10") },
+      tool: { name: step.tool, privileged: refund, rail: refund ? "stripe" : "x402" },
     } as EvaluateInput; // the "number amount" step is deliberately not a valid EvaluateInput
     const decision = evaluate(input);
     const valid = typeof amount === "bigint";

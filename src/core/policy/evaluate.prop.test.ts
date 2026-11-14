@@ -14,7 +14,7 @@ import {
   microsWithEdges,
 } from "@/core/testing/arbitraries";
 import { baseInput } from "@/core/testing/policy-fixtures";
-import { combine, evaluate } from "./evaluate";
+import { combine, evaluate, intentRule, taintRule } from "./evaluate";
 import { REASON_CODES, isDenyReason, isHoldReason } from "./reasons";
 import { allowListRule, frozenRule, txMaxRule, velocityRule, windowCapRule } from "./rules";
 import { EvaluateInputSchema } from "./schemas";
@@ -97,6 +97,7 @@ function simulate(envelope: Envelope, steps: readonly Step[]): Executed[] {
       },
       session: { sessionId: SESSION_ID, agentFrozen: false, taintedAt: null, taintSourceUrl: null, sessionSpentMicros: micros(0n) },
       scope: { taskId: "task-1", allowedVendorCategories: ["weather"], allowedTools: [...TOOLS], budgetMicros: POLICY_MAX },
+      tool: { name: step.tool, privileged: false, rail: null },
     };
     const decision = evaluate(input);
     expect(codes(decision)).not.toContain("INVALID_REQUEST");
@@ -210,7 +211,7 @@ describe("policy properties", () => {
     fc.assert(
       fc.property(evaluateInputArb(), (input) => {
         const d = evaluate(input);
-        for (const rule of [frozenRule, txMaxRule, windowCapRule, velocityRule, allowListRule]) {
+        for (const rule of [frozenRule, txMaxRule, windowCapRule, velocityRule, allowListRule, intentRule, taintRule]) {
           for (const reason of rule(input)) expect(d.reasons).toContainEqual(reason);
         }
       }),
@@ -241,6 +242,9 @@ describe("policy properties", () => {
       ["window", "spentMicros"],
       ["session", "agentFrozen"],
       ["scope", "budgetMicros"],
+      ["scope", "allowedVendorCategories"],
+      ["tool", "name"],
+      ["tool", "privileged"],
     ] as const;
     const corrupted = fc.tuple(evaluateInputArb(), fc.constantFrom(...paths), fc.anything()).map(([input, [a, b], value]) => {
       const copy = structuredClone(input) as unknown as Record<string, Record<string, unknown>>;

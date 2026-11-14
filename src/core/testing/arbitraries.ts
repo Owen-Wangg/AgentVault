@@ -1,8 +1,8 @@
 import fc from "fast-check";
 import type { TaskScope } from "@/core/intent/types";
-import { MAX_MICROS, type Micros, micros } from "@/core/money";
+import { MAX_MICROS, type Micros, type Rail, micros } from "@/core/money";
 import type { Envelope, EvaluateInput, Limits, PayRequest, Window, WindowState } from "@/core/policy/types";
-import type { SessionState } from "@/core/taint/types";
+import type { SessionState, ToolDef } from "@/core/taint/types";
 
 /** Edge values from testing-standards.md: zero, one micro, either side of one cent, and the maximum. */
 export const MICROS_EDGE_VALUES: readonly Micros[] = [0n, 1n, 9_999n, 10_000n, MAX_MICROS].map(micros);
@@ -124,12 +124,27 @@ export const taskScopeArb = (): fc.Arbitrary<TaskScope> =>
     budgetMicros: policyMicros(),
   });
 
-/** A complete, valid input for `evaluate()`. */
-export const evaluateInputArb = (): fc.Arbitrary<EvaluateInput> =>
+/**
+ * A tool definition for `name`. The privileged flag is random, including
+ * for tools the registry flags, so rules that rely on more than the flag
+ * get exercised too.
+ */
+export const toolDefArb = (name: string): fc.Arbitrary<ToolDef> =>
   fc.record({
-    request: payRequestArb(),
-    envelope: envelopeArb(),
-    window: windowStateArb(),
-    session: sessionStateArb(),
-    scope: taskScopeArb(),
+    name: fc.constant(name),
+    privileged: fc.boolean(),
+    rail: fc.constantFrom<Rail | null>("stripe", "x402", "mock", null),
   });
+
+/** A complete, valid input for `evaluate()`. The tool definition always matches `request.tool`. */
+export const evaluateInputArb = (): fc.Arbitrary<EvaluateInput> =>
+  payRequestArb().chain((request) =>
+    fc.record({
+      request: fc.constant(request),
+      envelope: envelopeArb(),
+      window: windowStateArb(),
+      session: sessionStateArb(),
+      scope: taskScopeArb(),
+      tool: toolDefArb(request.tool),
+    }),
+  );

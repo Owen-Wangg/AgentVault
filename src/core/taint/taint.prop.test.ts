@@ -1,0 +1,87 @@
+import fc from "fast-check";
+import { describe, expect, it } from "vitest";
+import { MAX_MICROS, micros } from "@/core/money";
+import { evaluate } from "@/core/policy/evaluate";
+import type { EvaluateInput } from "@/core/policy/types";
+import { evaluateInputArb } from "@/core/testing/arbitraries";
+import { isHighPrivilege } from "./rules";
+import { type FetchOutcome, type TaintState, afterFetch } from "./session";
+
+const RUNS = { numRuns: 1000 };
+
+type Op = { kind: "fetch"; outcome: FetchOutcome } | { kind: "request"; input: EvaluateInput };
+
+const fetchOp: fc.Arbitrary<Op> = fc
+  .oneof(
+    fc.constant<FetchOutcome>({ ok: false }),
+    fc.record({
+      ok: fc.constant(true as const),
+      label: fc.constantFrom("trusted" as const, "untrusted" as const),
+      url: fc.constantFrom("https://docs.stripe.com/", "https://agentvault.example/vendor/docs/integration"),
+      contentSha256: fc.constant("ab".repeat(32)),
+      at: fc.constantFrom("2026-11-21T10:00:00.000Z", "2026-11-21T10:05:00.000Z"),
+    }),
+  )
+  .map((outcome) => ({ kind: "fetch" as const, outcome }));
+
+const requestOp: fc.Arbitrary<Op> = evaluateInputArb().map((input) => ({ kind: "request" as const, input }));
+
+describe("taint properties", () => {
+  // Property 1, no privileged execution after taint (TAINT-5, TAINT-6): for
+  // any sequence of fetches and tool requests in which at least one
+  // untrusted fetch happens, no privileged tool request after it reaches
+  // `allow` unless an approval for `HELD_TAINTED` is attached.
+  // (Approvals arrive with HITL-2 in Phase 8; until then nothing can be attached.)
+  it("TAINT-5, TAINT-6: after an untrusted fetch, no privileged tool request is allowed", () => {
+    fc.assert(
+      fc.property(fc.array(fc.oneof(fetchOp, requestOp), { minLength: 1, maxLength: 20 }), (ops) => {
+        let taint: TaintState = { taintedAt: null, taintSourceUrl: null, taintContentSha256: null };
+        let sawUntrusted = false;
+        for (const op of ops) {
+          if (op.kind === "fetch") {
+            taint = afterFetch(taint, op.outcome);
+            if (op.outcome.ok && op.outcome.label === "untrusted") sawUntrusted = true;
+            continue;
+          }
+          const input: EvaluateInput = {
+            ...op.input,
+            session: { ...op.input.session, taintedAt: taint.taintedAt, taintSourceUrl: taint.taintSourceUrl },
+          };
+          const decision = evaluate(input);
+          const held = decision.reasons.some((r) => r.code === "HELD_TAINTED");
+          if (sawUntrusted && isHighPrivilege(input.tool)) {
+            expect(decision.decision).not.toBe("allow");
+            expect(held).toBe(true);
+          } else {
+            // TAINT-7: without a taint, or for an ordinary tool, the taint rule adds nothing.
+            expect(held).toBe(false);
+          }
+        }
+      }),
+      RUNS,
+    );
+  });
+
+  // Property 1 again, on requests that every other rule allows, so the
+  // taint rule is the only thing between the request and `allow`.
+  it("TAINT-6: a high-privilege request that would otherwise be allowed is held once the session is tainted", () => {
+    const permissive = evaluateInputArb().map((input): EvaluateInput => ({
+      ...input,
+      request: { ...input.request, vendorCategory: "weather" },
+      envelope: { ...input.envelope, limits: {}, vendorLimits: {}, toolLimits: {}, allowedVendors: "*", allowedTools: "*" },
+      window: { ...input.window, callsLastMinute: 0 },
+      session: { ...input.session, agentFrozen: false, sessionSpentMicros: micros(0n), taintedAt: null, taintSourceUrl: null },
+      scope: { ...input.scope, allowedVendorCategories: ["weather"], allowedTools: [input.request.tool], budgetMicros: MAX_MICROS },
+    }));
+    fc.assert(
+      fc.property(permissive, (input) => {
+        expect(evaluate(input)).toEqual({ decision: "allow", reasons: [] });
+        const tainted = { ...input, session: { ...input.session, taintedAt: "2026-11-21T10:00:00.000Z", taintSourceUrl: "https://example.com/" } };
+        const decision = evaluate(tainted);
+        if (isHighPrivilege(input.tool)) expect(decision).toMatchObject({ decision: "hold", reasons: [{ code: "HELD_TAINTED" }] });
+        else expect(decision).toEqual({ decision: "allow", reasons: [] });
+      }),
+      RUNS,
+    );
+  });
+});

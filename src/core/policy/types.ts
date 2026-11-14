@@ -1,6 +1,6 @@
 import type { TaskScope } from "@/core/intent/types";
 import type { Micros } from "@/core/money";
-import type { SessionState } from "@/core/taint/types";
+import type { SessionState, ToolDef } from "@/core/taint/types";
 import type { ReasonCode } from "./reasons";
 
 export type Window = "minute" | "hour" | "day";
@@ -60,6 +60,8 @@ export interface EvaluateInput {
   window: WindowState;
   session: SessionState;
   scope: TaskScope;
+  /** The registry entry for `request.tool`. Its `privileged` flag drives the taint rule (TAINT-6). */
+  tool: ToolDef;
 }
 
 export interface ReasonDetail {

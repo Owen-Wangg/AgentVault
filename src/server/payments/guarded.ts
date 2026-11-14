@@ -10,7 +10,7 @@ import type { AuthenticatedAgent } from "@/server/auth/agent-keys";
 import { type Db, type Tx, queryRows } from "@/server/db/client";
 import { decodeEnvelope } from "@/server/db/envelope-json";
 import { agents, approvals, envelopes, idempotency, sessions, spendReservations, tasks, vendors, workspaces } from "@/server/db/schema";
-import { PAY_TOOLS, findTool } from "@/server/tools/registry";
+import { PAY_TOOLS, findTool, policyTool } from "@/server/tools/registry";
 import { type RailOutcome, classifyRailResult } from "./outcome";
 
 /**
@@ -243,6 +243,7 @@ async function decide(tx: Tx, req: GuardedRequest, deps: GuardedDeps, now: Date)
         allowedTools: taskRow.allowedTools,
         budgetMicros: taskRow.budgetMicros,
       },
+      tool: policyTool(tool),
     };
     decision = evaluate(input);
   }

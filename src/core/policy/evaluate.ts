@@ -1,12 +1,14 @@
+import { intentRules } from "@/core/intent/rules";
+import { taintRules } from "@/core/taint/rules";
 import { isDenyReason, isHoldReason } from "./reasons";
 import { allowListRule, approvalThresholdRule, frozenRule, txMaxRule, velocityRule, windowCapRule } from "./rules";
 import { EvaluateInputSchema } from "./schemas";
 import type { Decision, EvaluateInput, ReasonDetail, Rule } from "./types";
 
-// Stubs until taint-and-intent task 3 (Phase 7) wires in the real rules
-// from src/core/intent and src/core/taint.
-const intentRules: Rule = () => []; // DENY_INTENT_DRIFT, OVER_TASK_BUDGET
-const taintRules: Rule = () => []; // HELD_TAINTED
+/** INT-2 to INT-6. The category on the request is the registry's, set by the server (INT-5). */
+export const intentRule: Rule = (input) => intentRules(input, input.scope, input.request.vendorCategory);
+/** TAINT-6, TAINT-7. */
+export const taintRule: Rule = (input) => taintRules(input, input.tool);
 
 /** Rules that run on every valid request, in the order their reasons are reported. */
 const RULES: readonly Rule[] = [
@@ -15,8 +17,8 @@ const RULES: readonly Rule[] = [
   windowCapRule, // ENV-2, ENV-9
   velocityRule, // ENV-3
   allowListRule, // ENV-6, ENV-7
-  intentRules, // INT-*
-  taintRules, // TAINT-*
+  intentRule, // INT-2, INT-3, INT-4, INT-6
+  taintRule, // TAINT-6
 ];
 
 /**

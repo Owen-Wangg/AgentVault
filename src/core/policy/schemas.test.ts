@@ -48,6 +48,12 @@ describe("ENV-15: input schemas", () => {
     ["a vendor limit map that is not an object", (i) => (i.envelope!.vendorLimits = null)],
     ["an envelope for another agent", (i) => (i.envelope!.agentId = "agent-2")],
     ["session state for another session", (i) => (i.session!.sessionId = "session-2")],
+    ["a missing tool definition", (i) => delete (i as Record<string, unknown>).tool],
+    ["a tool definition for another tool", (i) => (i.tool!.name = "stripe.refund")],
+    ["a non-boolean privileged flag", (i) => (i.tool!.privileged = "true")],
+    ["an unknown rail", (i) => (i.tool!.rail = "paypal")],
+    ["an unknown tool definition field", (i) => (i.tool!.direction = "debit")],
+    ["a non-string task category", (i) => (i.scope!.allowedVendorCategories = [1])],
   ])("ENV-15: rejects %s", (_name, change) => {
     expect(EvaluateInputSchema.safeParse(broken(change)).success).toBe(false);
   });
