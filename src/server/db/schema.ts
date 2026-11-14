@@ -232,8 +232,13 @@ export const approvals = pgTable(
     reasons: jsonb("reasons").notNull(),
     status: text("status").$type<(typeof APPROVAL_STATUSES)[number]>().notNull().default("pending"),
     expiresAt: tz("expires_at").notNull(),
+    /** A user ID, `sandbox_visitor`, or `system` (HITL-8). */
     decidedBy: text("decided_by"),
     decidedAt: tz("decided_at"),
+    /** The re-run's decision event, once an approved request was re-run (HITL-2). */
+    rerunDecisionSeq: integer("rerun_decision_seq"),
+    /** The reasons the re-run failed on, for `failed_recheck` (HITL-3). `reasons` keeps the original hold reasons. */
+    recheckReasons: jsonb("recheck_reasons"),
     createdAt: createdAt(),
   },
   (t) => [
