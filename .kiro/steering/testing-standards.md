@@ -13,7 +13,7 @@ fileMatchPattern: ["**/*.test.ts", "**/*.test.tsx", "tests/**"]
 ## File naming
 - Unit tests: `foo.test.ts` next to `foo.ts`.
 - Property tests: `foo.prop.test.ts`.
-- Integration tests that need Postgres: `foo.int.test.ts`. They run against `DATABASE_URL_TEST` (a Neon branch or local Docker Postgres) and are skipped when it is not set.
+- Integration tests that need Postgres: `foo.int.test.ts`. Get the database from `createTestDb()` in `src/server/db/test-db.ts`. With `DATABASE_URL_TEST` set (a Neon branch or local Docker Postgres), each file gets a throwaway database on that server. Without it, they run on in-memory PGlite. Tests that need real concurrent connections (for example the 50-request cap test) are skipped unless `DATABASE_URL_TEST` is set.
 - Tests that hit real testnets or Stripe test mode: tag the `describe` with `@live` in the name. CI skips them; run with `pnpm test:live`.
 
 ## Requirement traceability
