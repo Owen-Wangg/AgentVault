@@ -38,10 +38,13 @@ describe("policy arbitraries", () => {
     );
   });
 
-  it("generates vendor and tool limit records whose keys are own properties, including __proto__", () => {
+  it("generates limit records keyed by prototype member names, but never by __proto__", () => {
     const envelopes = fc.sample(envelopeArb(), { numRuns: 2000, seed: 42 });
-    const protoKeyed = envelopes.filter((e) => Object.hasOwn(e.vendorLimits, "__proto__"));
-    expect(protoKeyed.length).toBeGreaterThan(0);
-    for (const e of protoKeyed) expect(Object.getPrototypeOf(e.vendorLimits)).toBe(Object.prototype);
+    expect(envelopes.some((e) => Object.hasOwn(e.vendorLimits, "constructor"))).toBe(true);
+    expect(envelopes.some((e) => Object.hasOwn(e.toolLimits, "toString"))).toBe(true);
+    for (const e of envelopes) {
+      expect(Object.hasOwn(e.vendorLimits, "__proto__")).toBe(false);
+      expect(Object.getPrototypeOf(e.vendorLimits)).toBe(Object.prototype);
+    }
   });
 });

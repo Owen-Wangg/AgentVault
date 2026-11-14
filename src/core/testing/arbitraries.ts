@@ -55,10 +55,17 @@ export const limitsArb = (): fc.Arbitrary<Limits> =>
     { requiredKeys: [] },
   );
 
-/** A record keyed by some of `keys`. Built with Object.fromEntries, so "__proto__" becomes an own key. */
+/**
+ * Names usable as keys of a vendor or tool limit map. The schema rejects a
+ * "__proto__" key (see LimitsByKey in policy/schemas.ts), so valid inputs
+ * never have one. Requests can still name such a vendor.
+ */
+export const limitKeys = (names: readonly string[]): readonly string[] => names.filter((n) => n !== "__proto__");
+
+/** A record keyed by some of `keys`, built with Object.fromEntries so every key is an own property. */
 const limitsByKey = (keys: readonly string[]): fc.Arbitrary<Record<string, Limits>> =>
   fc
-    .uniqueArray(fc.tuple(fc.constantFrom(...keys), limitsArb()), { selector: ([k]) => k, maxLength: keys.length })
+    .uniqueArray(fc.tuple(fc.constantFrom(...limitKeys(keys)), limitsArb()), { selector: ([k]) => k, maxLength: keys.length })
     .map((entries) => Object.fromEntries(entries));
 
 const allowListArb = (pool: readonly string[]): fc.Arbitrary<readonly string[] | "*"> =>

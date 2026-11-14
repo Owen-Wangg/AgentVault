@@ -43,11 +43,23 @@ export const LimitsSchema = z.strictObject({
 const Ids = z.array(Id).readonly();
 const AllowList = z.union([z.literal("*"), Ids]);
 
+/**
+ * Per-vendor or per-tool limits. `z.record` silently skips an own
+ * "__proto__" key, so a limit stored under it would vanish without being
+ * validated or enforced. Reject such a map on the raw input instead.
+ */
+const LimitsByKey = z
+  .custom<Record<string, unknown>>(
+    (v) => typeof v === "object" && v !== null && !Object.hasOwn(v, "__proto__"),
+    "Limits must be an object, and \"__proto__\" can't be a vendor or tool name",
+  )
+  .pipe(z.record(z.string(), LimitsSchema));
+
 export const EnvelopeSchema = z.strictObject({
   agentId: Id,
   limits: LimitsSchema,
-  vendorLimits: z.record(z.string(), LimitsSchema),
-  toolLimits: z.record(z.string(), LimitsSchema),
+  vendorLimits: LimitsByKey,
+  toolLimits: LimitsByKey,
   allowedVendors: AllowList,
   allowedTools: AllowList,
 });

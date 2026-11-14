@@ -43,6 +43,9 @@ describe("ENV-15: input schemas", () => {
     ["an allow-list that is a bare string other than *", (i) => (i.envelope!.allowedVendors = "nimbus-weather")],
     ["a non-boolean frozen flag", (i) => (i.session!.agentFrozen = "false")],
     ["a taint time that is not ISO", (i) => (i.session!.taintedAt = "yesterday")],
+    ["a vendor limit map keyed by __proto__", (i) => (i.envelope!.vendorLimits = Object.fromEntries([["__proto__", {}]]))],
+    ["a tool limit map keyed by __proto__", (i) => (i.envelope!.toolLimits = Object.fromEntries([["__proto__", {}]]))],
+    ["a vendor limit map that is not an object", (i) => (i.envelope!.vendorLimits = null)],
     ["an envelope for another agent", (i) => (i.envelope!.agentId = "agent-2")],
     ["session state for another session", (i) => (i.session!.sessionId = "session-2")],
   ])("ENV-15: rejects %s", (_name, change) => {
