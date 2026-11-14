@@ -14,7 +14,7 @@ inclusion: always
 | Concern | Choice | Notes |
 |---|---|---|
 | Framework | Next.js (App Router) | Route handlers in `app/api/**` are the proxy |
-| Hosting | Vercel | Serverless, no shared memory between instances. Vercel Cron runs the reconciler and the nightly sandbox reset |
+| Hosting | Vercel | Serverless, no shared memory between instances. Vercel Cron runs the reconciler and the nightly sandbox reset. Hobby allows only daily cron jobs, so nothing may depend on a more frequent schedule |
 | Database | Neon Postgres | Use `@neondatabase/serverless` in Pool/WebSocket mode when a transaction is needed |
 | ORM | Drizzle ORM + drizzle-kit | Postgres `bigint` columns map to JS `bigint` (`mode: "bigint"`) |
 | Validation | Zod | At every trust boundary |
