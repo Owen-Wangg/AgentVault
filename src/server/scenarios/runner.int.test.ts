@@ -200,6 +200,19 @@ describe("POST /api/v1/scenarios/:name/run: access", () => {
     expect((await run("drift", base.deps)).status).toBe(200);
   }, 60_000);
 
+  it("AGT-2: with no sandbox, a run is 404 NO_SANDBOX and creates nothing", async () => {
+    // A second, empty database: this file's own one always has a sandbox.
+    const empty = await createTestDb({ driver: "pglite" });
+    try {
+      const { deps } = scenarioRouteDeps(empty);
+      const response = await handleRunScenario(request("normal"), "normal", deps);
+      expect([response.status, await response.json()]).toEqual([404, { error: "NO_SANDBOX" }]);
+      expect(await empty.db.select({ id: agents.id }).from(agents)).toEqual([]);
+    } finally {
+      await empty.close();
+    }
+  }, 30_000);
+
   it("AGT-2: runs go to the current sandbox, so after a reset they use the new one", async () => {
     const { deps } = routeDeps();
     const { workspaceId } = await resetSandbox(db(), { key: TEST_HEAD_KEY, appOrigin: BASE_URL });
