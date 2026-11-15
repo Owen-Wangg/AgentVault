@@ -182,7 +182,7 @@ You'll set up these variables in `.env.local`:
 | `X402_PAY_TO` | The vendor wallet's address, where payments arrive | Vendor |
 | `AGENT_WALLET_PRIVATE_KEY` | The agent wallet's private key, which signs payments | Payer |
 | `X402_NETWORK` | Already `eip155:84532` (Base Sepolia). Leave it. | Both |
-| `X402_MIN_UNITS` | The smallest payment the facilitator accepts, in USDC units (1 unit = $0.000001). Leave it at `1` for now; Phase 13 measures the real value and updates this line. | Payer |
+| `X402_MIN_UNITS` | The smallest payment the facilitator accepts, in USDC units (1 unit = $0.000001). Set it to `1000` ($0.001), or delete the line: 1000 is also the default. Phase 13 measured it: the CDP facilitator refuses 999 units with `amount_too_low` and settles 1000. A lower value lets the adapter send payments the facilitator will refuse. | Payer |
 
 Leave `RAIL_MODE=mock`. Real mode also needs the Stripe variables, which come in Phase 14. The vendor endpoint and the x402 `@live` tests use these variables in either mode.
 
@@ -272,6 +272,18 @@ pnpm x402:status
 
 You can also paste an address into <https://sepolia.basescan.org> to see its balance and every payment.
 
+### Step 5: Make a test payment
+
+```powershell
+pnpm x402:probe 1500
+pnpm test:live
+```
+
+- `pnpm x402:probe 1500` runs the weather endpoint inside the command, with the real CDP facilitator, and pays it $0.0015 from the agent wallet. It prints the transaction's explorer link, then looks the payment up on-chain the way the reconciler does. Give it other amounts in USDC units to try them; anything under 1000 is refused by the facilitator and moves nothing.
+- `pnpm test:live` runs the `@live` tests: the endpoint's 402 challenge, a refused overcharge, the facilitator's minimum, and a full guarded payment recorded in a test database's audit log. It spends $0.0025 of test USDC per run. `pnpm test` never runs them and never reads the agent key.
+
+With `pnpm dev` running, <http://localhost:3000/vendor/api/weather> answers `402 Payment Required`; the price is in the `PAYMENT-REQUIRED` header. Without the vendor's x402 variables it answers `503`.
+
 ### Vercel
 
 So the deployed `/vendor/api/weather` can charge, add these under **Project → Settings → Environment Variables** (Production), then redeploy:
@@ -304,7 +316,10 @@ Don't add `AGENT_WALLET_PRIVATE_KEY` to Vercel. The deployed app runs mock rails
 | `pnpm db:migrate` | Applies new migrations to `DATABASE_URL`. |
 | `pnpm db:seed` | Creates the first sandbox workspace if there is none. |
 | `pnpm sandbox:reset` | Replaces the sandbox with a fresh seeded one. Nothing is deleted. |
-| `pnpm env:check` | Checks every environment variable and prints pass, fail, unset, or skipped. Never prints values. |
+| `pnpm env:check` | Checks every environment variable and prints pass, fail, unset, or skipped, then checks the x402 variables on their own. Never prints values. |
+| `pnpm wallet:new` | Prints a new Base Sepolia test wallet's address and private key (section 6). The only command that prints a key. |
+| `pnpm x402:status` | Prints the agent and vendor wallet addresses and their test USDC and ETH balances. Never prints the key. |
+| `pnpm x402:probe [units...]` | Pays the weather endpoint on Base Sepolia at each price, in USDC units, and looks each payment up. `--record <dir>` saves the exchanges as test fixtures; `--lookup <file>` only looks up a recorded payment again. Spends test USDC. |
 | `pnpm audit:verify` | Checks every workspace's audit hash chain. Pass workspace IDs to check only those. |
 | `pnpm reconcile` | Asks the rails what happened to payments with an unknown outcome, deletes idempotency records older than 24 hours, and lists payments still unknown after 24 hours. It only looks payments up and never pays. On the mock rail it can't resolve anything a different process paid, so those stay listed. |
 | `pnpm demo:policy` | Prints a table of policy decisions for a sample request sequence. |
