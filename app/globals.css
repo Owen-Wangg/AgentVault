@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+/*
+ * Theme tokens (telemetry-dashboard design, "Theme system"). The values
+ * must match src/ui/theme.ts, which the contrast test checks (UI-12).
+ * <html data-theme="..."> selects the theme.
+ */
+:root,
+[data-theme="default"] {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;
+  --border: #cbd5e1;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --accent: #4338ca;
+  --accent-text: #ffffff;
+  --allow: #166534;
+  --hold: #92400e;
+  --deny: #b91c1c;
+  --focus: #4338ca;
+  --radius: 0.5rem;
+}
+
+/* Kiroween's palette arrives with telemetry-dashboard task 8. */
+[data-theme="kiroween"] {
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f9;
+  --border: #cbd5e1;
+  --text: #0f172a;
+  --text-muted: #475569;
+  --accent: #4338ca;
+  --accent-text: #ffffff;
+  --allow: #166534;
+  --hold: #92400e;
+  --deny: #b91c1c;
+  --focus: #4338ca;
+  --radius: 0.5rem;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-allow: var(--allow);
+  --color-hold: var(--hold);
+  --color-deny: var(--deny);
+  --color-focus: var(--focus);
+  --radius-card: var(--radius);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* UI-13: a visible focus ring on everything keyboard-focusable. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

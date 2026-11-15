@@ -1,8 +1,12 @@
-export default function HomePage() {
+import { PageTitle } from "@/ui/components/primitives";
+import { t } from "@/ui/copy";
+
+// The overview's KPIs and charts arrive with telemetry-dashboard task 4.
+export default function OverviewPage() {
   return (
-    <main>
-      <h1>AgentVault</h1>
-      <p>Spend limits, taint tracking, and approvals for AI agents that pay. The dashboard is coming soon.</p>
-    </main>
+    <>
+      <PageTitle>{t("overview.title")}</PageTitle>
+      <p className="text-text-muted">{t("app.tagline")}</p>
+    </>
   );
 }
