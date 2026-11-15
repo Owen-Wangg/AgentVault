@@ -1,3 +1,5 @@
+import { type Micros, toRailUnits } from "@/core/money";
+
 /**
  * Base Sepolia facts the x402 adapter and the demo vendor rely on
  * (rail-adapters design, "x402 adapter"). Testnet only (RAIL-8): nothing
@@ -14,8 +16,16 @@ export const USDC_EIP712 = { name: "USDC", version: "2" } as const;
 /** Base's public Base Sepolia RPC endpoint. Rate limited, which is enough for lookups and the status script. */
 export const BASE_SEPOLIA_RPC_URL = "https://sepolia.base.org";
 
-/** Base Sepolia's block time. Used only to estimate where to search for a settlement; the estimate is checked. */
-export const BLOCK_TIME_SECONDS = 2n;
+/** Base's public RPC answers eth_getLogs for at most this many blocks per call (measured: "limited to a 200 range"). */
+export const MAX_LOG_BLOCKS = 200n;
+
+/**
+ * A vendor price as an x402 AssetAmount in Base Sepolia USDC atomic units.
+ * Exact, 1:1 with micros (MON-9), so no dollar string is ever parsed.
+ */
+export function usdcAssetAmount(price: Micros): { amount: string; asset: string; extra: { name: string; version: string } } {
+  return { amount: toRailUnits(price, "x402", "debit").toString(), asset: USDC_BASE_SEPOLIA, extra: { ...USDC_EIP712 } };
+}
 
 export function explorerTxUrl(hash: string): string {
   return `https://sepolia.basescan.org/tx/${hash}`;

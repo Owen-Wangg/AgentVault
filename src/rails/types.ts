@@ -37,6 +37,13 @@ export interface RefundRequest {
 export interface RailContext {
   /** Aborts the call. The server passes AbortSignal.timeout(RAIL_TIMEOUT_MS). */
   signal?: AbortSignal;
+  /**
+   * When the reservation behind this call was created. The server passes
+   * the reservation row's `created_at` to both execute() and lookup(). The
+   * x402 adapter bounds each authorization's lifetime by it, so lookup()
+   * can later prove that an unused authorization can never be used.
+   */
+  reservedAt?: Date;
 }
 
 export interface RailQuote {

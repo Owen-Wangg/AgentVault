@@ -1,0 +1,203 @@
+{
+  "recorded_at": "2026-11-15T07:21:24.676Z",
+  "key": "probe-b367a97c-5374-4a1d-b8c9-7dd0587c97a8",
+  "reserved_at": "2026-11-15T07:21:24.676Z",
+  "price_units": "1",
+  "payer": "0x11916e6Bec293fFf65641D59655342fbcbE42e91",
+  "pay_to": "0xd745eC24ec60c187Ae5e37be344BB8215eC2cb8b",
+  "http": [
+    {
+      "request": {
+        "url": "http://localhost:3000/vendor/api/weather",
+        "payment_signature": null
+      },
+      "response": {
+        "status": 402,
+        "content_type": "application/json",
+        "payment_required": {
+          "x402Version": 2,
+          "error": "Payment required",
+          "resource": {
+            "url": "http://localhost:3000/vendor/api/weather",
+            "description": "Nimbus Weather: current conditions and a 24-hour forecast",
+            "mimeType": "application/json"
+          },
+          "accepts": [
+            {
+              "scheme": "exact",
+              "network": "eip155:84532",
+              "amount": "1",
+              "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+              "payTo": "0xd745eC24ec60c187Ae5e37be344BB8215eC2cb8b",
+              "maxTimeoutSeconds": 120,
+              "extra": {
+                "name": "USDC",
+                "version": "2"
+              }
+            }
+          ]
+        },
+        "payment_response": null,
+        "body": "{\"error\":\"Payment required\"}"
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:3000/vendor/api/weather",
+        "payment_signature": {
+          "x402Version": 2,
+          "resource": {
+            "url": "http://localhost:3000/vendor/api/weather",
+            "description": "Nimbus Weather: current conditions and a 24-hour forecast",
+            "mimeType": "application/json"
+          },
+          "accepted": {
+            "scheme": "exact",
+            "network": "eip155:84532",
+            "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+            "amount": "1",
+            "payTo": "0xd745eC24ec60c187Ae5e37be344BB8215eC2cb8b",
+            "maxTimeoutSeconds": 120,
+            "extra": {
+              "name": "USDC",
+              "version": "2"
+            }
+          },
+          "payload": {
+            "authorization": {
+              "from": "0x11916e6Bec293fFf65641D59655342fbcbE42e91",
+              "to": "0xd745eC24ec60c187Ae5e37be344BB8215eC2cb8b",
+              "value": "1",
+              "validAfter": "0",
+              "validBefore": "1794727404",
+              "nonce": "0x7c013096c4e755ecd63420259427dc2a0976fca8d71212c88097e3c71d5cf7c8"
+            },
+            "signature": "0x803244b02beabb74eb416be21db99149f21c86de7e7c0a6aa08d49ec1be34a0c050efdcb53c003a01626366fe50f6c80f2e5180bdf34ed1384912b40f1b7624e1c"
+          }
+        }
+      },
+      "response": {
+        "status": 402,
+        "content_type": "application/json",
+        "payment_required": {
+          "x402Version": 2,
+          "error": "amount_too_low",
+          "resource": {
+            "url": "http://localhost:3000/vendor/api/weather",
+            "description": "Nimbus Weather: current conditions and a 24-hour forecast",
+            "mimeType": "application/json"
+          },
+          "accepts": [
+            {
+              "scheme": "exact",
+              "network": "eip155:84532",
+              "amount": "1",
+              "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+              "payTo": "0xd745eC24ec60c187Ae5e37be344BB8215eC2cb8b",
+              "maxTimeoutSeconds": 120,
+              "extra": {
+                "name": "USDC",
+                "version": "2"
+              }
+            }
+          ]
+        },
+        "payment_response": null,
+        "body": "{\"error\":\"amount_too_low\"}"
+      }
+    }
+  ],
+  "rpc": [
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "eth_chainId",
+        "params": []
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": "0x14a34"
+        }
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "eth_call",
+        "params": [
+          {
+            "to": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+            "data": "0xe94a010200000000000000000000000011916e6bec293fff65641d59655342fbcbe42e917c013096c4e755ecd63420259427dc2a0976fca8d71212c88097e3c71d5cf7c8"
+          },
+          "latest"
+        ]
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 2,
+          "result": "0x0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      }
+    },
+    {
+      "request": {
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "eth_getBlockByNumber",
+        "params": [
+          "finalized",
+          false
+        ]
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "jsonrpc": "2.0",
+          "id": 3,
+          "result": {
+            "hash": "0x81cb2004f333bba9573a9529af605a032d4d29e9d9ed9260cbe579facdb2b695",
+            "parentHash": "0xe59965848b675707e47616bfc1306a8fba2e6c03406ac23d9d2f6111cf1ff9b4",
+            "sha3Uncles": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "miner": "0x4200000000000000000000000000000000000011",
+            "stateRoot": "0x83b81190c24b734cf557672d31c9b7ec7815802a86d80edd0c230b8ddf26a3e2",
+            "transactionsRoot": "0x6e1347ca8359e861102bf8cc4aff7739bf05a113d44980c0092da24941f92579",
+            "receiptsRoot": "0x2f3fe1f36de1d32bb86ea1c24bfe5686c9e117172c5846a3cccef76fb64e2b66",
+            "logsBloom": "0x00208008000000000000000082000402000009000000000000050004000000200008000000082000800000100000000000000080000000000000100c08000408028000400000000000000008000024600000400000400000000201018200001804020000020000100000000001040000000000000000040100120012000000000004000000000000008040000000000000010801042000080008004100000000000080000001440040001200000140000000001000000000000000000000000000000002000000000000000800000000000200000000005000000002000200048000000000000200052000002001000002000001080000402400046000410000",
+            "difficulty": "0x0",
+            "number": "0x384964d",
+            "gasLimit": "0x7270e00",
+            "gasUsed": "0x1355bb",
+            "timestamp": "0x6af9589c",
+            "extraData": "0x01000003e80000000f00000000004c4b40",
+            "mixHash": "0x21ab98e0377a0c09a73d83a569145064785200f0a5dffc1f145c4793056b0201",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x56d9fc",
+            "withdrawalsRoot": "0x495d960735be0ebfaff842fe791e2d917b2a80b3a0dc9e58dace85958785dca1",
+            "blobGasUsed": "0x3c36e",
+            "excessBlobGas": "0x0",
+            "parentBeaconBlockRoot": "0x277e66819942643e8d5e19358982b82c9f11e16397ee467ca0492c1a2a13f1e0",
+            "requestsHash": "0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "size": "0xc3e",
+            "timestampMs": "0x1a1de022228",
+            "uncles": [],
+            "transactions": [
+              "0x4d1bc02348372270b708a85b2e5e60934b1afd6017e37f56fdbfc3d0666b5525",
+              "0xe59c7ca33b2730bbc105cfa81755b39a29b1ec0804268b02584267e9dcd618d9",
+              "0xe3747567b0e9f77106835d8db2d86730e971f0d5002a63d8e830cb37c04d3ca6",
+              "0x2accdf06ccf961a30e0589e2850a5e1cbe62cc9c8a320ce263645a4469d29919",
+              "0x7ef6e426b691074f343c982ef56eeceb15b4312c9e4973e028102a58b74d3c29"
+            ],
+            "withdrawals": []
+          }
+        }
+      }
+    }
+  ]
+}
