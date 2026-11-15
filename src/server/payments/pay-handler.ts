@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { z } from "zod";
 import { MicrosSchema, type Rail } from "@/core/money";
-import { loadRailConfig } from "@/rails/config";
+import { railOptions } from "@/rails/real";
 import { railFor } from "@/rails/select";
 import type { RailAdapter } from "@/rails/types";
 import { type Database, createDb } from "@/server/db/client";
@@ -62,7 +62,7 @@ export function defaultPayDeps(): PayDeps {
     key: env.auditHeadKey,
     now: () => new Date(),
     // Validated per request, so a live key or wrong network refuses every payment (RAIL-7, RAIL-8).
-    railFor: (rail, workspace) => railFor(rail, workspace, { config: loadRailConfig() }),
+    railFor: (rail, workspace) => railFor(rail, workspace, railOptions()),
     afterResponse: (task) => after(task),
   };
 }

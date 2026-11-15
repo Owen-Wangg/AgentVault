@@ -65,11 +65,13 @@ async function lookUp(deps: ReconcileDeps, c: Candidate): Promise<RailLookup> {
   if (!RAILS.has(c.rail)) return { status: "unknown" };
   // railFor sends sandbox reservations to the mock adapter, whatever RAIL_MODE says (RAIL-2).
   const adapter = deps.railFor(c.rail as Rail, { isSandbox: c.isSandbox });
-  return adapter.lookup(c.railIdempotencyKey, { signal: AbortSignal.timeout(deps.lookupTimeoutMs ?? RAIL_TIMEOUT_MS) });
+  // reservedAt is the same created_at the original execute() got, so the x402 adapter can rebuild the authorization's deadline.
+  return adapter.lookup(c.railIdempotencyKey, { signal: AbortSignal.timeout(deps.lookupTimeoutMs ?? RAIL_TIMEOUT_MS), reservedAt: c.createdAt });
 }
 
 interface Candidate {
   id: string;
+  createdAt: Date;
   agentId: string;
   workspaceId: string;
   isSandbox: boolean;
@@ -86,6 +88,7 @@ export async function reconcile(deps: ReconcileDeps, options: ReconcileOptions =
   const candidates: Candidate[] = await deps.db
     .select({
       id: spendReservations.id,
+      createdAt: spendReservations.createdAt,
       agentId: spendReservations.agentId,
       workspaceId: agents.workspaceId,
       isSandbox: workspaces.isSandbox,

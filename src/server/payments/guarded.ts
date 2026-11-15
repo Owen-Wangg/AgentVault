@@ -183,6 +183,8 @@ export interface Pending {
   rail?: {
     adapter: RailAdapter;
     reservationId: string;
+    /** The reservation's created_at, passed to the rail as RailContext.reservedAt. */
+    reservedAt: Date;
     counted: Micros;
     vendorUrl: string;
     railName: Rail;
@@ -411,6 +413,7 @@ export async function decideGuarded(tx: Tx, req: GuardedRequest, deps: GuardedDe
       rail: {
         adapter,
         reservationId,
+        reservedAt: now,
         counted,
         vendorUrl: vendorRow?.origin ?? "",
         railName: tool.rail,
@@ -492,8 +495,9 @@ export async function executeGuarded(req: GuardedRequest, deps: GuardedDeps, dec
   let result: RailResult | { thrown: true } = { ok: true, ref: "", settledMicros: micros(0n) };
   if (pending.rail) {
     // Step 8: the rail call happens after commit, never while holding the lock.
-    const { adapter, reservationId, counted, vendorUrl, refundOf } = pending.rail;
-    const ctx = { signal: AbortSignal.timeout(deps.railTimeoutMs ?? RAIL_TIMEOUT_MS) };
+    const { adapter, reservationId, reservedAt, counted, vendorUrl, refundOf } = pending.rail;
+    // reservedAt is the reservation row's created_at, which the reconciler passes to lookup() too.
+    const ctx = { signal: AbortSignal.timeout(deps.railTimeoutMs ?? RAIL_TIMEOUT_MS), reservedAt };
     try {
       // Credit tools refund an earlier payment; the rail rounds the amount down (MON-8).
       result =

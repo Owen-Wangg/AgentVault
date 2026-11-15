@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Rail } from "@/core/money";
-import { loadRailConfig } from "@/rails/config";
+import { railOptions } from "@/rails/real";
 import { railFor } from "@/rails/select";
 import type { RailAdapter } from "@/rails/types";
 import { type Database, createDb } from "@/server/db/client";
@@ -22,7 +22,7 @@ function defaults(): ReconcileCronDeps {
     openDb: () => createDb(env.databaseUrl()),
     key: env.auditHeadKey,
     now: () => new Date(),
-    railFor: (rail, workspace) => railFor(rail, workspace, { config: loadRailConfig() }),
+    railFor: (rail, workspace) => railFor(rail, workspace, railOptions()),
   };
 }
 
