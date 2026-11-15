@@ -54,6 +54,21 @@ export default defineConfig([
     },
   },
   {
+    // Agents reach AgentVault only through its HTTP API, like an external agent (demo-agents AGT-4).
+    files: ["src/agents/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            { group: ["@/server", "@/server/*", "**/server/**"], message: "src/agents must not import src/server. Use the HTTP API through AgentClient." },
+            { group: ["@/rails", "@/rails/*", "**/rails/**"], message: "src/agents must not import src/rails." },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["src/rails/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
