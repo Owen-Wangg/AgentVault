@@ -16,6 +16,7 @@
     "lint": "eslint .",
     "test": "vitest",
     "test:live": "vitest run --mode live",
+    "test:e2e": "tsx scripts/e2e.ts",
     "verify": "pnpm typecheck && pnpm lint && pnpm test --run",
     "check:money": "tsx scripts/check-money.ts",
     "check:kiro": "node scripts/check-kiro-not-ignored.mjs",
@@ -49,6 +50,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.16",
+    "@playwright/test": "1.65.1",
     "@testing-library/dom": "10.4.2",
     "@testing-library/react": "16.3.3",
     "@types/node": "^22.20.5",

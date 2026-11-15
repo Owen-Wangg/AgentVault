@@ -171,6 +171,7 @@ Open <http://localhost:3000> and click **Sign in with GitHub** in the sidebar. A
 | `pnpm dev` | Starts the app at <http://localhost:3000>. It keeps running; stop it with Ctrl+C. |
 | `pnpm test` | Runs the tests in watch mode. `pnpm test --run` runs them once. |
 | `pnpm test:live` | Runs only tests tagged `@live`, which use real testnets or Stripe test mode. |
+| `pnpm test:e2e` | Runs the Playwright test in a real browser: it opens the sandbox signed out, runs the prompt-injection scenario, approves the held refund, checks the feed, and verifies the audit chain. It creates a throwaway database on the `DATABASE_URL_TEST` server and drops it afterwards, so it never touches `DATABASE_URL`. It starts its own `next dev` on port 3100. The first time, download the browser with `pnpm exec playwright install chromium`. |
 | `pnpm typecheck` | Type-checks the whole project. |
 | `pnpm lint` | Runs ESLint, including the layering rules that keep `src/core` free of I/O. |
 | `pnpm verify` | Typecheck, lint, and tests together. Run this before committing. |

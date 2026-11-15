@@ -23,6 +23,10 @@ test-results/
 # Vercel
 .vercel/
 
+# Playwright
+/test-results/
+/playwright-report/
+
 # OS and editors
 .DS_Store
 Thumbs.db
