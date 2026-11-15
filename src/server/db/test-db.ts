@@ -18,8 +18,10 @@ import * as schema from "./schema";
  *   running in memory. It runs the same migrations, triggers, and
  *   plpgsql, but it has a single connection, so it can't test concurrency.
  */
-export async function createTestDb(): Promise<Database & { driver: "postgres" | "pglite" }> {
-  const url = process.env.DATABASE_URL_TEST;
+export async function createTestDb(options: { driver?: "pglite" } = {}): Promise<Database & { driver: "postgres" | "pglite" }> {
+  // `driver: "pglite"` forces the in-memory database, for long sequential properties that
+  // don't depend on concurrency and would take minutes over the network.
+  const url = options.driver === "pglite" ? undefined : process.env.DATABASE_URL_TEST;
   if (url) return { ...(await throwawayDatabase(url)), driver: "postgres" };
   const client = new PGlite();
   const db = drizzlePglite(client, { schema });
