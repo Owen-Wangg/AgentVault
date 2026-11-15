@@ -41,7 +41,9 @@ flowchart LR
 
 Navigation: left sidebar on desktop, and a navigation bar fixed to the bottom of the screen below the `md` breakpoint (one tap to every page at 375 px). Components follow the shadcn/ui style (`Card`, `Badge`, `Button`) but are written in `src/ui/components/primitives.tsx`, so there's no Radix dependency. Dialogs use the native `<dialog>` element, which handles focus, Escape, and the inert background. Status messages use `role="status"` live regions instead of toasts.
 
-Built in Phase 10: `/`, `/feed`, `/agents`, `/agents/[id]`, `/approvals`. Phase 11 added `/scenarios`, which always streams the current sandbox. The rest arrive with their tasks. The approvals count badge in the sidebar isn't built; it would open a second event stream on every page.
+Built in Phase 10: `/`, `/feed`, `/agents`, `/agents/[id]`, `/approvals`. Phase 11 added `/scenarios`, which always streams the current sandbox. Phase 12 added `/audit`: 50 events a page, newest first, paged by `?before=<seq>` on the server, and "Verify chain", which calls `POST /api/v1/audit/verify`. The rest arrive with their tasks.
+
+`POST /api/v1/audit/verify` takes `{ workspace_id? }` and has the event stream's read access: any sandbox is public, other workspaces need their owner. It's human-only (403 for any `Authorization` header or a cross-site POST, before the database opens), and sandbox calls are limited to 30 per IP per minute because each reads the whole chain. It returns `{ ok: true, count, head_seq }` or `{ ok: false, broken_at_seq, why, head_seq }`. The approvals count badge in the sidebar isn't built; it would open a second event stream on every page.
 
 ## Reason explanations
 `src/ui/copy.ts` maps each reason code to a plain-language sentence per theme:
@@ -81,5 +83,5 @@ The `satisfies` check makes a missing string a compile error.
 ## Testing strategy
 - Property 1 against a fake event source in the stream module (1,000 runs, with clients dropping at batch boundaries and events committing during polls), and again through the handler with concurrent appends on Postgres; property 3 shared with the money tests.
 - Component tests (Vitest + Testing Library) for amount display and the envelope form.
-- Playwright: open the sandbox without signing in, run the prompt-injection scenario, approve the held refund in the inbox, see it in the feed (UI-21).
+- Playwright: open the sandbox without signing in, run the prompt-injection scenario, approve the held refund in the inbox, see it in the feed, and verify the chain (UI-21, AUD-6). `pnpm test:e2e` (`scripts/e2e.ts`) creates a throwaway database on the `DATABASE_URL_TEST` server with a sandbox signed by a key made for the run, starts `next dev` on port 3100 with that database and key in its environment, and drops the database afterwards. It uses the dev server because the injection scenario fetches its docs page from localhost (TAINT-2).
 - Lighthouse accessibility score ≥ 95 on the overview page in both themes (manual check, task 9).
