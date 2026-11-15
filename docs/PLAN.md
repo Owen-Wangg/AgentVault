@@ -16,7 +16,7 @@ Deployment target: Vercel **Hobby**. Cron jobs run at most once per day (see `te
 | 8 | Nov 23 | audit-and-approvals tasks 7–9 | Done |
 | 9 | Nov 24 | telemetry-dashboard task 1 | Done |
 | 10 | Nov 24–26 | telemetry-dashboard tasks 2–6 | Done |
-| 11 | Nov 27 | demo-agents tasks 1–4 | |
+| 11 | Nov 27 | demo-agents tasks 1–4 | Done |
 | 12 | Nov 28 | telemetry-dashboard task 7 | |
 | 13 | Nov 28–29 | rail-adapters tasks 3–5 (x402) | |
 | 14 | Nov 29–30 | rail-adapters tasks 6–8 (Stripe) | |

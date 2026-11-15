@@ -2,20 +2,20 @@
 
 Plan (`docs/PLAN.md`): **Phase 11** = tasks 1–4. **Phase 17** (optional, cut first) = tasks 5–6.
 
-- [ ] 1. Build `AgentClient` in `src/agents/client.ts`
+- [x] 1. Build `AgentClient` in `src/agents/client.ts`
   - Typed wrappers for fetch, pay, and tool; Zod-validated responses
   - _Requirements: AGT-4_
 
-- [ ] 2. Define the four scenarios and seed data
+- [x] 2. Define the four scenarios and seed data
   - `scenarios.ts` with steps and expected decisions; seed envelopes, tasks, and vendors
   - _Requirements: AGT-1, AGT-6, AGT-7, AGT-8, AGT-9_
 
-- [ ] 3. Build the scenario runner and `POST /api/v1/scenarios/:name/run`
+- [x] 3. Build the scenario runner and `POST /api/v1/scenarios/:name/run`
   - Fresh agent, task, and session per run (audited, no deletes), advisory lock, step execution
   - Integration tests per scenario; property 1
   - _Requirements: AGT-2, AGT-5, AGT-6, AGT-7, AGT-8, AGT-9_
 
-- [ ] 4. Build the `/scenarios` page
+- [x] 4. Build the `/scenarios` page
   - Scenario cards, live step list, summary panel
   - _Requirements: AGT-1, AGT-3, AGT-10_
 
