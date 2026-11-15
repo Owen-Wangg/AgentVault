@@ -26,6 +26,9 @@ export default defineConfig(({ mode }) => {
     test: {
       include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.{ts,mjs}", "app/**/*.test.{ts,tsx}"],
       environment: "node",
+      // @x402/next's ESM build imports "next/server" without a file extension, which Node's
+      // resolver refuses. Inlining it lets Vite resolve the import, as Next.js's bundler does.
+      server: { deps: { inline: ["@x402/next"] } },
       testNamePattern: mode === "live" ? /@live/ : /^(?!.*@live)/,
       env: databaseUrlTest ? { DATABASE_URL_TEST: databaseUrlTest } : {},
     },

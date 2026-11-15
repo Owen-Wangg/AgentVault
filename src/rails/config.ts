@@ -14,8 +14,12 @@ import { z } from "zod";
  */
 
 export const BASE_SEPOLIA = "eip155:84532";
-/** The x402 minimum when X402_MIN_UNITS is unset, in USDC atomic units (rail-adapters task 4 measures it). */
-export const DEFAULT_X402_MIN_UNITS = 1n;
+/**
+ * The x402 minimum when X402_MIN_UNITS is unset, in USDC atomic units.
+ * Measured in rail-adapters task 4 on Base Sepolia: the CDP facilitator
+ * refuses 999 units ($0.000999) with `amount_too_low` and settles 1000.
+ */
+export const DEFAULT_X402_MIN_UNITS = 1000n;
 
 export interface RailConfig {
   mode: "mock" | "real";

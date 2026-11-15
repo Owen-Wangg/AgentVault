@@ -29,7 +29,8 @@
     "reconcile": "tsx scripts/reconcile.ts",
     "env:check": "tsx scripts/env-check.ts",
     "wallet:new": "tsx scripts/wallet-new.ts",
-    "x402:status": "tsx scripts/x402-status.ts"
+    "x402:status": "tsx scripts/x402-status.ts",
+    "x402:probe": "tsx scripts/x402-probe.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "1.11.3",

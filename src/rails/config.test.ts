@@ -82,7 +82,7 @@ describe("x402 variables, checked on their own", () => {
     const payer = loadX402PayerConfig({ AGENT_WALLET_PRIVATE_KEY: agentKey, X402_MIN_UNITS: "100" });
     expect(payer.account.address).toBe(agentAddress);
     expect(payer.minUnits).toBe(100n);
-    expect(loadX402PayerConfig({ AGENT_WALLET_PRIVATE_KEY: agentKey }).minUnits).toBe(1n);
+    expect(loadX402PayerConfig({ AGENT_WALLET_PRIVATE_KEY: agentKey }).minUnits).toBe(1000n);
     expect(() => loadX402VendorConfig({ X402_PAY_TO: x402Env.X402_PAY_TO })).toThrow("CDP_API_KEY_ID");
     expect(() => loadX402PayerConfig({})).toThrow("AGENT_WALLET_PRIVATE_KEY");
   });
@@ -112,8 +112,8 @@ describe("RAIL-8: Base Sepolia only", () => {
 });
 
 describe("rail configuration", () => {
-  it("defaults to mock mode with a minimum of 1 unit", () => {
-    expect(loadRailConfig({})).toEqual({ mode: "mock", x402Network: "eip155:84532", x402MinUnits: 1n });
+  it("RAIL-4: defaults to mock mode with the measured x402 minimum of 1000 units ($0.001)", () => {
+    expect(loadRailConfig({})).toEqual({ mode: "mock", x402Network: "eip155:84532", x402MinUnits: 1000n });
   });
 
   it("accepts the .env.example placeholders in mock mode", () => {
