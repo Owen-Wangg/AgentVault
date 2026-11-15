@@ -290,4 +290,5 @@ Response shape: `{ decision, reasons, approval_id?, rail_ref?, rail_status?, eve
 - `pnpm audit:verify` and `pnpm reconcile` CLIs for the demo.
 
 ## Open items
-- **x402 and Stripe `lookup()` details** are confirmed during rail-adapters tasks 5 and 8 (Phases 13 and 14). Until a rail's `lookup` can prove an outcome, that rail's unknown outcomes stay `reserved` and show up in `pnpm reconcile` for manual review.
+- **x402 `lookup()`: resolved** in rail-adapters task 5 (Phase 13). It proves `settled` from the authorization's on-chain state and `failed` once the finalized chain is past the authorization's deadline (at most 5 minutes after the reservation), so x402 unknowns resolve on the first reconciler run after that, typically 20 to 30 minutes, given Base Sepolia's finalization lag of about 20 minutes. The reconciler passes the reservation's `created_at` to `lookup()` as `reservedAt`.
+- **Stripe `lookup()` details** are confirmed during rail-adapters task 8 (Phase 14). Until then, Stripe unknowns stay `reserved` and show up in `pnpm reconcile` for manual review.

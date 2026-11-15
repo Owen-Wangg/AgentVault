@@ -44,7 +44,7 @@ export type RailLookup =
 | Rail | How it finds the outcome |
 |---|---|
 | Mock | Reads its record for the key, or the result a test set with `setLookupResult(key, result)` |
-| x402 | The USDC payment is an EIP-3009 authorization. `lookup` reads `authorizationState(payer, nonce)` on the Base Sepolia USDC contract. Used means `settled` (the transaction hash comes from the `AuthorizationUsed` event). Unused **and** past `validBefore` means `failed`. Unused before `validBefore` means `unknown`, because the facilitator can still submit it. This needs the nonce and `validBefore` for the key: derive the nonce from `sha256(idempotencyKey)` if the x402 client allows a custom nonce, otherwise store both on the reservation before sending. Confirm in task 5. |
+| x402 | The USDC payment is an EIP-3009 authorization. `lookup` reads `authorizationState(payer, nonce)` on the Base Sepolia USDC contract. Used means `settled`: the transaction hash comes from the `AuthorizationUsed(payer, nonce)` log, and the amount from the USDC `Transfer` in that transaction's receipt. Unused in the **finalized** state, with the finalized block's timestamp at or past the deadline, means `failed`: EIP-3009 rejects any block at or after `validBefore`, and every later block is too. Anything else is `unknown`, because the facilitator can still submit it. Confirmed in task 5: the @x402/evm client always picks a random nonce and expiry, so the adapter signs the authorization itself. The nonce is `sha256("agentvault/x402/eip3009-nonce/v1:" + key)`, and `validBefore` is at most the reservation's `created_at` plus 300 seconds, so `lookup` rebuilds both from the reservation row (`RailContext.reservedAt`) and nothing new is stored. |
 | Stripe | Refunds: list refunds for the PaymentIntent and match the `metadata.idempotency_key` set at creation. Payments: find the PaymentIntent created from the SPT by its `metadata.idempotency_key`, if the MPP flow allows metadata. Confirm in task 8. If absence can't be proven, return `unknown`. |
 
 `lookup` never re-sends a request. Retrying `execute` with the same key is not used as a lookup, because only Stripe guarantees idempotent replays.
@@ -58,15 +58,18 @@ export type RailLookup =
 | `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET` | x402 vendor | CDP facilitator auth |
 | `X402_PAY_TO` | x402 vendor | vendor receiving address on Base Sepolia |
 | `X402_NETWORK` | x402 | must be `eip155:84532` |
-| `X402_MIN_UNITS` | x402, mock | facilitator minimum in USDC atomic units; default `1`, set from the task 4 measurement |
+| `X402_MIN_UNITS` | x402, mock | facilitator minimum in USDC atomic units; default `1000` ($0.001), measured in task 4 |
 | `AGENT_WALLET_PRIVATE_KEY` | x402 payer | **testnet-only** key, funded from a faucet |
 
 ## x402 adapter
-- **Vendor side** (`app/vendor/api/weather/route.ts`): `createX402Server({ environment: "development", payToConfig: { type: "address", evm: X402_PAY_TO }, routes: { "GET /vendor/api/weather": { price, networks: ["eip155:84532"] } } })` with the Next.js adapter from the CDP runnable examples.
-- **Payer side**: an x402 client (expected: `@x402/fetch` or the client in `@x402/core` with `@x402/evm` signer, confirmed during task 5) with a `viem` account from `AGENT_WALLET_PRIVATE_KEY`.
-- Flow: `quote()` makes an unpaid request and parses the 402 requirements. `execute()` checks the challenge amount equals `toRailUnits(approvedMicros, "x402", "debit")` (RAIL-13), signs, retries, and reads the settlement transaction hash from the response header.
+- **Vendor side** (`app/vendor/api/weather/route.ts` → `src/server/vendor/weather.ts`): the CDP Next.js example's shape, `withX402(handler, { accepts: [{ scheme: "exact", network: "eip155:84532", payTo: X402_PAY_TO, price, maxTimeoutSeconds: 120 }] }, new x402ResourceServer(facilitator).register("eip155:84532", new ExactEvmScheme()))`. The price is an `AssetAmount` in USDC atomic units built from micros, so no dollar string is parsed. The facilitator client is built from `@coinbase/cdp-sdk/auth` (`generateJwt`) and `HTTPFacilitatorClient`, which is what `createCdpFacilitatorClient` does: the `@coinbase/cdp-sdk/x402` entry point imports Solana and extension packages this app doesn't install. Without the vendor's variables the route answers 503.
+- **Payer side** (`src/rails/x402/adapter.ts`): a `viem` account from `AGENT_WALLET_PRIVATE_KEY` signs the EIP-3009 `TransferWithAuthorization` typed data itself (see `lookup()` above for why), and `@x402/core/http` encodes and decodes the `PAYMENT-REQUIRED`, `PAYMENT-SIGNATURE`, and `PAYMENT-RESPONSE` headers. Chain reads go through a read-only JSON-RPC reader (`src/rails/x402/chain.ts`) that checks the chain ID and validates every result with Zod.
+- Flow: `quote()` makes an unpaid request and parses the 402 requirements. `execute()` picks the exact-scheme Base Sepolia USDC option with the USDC EIP-712 domain (anything else is `CHALLENGE_MISMATCH`), checks its amount equals `toRailUnits(approvedMicros, "x402", "debit")` (RAIL-13), signs, retries, and reads the transaction hash from `PAYMENT-RESPONSE`.
+- Outcomes: before signing, a non-402 answer is `RAIL_REJECTED` and an unreadable challenge is `INVALID_RAIL_RESPONSE`. After the paid request is sent, anything but a well-formed successful settlement for this payer and amount is `INVALID_RAIL_RESPONSE` or `RAIL_TIMEOUT`, so unknown: a facilitator refusal can't be told apart from a submitted transaction whose answer was lost, and `lookup()` resolves both. `refund()` is `RAIL_REJECTED` (x402 has no refunds).
+- The 30-second rail timeout can't push an authorization past its deadline: with under 30 seconds left, the adapter signs nothing and returns `RAIL_TIMEOUT`.
 - Explorer link: `https://sepolia.basescan.org/tx/<hash>`.
-- **Price:** start at `$0.01` per call on the real rail. Whether the CDP facilitator settles sub-cent amounts (for example `$0.0015`) on Base Sepolia is unconfirmed; test it in task 4. The mock rail uses `$0.0015` to show sub-cent accounting either way.
+- **Price:** `$0.0015` per call, the same as the mock rail. Measured in task 4 on Base Sepolia: the CDP facilitator settles `$0.0015` and `$0.001` (1000 units) and refuses 999 units and below with `amount_too_low`.
+- **Open:** the guarded flow passes the vendor's registry `origin` as `vendorUrl`, not the paid endpoint's URL, so a real `x402.pay` would reach the origin's root, get no 402, and fail closed with `RAIL_REJECTED`. Real x402 runs today through the adapter directly (`pnpm x402:probe`, the `@live` tests). Wiring a per-vendor payment URL is a later decision.
 
 ## Stripe MPP adapter
 - **Vendor side** (`app/vendor/api/report/route.ts`): `Mppx.create({ methods: stripe.create({ client, networkId: STRIPE_PROFILE_ID, livemode: false }).defaultMethods(), secretKey })`, then `mppx.charge({ amount: "0.50" })(request)`. A 402 returns `response.challenge`.
@@ -77,7 +80,7 @@ export type RailLookup =
 
 ## Mock adapter
 - Deterministic refs: `mock_tx_` + first 16 hex chars of `sha256(idempotencyKey)`.
-- Same `minimumUnits` per simulated rail: 50 cents for Stripe, `X402_MIN_UNITS` for x402.
+- Same `minimumUnits` per simulated rail: 50 cents for Stripe, `X402_MIN_UNITS` (default 1000 units, $0.001) for x402.
 - `setFailureMode(code | null)` for tests (RAIL-20). `RAIL_TIMEOUT` mode records the payment and then reports a timeout, so tests cover "money moved but the caller doesn't know".
 - `setLookupResult(key, result)` for reconciler tests (RAIL-20, RAIL-21).
 - Keeps an in-memory map for idempotency inside one process (tests only). Server-level idempotency (PXY-8) is the real guarantee.

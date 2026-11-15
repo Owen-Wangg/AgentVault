@@ -14,21 +14,22 @@ Plan (`docs/PLAN.md`): **Phase 6** = tasks 1–2. **Phase 13** = tasks 3–5. **
   - Properties 1, 2, and 4
   - _Requirements: RAIL-2, RAIL-3, RAIL-4, RAIL-5, RAIL-6, RAIL-19, RAIL-20, RAIL-21, RAIL-22_
 
-- [ ] 3. Set up the x402 accounts (step-by-step in `docs/SETUP.md`)
-  - Create a CDP API key in the CDP portal
+- [x] 3. Set up the x402 accounts (step-by-step in `docs/SETUP.md`)
+  - Create a CDP API key in the CDP portal (Live, no permissions checked)
   - Create two Base Sepolia test wallets: one for the vendor (`X402_PAY_TO`), one for the agent (`AGENT_WALLET_PRIVATE_KEY`). Explain what a private key is and why this one must never hold real funds
-  - Get test ETH and test USDC from a faucet; explain what a faucet is
+  - Get test USDC from a faucet; explain what a faucet is. Test ETH turned out to be unnecessary: the facilitator pays the gas
+  - `pnpm wallet:new`, `pnpm x402:status`, and an x402 section in `pnpm env:check`
   - _Requirements: RAIL-9_
 
-- [ ] 4. Build the x402 vendor endpoint `/vendor/api/weather`
-  - CDP facilitator, `environment: "development"`, `eip155:84532`
-  - Test whether a sub-cent price settles and what minimum the facilitator enforces; set `X402_MIN_UNITS` and record the result in `docs/KIRO_LOG.md`
+- [x] 4. Build the x402 vendor endpoint `/vendor/api/weather`
+  - CDP facilitator, `eip155:84532`, price `$0.0015`
+  - Measured on Base Sepolia: sub-cent settles; the facilitator refuses 999 units with `amount_too_low` and settles 1000. `X402_MIN_UNITS` defaults to 1000. Recorded in `docs/KIRO_LOG.md`
   - _Requirements: RAIL-10_
 
-- [ ] 5. Build the x402 payer adapter
+- [x] 5. Build the x402 payer adapter
   - Challenge check, signing, retry, transaction hash, explorer link
-  - `lookup()` through `authorizationState`; decide whether the nonce can be derived from the idempotency key or must be stored before sending
-  - Contract tests with recorded fixtures; `@live` test
+  - `lookup()` through `authorizationState`. The nonce is derived from the idempotency key and the deadline from the reservation's `created_at`, so nothing is stored before sending
+  - Contract tests with recorded fixtures; `@live` tests
   - Property 3
   - _Requirements: RAIL-11, RAIL-12, RAIL-13, RAIL-21, RAIL-22_
 
