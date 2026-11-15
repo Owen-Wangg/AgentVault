@@ -1,0 +1,32 @@
+import { FlaskConical } from "lucide-react";
+import type { ReactNode } from "react";
+import { t } from "@/ui/copy";
+import { Badge } from "./primitives";
+
+/**
+ * The workspace name, with a visible "Sandbox" badge and the mock-rails
+ * note when it's the public sandbox (UI-1, UI-21).
+ */
+export function WorkspaceHeader({ workspace, account }: { workspace: { name: string; isSandbox: boolean } | null; account?: ReactNode }) {
+  return (
+    <header className="mb-6 flex flex-col gap-3 border-b border-border pb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm text-text-muted">{workspace ? workspace.name : t("workspace.none")}</span>
+          {workspace?.isSandbox ? (
+            <Badge tone="hold">
+              <FlaskConical aria-hidden="true" className="size-3" />
+              {t("workspace.sandbox")}
+            </Badge>
+          ) : null}
+        </div>
+        {account ? <div className="md:hidden">{account}</div> : null}
+      </div>
+      {workspace?.isSandbox ? (
+        <p className="rounded-card border border-hold bg-surface px-3 py-2 text-sm text-hold" role="note">
+          {t("workspace.sandboxNote")}
+        </p>
+      ) : null}
+    </header>
+  );
+}
