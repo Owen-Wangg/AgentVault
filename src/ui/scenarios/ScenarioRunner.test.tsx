@@ -1,0 +1,185 @@
+// @vitest-environment jsdom
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { SCENARIO_NAMES } from "@/agents/scripted/scenarios";
+import type { EventStreamOptions } from "@/ui/events/use-event-stream";
+import type { AuditEventMessage } from "@/ui/events/summarize";
+import { type ScenariosApi, ScenarioRunner } from "./ScenarioRunner";
+import { parseRunResult, runAgentId, runSteps } from "./run-view";
+
+vi.mock("next/navigation", () => ({ usePathname: () => "/scenarios" }));
+
+afterEach(cleanup);
+
+const DOCS = "https://agentvault.example/vendor/docs/integration";
+
+class FakeSource extends EventTarget {
+  static last: FakeSource;
+  readyState = 1;
+  constructor(readonly url: string) {
+    super();
+    FakeSource.last = this;
+  }
+  close() {}
+  emit(type: string, data: unknown) {
+    this.dispatchEvent(new MessageEvent(type, { data: JSON.stringify(data) }));
+  }
+}
+
+const stream: EventStreamOptions = { createEventSource: (url) => new FakeSource(url) as unknown as EventSource, onRetired: () => {} };
+
+let seq = 0;
+const event = (type: string, payload: unknown): AuditEventMessage => ({
+  workspace_id: "sandbox-1",
+  seq: ++seq,
+  type,
+  created_at: "2026-11-27T10:00:00.000Z",
+  payload,
+  prev_hash: "0".repeat(64),
+  hash: "1".repeat(64),
+});
+const started = (runId: string, agentId: string) => event("scenario_started", { scenario: "injection", run_id: runId, agent_id: agentId });
+const decision = (agentId: string, tool: string, amount: string, d: string, codes: string[]) =>
+  event("decision", { agent_id: agentId, request: { vendor: "nimbus-weather", tool, amount_micros: amount }, decision: d, reasons: codes.map((code) => ({ code })) });
+const taint = (agentId: string) => event("taint", { agent_id: agentId, session_id: "s", url: DOCS, content_sha256: "ab", first_taint: true });
+
+const injectionResponse = {
+  scenario: "injection",
+  agent_id: "agent-run",
+  completed: true,
+  summary: {
+    requests: 2,
+    allowed_micros: "0",
+    held_micros: "480000000",
+    blocked_micros: "0",
+    decisions: { allow: 0, hold: 1, deny: 0 },
+    reasons: [
+      { code: "HELD_TAINTED", count: 1 },
+      { code: "NEEDS_APPROVAL", count: 1 },
+    ],
+  },
+};
+
+/** An API whose run resolves when the test says so. */
+function pendingApi() {
+  let resolve!: (r: { status: number; body: unknown }) => void;
+  const run = vi.fn(() => new Promise<{ status: number; body: unknown }>((r) => (resolve = r)));
+  return { api: { run } satisfies ScenariosApi, finish: (r: { status: number; body: unknown }) => act(async () => resolve(r)) };
+}
+
+/** The run's status line and the stream badge are both live regions. */
+const statusText = () => screen.getAllByRole("status").map((s) => s.textContent).join(" | ");
+
+const mount = (api: ScenariosApi) => render(<ScenarioRunner workspaceId="sandbox-1" scenarios={SCENARIO_NAMES} api={api} stream={stream} newRunId={() => "run-1"} />);
+
+describe("<ScenarioRunner>", () => {
+  it("AGT-1: offers the four scenarios, each with a one-sentence description, and streams the sandbox", () => {
+    mount(pendingApi().api);
+    for (const title of ["Normal purchase", "Runaway loop", "Prompt injection", "Intent drift"]) {
+      const card = screen.getByRole("region", { name: title });
+      const text = card.querySelector("p")!.textContent!;
+      expect(text).toMatch(/^[A-Z][^]*\.$/);
+      expect(text.slice(0, -1)).not.toMatch(/\.\s/);
+      expect(within(card).getByRole("button", { name: `Run: ${title}` })).toBeTruthy();
+    }
+    expect(FakeSource.last.url).toBe("/api/v1/events?workspace_id=sandbox-1");
+    expect(screen.getByRole("note").textContent).toContain("mock rails");
+  });
+
+  it("AGT-3: shows the run's steps live, in order, with plain-language reasons, and only that run's", async () => {
+    const { api, finish } = pendingApi();
+    mount(api);
+    fireEvent.click(screen.getByRole("button", { name: "Run: Prompt injection" }));
+    expect(api.run).toHaveBeenCalledWith("injection", "run-1");
+    for (const button of screen.getAllByRole("button", { name: /^Run:/ })) expect((button as HTMLButtonElement).disabled).toBe(true);
+    expect(await screen.findByText("Starting the run…")).toBeTruthy();
+
+    await act(async () => {
+      FakeSource.last.emit("audit", decision("someone-else", "x402.pay", "1500", "allow", []));
+      FakeSource.last.emit("audit", started("other-run", "someone-else"));
+      FakeSource.last.emit("audit", started("run-1", "agent-run"));
+      FakeSource.last.emit("audit", taint("agent-run"));
+      FakeSource.last.emit("audit", decision("agent-run", "stripe.refund", "480000000", "hold", ["HELD_TAINTED", "NEEDS_APPROVAL"]));
+    });
+    const log = await screen.findByRole("log", { name: "Steps" });
+    const items = within(log).getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(items[0]!.textContent).toContain(`Read an untrusted page, so the session is now tainted: ${DOCS}`);
+    // The untrusted page is shown as text, not a link.
+    expect(within(log).queryByRole("link")).toBeNull();
+    expect(items[1]!.textContent).toContain("stripe.refund");
+    expect(items[1]!.textContent).toContain("$480.00");
+    expect(items[1]!.textContent).toContain("Held: this session read untrusted content");
+    expect(screen.queryByText("Summary")).toBeNull();
+
+    await finish({ status: 200, body: injectionResponse });
+    expect((screen.getByRole("button", { name: "Run: Normal purchase" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("AGT-10: when the run finishes, shows requests, spend allowed, held, and blocked, and decisions by reason", async () => {
+    const { api, finish } = pendingApi();
+    mount(api);
+    fireEvent.click(screen.getByRole("button", { name: "Run: Prompt injection" }));
+    await finish({ status: 200, body: injectionResponse });
+    const summary = screen.getByRole("region", { name: "Summary" });
+    const text = summary.textContent!;
+    expect(text).toContain("Requests made2");
+    expect(text).toContain("Spend allowed$0.00");
+    expect(text).toContain("Spend held for approval$480.00");
+    expect(text).toContain("Spend blocked$0.00");
+    expect(text).toContain("Held: this session read untrusted content");
+    expect(text).toContain("×1");
+    expect(within(summary).getByRole("link", { name: /inbox/ }).getAttribute("href")).toBe("/approvals");
+  });
+
+  it("AGT-10: a run that stopped early says so, and a run without holds has no inbox link", async () => {
+    const { api, finish } = pendingApi();
+    mount(api);
+    fireEvent.click(screen.getByRole("button", { name: "Run: Normal purchase" }));
+    await finish({
+      status: 200,
+      body: { ...injectionResponse, completed: false, summary: { ...injectionResponse.summary, held_micros: "0", decisions: { allow: 2, hold: 0, deny: 0 }, reasons: [] } },
+    });
+    expect(statusText()).toContain("The run stopped before it finished");
+    const summary = screen.getByRole("region", { name: "Summary" });
+    expect(summary.textContent).toContain("No denials or holds.");
+    expect(within(summary).queryByRole("link")).toBeNull();
+  });
+
+  it("AGT-2: a busy scenario, a rate limit, and an error each get their own message, and the buttons come back", async () => {
+    for (const [status, message] of [
+      [409, "Someone else is running this scenario"],
+      [429, "Too many actions from your address"],
+      [503, "That didn't work"],
+      [200, "That didn't work"], // a 200 that isn't a run result
+    ] as const) {
+      const { api, finish } = pendingApi();
+      const { unmount } = mount(api);
+      fireEvent.click(screen.getByRole("button", { name: "Run: Runaway loop" }));
+      await finish({ status, body: status === 200 ? { nope: true } : { error: "X" } });
+      expect(statusText()).toContain(message);
+      expect((screen.getByRole("button", { name: "Run: Runaway loop" }) as HTMLButtonElement).disabled).toBe(false);
+      unmount();
+    }
+    const failing: ScenariosApi = { run: vi.fn(async () => Promise.reject(new TypeError("offline"))) };
+    mount(failing);
+    fireEvent.click(screen.getByRole("button", { name: "Run: Runaway loop" }));
+    await waitFor(() => expect(statusText()).toContain("That didn't work"));
+  });
+});
+
+describe("run view", () => {
+  it("AGT-3: finds the run's agent by run_id, and its decisions and taints in seq order", () => {
+    const events = [started("r0", "a0"), started("r1", "a1"), decision("a0", "x402.pay", "1", "allow", []), taint("a1"), decision("a1", "x", "2", "deny", ["TOOL_NOT_ALLOWED"]), event("decision", { broken: true })];
+    expect(runAgentId(events, "r1")).toBe("a1");
+    expect(runAgentId(events, "nope")).toBeNull();
+    expect(runSteps([...events].reverse(), "a1").map((s) => s.kind)).toEqual(["taint", "decision"]);
+  });
+
+  it("AGT-10: reads the run response's summary as exact micros, and rejects anything else", () => {
+    expect(parseRunResult(injectionResponse)?.summary).toMatchObject({ heldMicros: 480_000_000n, requests: 2 });
+    for (const bad of [null, {}, { ...injectionResponse, summary: { ...injectionResponse.summary, held_micros: "4.8" } }, { ...injectionResponse, completed: "yes" }]) {
+      expect(parseRunResult(bad)).toBeNull();
+    }
+  });
+});

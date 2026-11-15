@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, Bot, Inbox, LayoutDashboard, type LucideIcon } from "lucide-react";
+import { Activity, Bot, FlaskConical, Inbox, LayoutDashboard, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
@@ -12,6 +12,7 @@ export const NAV_ITEMS: readonly { href: string; label: UiKey; icon: LucideIcon 
   { href: "/feed", label: "nav.feed", icon: Activity },
   { href: "/agents", label: "nav.agents", icon: Bot },
   { href: "/approvals", label: "nav.approvals", icon: Inbox },
+  { href: "/scenarios", label: "nav.scenarios", icon: FlaskConical },
 ];
 
 export const isActive = (pathname: string, href: string): boolean => (href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`));
@@ -50,7 +51,7 @@ export function Sidebar({ footer }: { footer?: ReactNode }) {
         {footer ? <div className="mt-auto pt-6">{footer}</div> : null}
       </nav>
       <nav aria-label={t("nav.label")} className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-surface md:hidden">
-        <ul className="grid grid-cols-4">
+        <ul className="grid grid-cols-5">
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => (
             <li key={href}>
               <Link

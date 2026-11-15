@@ -113,6 +113,33 @@ type UiKey =
   | "approvals.failedRecheck"
   | "approvals.expiredConflict"
   | "approvals.notPending"
+  | "nav.scenarios"
+  | "scenarios.title"
+  | "scenarios.intro"
+  | "scenarios.sandboxNote"
+  | "scenario.normal.title"
+  | "scenario.normal.description"
+  | "scenario.runaway.title"
+  | "scenario.runaway.description"
+  | "scenario.injection.title"
+  | "scenario.injection.description"
+  | "scenario.drift.title"
+  | "scenario.drift.description"
+  | "scenarios.run"
+  | "scenarios.running"
+  | "scenarios.steps"
+  | "scenarios.starting"
+  | "scenarios.taintStep"
+  | "scenarios.summary"
+  | "scenarios.requests"
+  | "scenarios.allowedSpend"
+  | "scenarios.heldSpend"
+  | "scenarios.blockedSpend"
+  | "scenarios.byReason"
+  | "scenarios.noReasons"
+  | "scenarios.openApprovals"
+  | "scenarios.busy"
+  | "scenarios.stopped"
   | "error.generic"
   | "error.rateLimited"
   | "error.unauthorized";
@@ -237,6 +264,33 @@ const defaultCopy: CopyTable = {
   "approvals.failedRecheck": "Approved, but the request failed its recheck and didn't run.",
   "approvals.expiredConflict": "This approval expired before you acted. The request won't run.",
   "approvals.notPending": "Someone already acted on this approval.",
+  "nav.scenarios": "Scenarios",
+  "scenarios.title": "Scenarios",
+  "scenarios.intro": "Run a scripted agent against AgentVault and watch each decision as it's made. Every run gets a fresh agent with its own API key.",
+  "scenarios.sandboxNote": "Scenarios run in the public sandbox on mock rails, even when you're signed in. No real money moves.",
+  "scenario.normal.title": "Normal purchase",
+  "scenario.normal.description": "The agent buys five weather forecasts at $0.0015 each, and every payment is allowed.",
+  "scenario.runaway.title": "Runaway loop",
+  "scenario.runaway.description": "A retry bug makes the agent pay in a tight loop until AgentVault denies it for velocity and freezes it.",
+  "scenario.injection.title": "Prompt injection",
+  "scenario.injection.description": "The agent reads a vendor page with a hidden instruction to refund $480, and AgentVault holds the refund for a person to approve.",
+  "scenario.drift.title": "Intent drift",
+  "scenario.drift.description": "The agent's task is to buy weather data, but it tries to pay a GPU vendor, and AgentVault denies it as off-task.",
+  "scenarios.run": "Run",
+  "scenarios.running": "Running…",
+  "scenarios.steps": "Steps",
+  "scenarios.starting": "Starting the run…",
+  "scenarios.taintStep": "Read an untrusted page, so the session is now tainted:",
+  "scenarios.summary": "Summary",
+  "scenarios.requests": "Requests made",
+  "scenarios.allowedSpend": "Spend allowed",
+  "scenarios.heldSpend": "Spend held for approval",
+  "scenarios.blockedSpend": "Spend blocked",
+  "scenarios.byReason": "Decisions by reason",
+  "scenarios.noReasons": "No denials or holds.",
+  "scenarios.openApprovals": "Approve or deny the held request in the inbox",
+  "scenarios.busy": "Someone else is running this scenario right now. Try again in a few seconds.",
+  "scenarios.stopped": "The run stopped before it finished. Try again in a moment.",
   "error.generic": "That didn't work. Try again.",
   "error.rateLimited": "Too many actions from your address. Wait a minute and try again.",
   "error.unauthorized": "Sign in to do that.",
