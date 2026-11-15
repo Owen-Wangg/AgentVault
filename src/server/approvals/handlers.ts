@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Rail } from "@/core/money";
 import { loadRailConfig } from "@/rails/config";
 import { railFor } from "@/rails/select";
 import type { RailAdapter } from "@/rails/types";
 import { type GetSessionUser, getSessionUser } from "@/server/auth/session";
+import { defaultWorkspace } from "@/server/auth/workspace-access";
 import { type Database, type Db, createDb } from "@/server/db/client";
 import { APPROVAL_STATUSES, agents, approvals, workspaces } from "@/server/db/schema";
 import { env } from "@/server/env";
@@ -113,19 +114,7 @@ export function handleListApprovals(request: Request, deps: HumanRouteDeps = def
     const query = ListQuerySchema.safeParse(Object.fromEntries(new URL(request.url).searchParams));
     if (!query.success) return json(400, { error: "INVALID_REQUEST", issues: query.error.issues.map((i) => ({ path: i.path.join("."), message: i.message })) });
 
-    const user = await deps.getUser(request);
-    let workspace: { id: string; isSandbox: boolean } | undefined;
-    if (user) {
-      [workspace] = await db
-        .select({ id: workspaces.id, isSandbox: workspaces.isSandbox })
-        .from(workspaces)
-        .where(and(eq(workspaces.ownerUserId, user.id), eq(workspaces.isSandbox, false)))
-        .orderBy(desc(workspaces.createdAt))
-        .limit(1);
-    } else {
-      const sandbox = await currentSandbox(db);
-      workspace = sandbox ? { id: sandbox.id, isSandbox: true } : undefined;
-    }
+    const workspace = await defaultWorkspace(db, await deps.getUser(request));
     if (!workspace) return json(404, { error: "NO_WORKSPACE" });
 
     const list = await listApprovals(serviceDeps(db, deps), workspace.id, query.data.status ? { status: query.data.status } : {});
