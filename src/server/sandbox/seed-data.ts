@@ -1,11 +1,12 @@
-import { fromDecimalString } from "@/core/money";
+import { BILLING_ENVELOPE, BILLING_TASK, WEATHER_ENVELOPE, WEATHER_TASK } from "@/agents/scripted/scenarios";
 import type { Envelope } from "@/core/policy";
 
 /**
- * What every new sandbox workspace starts with (AUD-9). The envelopes
- * match the demo-agents scenario table, so the dashboard shows the same
- * limits the scenarios run under. Scenario runs create their own fresh
- * agents (demo-agents AGT-2); these seeded agents have no usable API key.
+ * What every new sandbox workspace starts with (AUD-9). The envelopes and
+ * tasks are the demo-agents scenarios' own, so the dashboard shows the
+ * same limits the scenarios run under. Scenario runs create their own
+ * fresh agents and tasks (demo-agents AGT-2); these seeded agents have no
+ * usable API key.
  */
 
 export const SEED_VERSION = 1;
@@ -18,51 +19,18 @@ export interface SeedVendor {
   trusted: boolean;
 }
 
+/** Every vendor the scenarios pay, with the category the intent rules read (INT-5). */
 export const SEED_VENDORS: readonly SeedVendor[] = [
   { name: "nimbus-weather", origin: "app", category: "weather", trusted: false },
   { name: "gpu-cloud", origin: "app", category: "compute", trusted: false },
 ];
 
 export const SEED_TASKS = [
-  {
-    key: "weather",
-    description: "Get weather forecasts for the dashboard",
-    allowedVendorCategories: ["weather"],
-    allowedTools: ["x402.pay"],
-    budgetMicros: fromDecimalString("1"),
-  },
-  {
-    key: "billing",
-    description: "Handle Nimbus Weather billing",
-    allowedVendorCategories: ["weather"],
-    allowedTools: ["x402.pay", "stripe.refund"],
-    budgetMicros: fromDecimalString("1000"),
-  },
+  { key: "weather", ...WEATHER_TASK },
+  { key: "billing", ...BILLING_TASK },
 ] as const;
 
 export const SEED_AGENTS: readonly { name: string; envelope: Omit<Envelope, "agentId"> }[] = [
-  {
-    name: "weather-agent",
-    envelope: {
-      limits: {
-        txMaxMicros: fromDecimalString("1"),
-        windowCapsMicros: { minute: fromDecimalString("0.50") },
-        callsPerMinute: 30,
-      },
-      vendorLimits: {},
-      toolLimits: {},
-      allowedVendors: "*",
-      allowedTools: ["x402.pay"],
-    },
-  },
-  {
-    name: "billing-agent",
-    envelope: {
-      limits: { approvalThresholdMicros: fromDecimalString("100") },
-      vendorLimits: {},
-      toolLimits: { "stripe.refund": { txMaxMicros: fromDecimalString("1000") } },
-      allowedVendors: "*",
-      allowedTools: ["x402.pay", "stripe.refund"],
-    },
-  },
+  { name: "weather-agent", envelope: WEATHER_ENVELOPE },
+  { name: "billing-agent", envelope: BILLING_ENVELOPE },
 ];
