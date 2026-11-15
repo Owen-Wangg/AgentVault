@@ -1,12 +1,11 @@
-import { PageTitle } from "@/ui/components/primitives";
+import { DataState } from "@/ui/components/DataState";
 import { t } from "@/ui/copy";
+import { OverviewView } from "@/ui/overview/OverviewView";
+import { getAgentNames } from "./agent-names";
+import { getDashboardContext } from "./dashboard-context";
 
-// The overview's KPIs and charts arrive with telemetry-dashboard task 4.
-export default function OverviewPage() {
-  return (
-    <>
-      <PageTitle>{t("overview.title")}</PageTitle>
-      <p className="text-text-muted">{t("app.tagline")}</p>
-    </>
-  );
+export default async function OverviewPage() {
+  const { workspace } = await getDashboardContext();
+  if (!workspace) return <DataState status="empty" empty={t("workspace.none")} />;
+  return <OverviewView workspaceId={workspace.id} agentNames={await getAgentNames(workspace.id)} />;
 }
