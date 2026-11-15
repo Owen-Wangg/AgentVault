@@ -57,6 +57,42 @@ describe("environment variables", () => {
     expect(() => env.databaseUrl()).toThrow("DATABASE_URL");
   });
 
+  it("UI-2: GitHub sign-in is configured only when the secret and both GitHub values are set", () => {
+    set("AUTH_SECRET", "s".repeat(32));
+    set("AUTH_GITHUB_ID", "Iv1.abc");
+    set("AUTH_GITHUB_SECRET", undefined);
+    expect(env.githubAuthConfigured()).toBe(false);
+    set("AUTH_GITHUB_SECRET", "shh");
+    expect(env.githubAuthConfigured()).toBe(true);
+    set("AUTH_SECRET", "");
+    expect(env.githubAuthConfigured()).toBe(false);
+  });
+
+  it("UI-2: the .env.example placeholders count as unset, so a copied example file leaves sign-in off", () => {
+    set("AUTH_SECRET", "replace-with-32-random-bytes-base64");
+    set("AUTH_GITHUB_ID", "your-github-oauth-client-id");
+    set("AUTH_GITHUB_SECRET", "your-github-oauth-client-secret");
+    expect(env.githubAuthConfigured()).toBe(false);
+    set("AUTH_SECRET", "s".repeat(32));
+    set("AUTH_GITHUB_SECRET", "real-secret");
+    expect(env.githubAuthConfigured()).toBe(false);
+    set("AUTH_GITHUB_ID", "Iv1.real");
+    expect(env.githubAuthConfigured()).toBe(true);
+  });
+
+  it("UI-2: an invalid AUTH_ value turns sign-in off instead of throwing", () => {
+    set("AUTH_SECRET", "too-short-secret");
+    set("AUTH_GITHUB_ID", "Iv1.real");
+    set("AUTH_GITHUB_SECRET", "real-secret");
+    expect(env.githubAuthEnabled()).toBe(false);
+  });
+
+  it("UI-2: rejects a short AUTH_SECRET without printing it", () => {
+    set("AUTH_SECRET", "too-short-secret");
+    expect(() => env.githubAuthConfigured()).toThrow("AUTH_SECRET must be at least 32 characters");
+    expect(() => env.githubAuthConfigured()).not.toThrow("too-short-secret");
+  });
+
   it("defaults APP_ORIGIN to localhost and normalizes it to an origin", () => {
     set("APP_ORIGIN", undefined);
     expect(env.appOrigin()).toBe("http://localhost:3000");

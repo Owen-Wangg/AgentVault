@@ -3,7 +3,7 @@
 // safe to run where output is shared, such as the /validate-mpp steering
 // command. Exits 1 if anything fails.
 import { checkRailEnv } from "@/rails/config";
-import { env, resetEnvCache } from "@/server/env";
+import { env, isPlaceholder, resetEnvCache } from "@/server/env";
 import { loadLocalEnv } from "./lib/load-env";
 
 interface Line {
@@ -20,9 +20,14 @@ function checkServerEnv(): Line[] {
     ["AUDIT_HEAD_KEY", env.auditHeadKey, true],
     ["CRON_SECRET", env.cronSecret, true],
     ["APP_ORIGIN", env.appOrigin, false],
+    // GitHub sign-in is optional; githubAuthConfigured() validates whichever of the three are set.
+    ["AUTH_SECRET", env.githubAuthConfigured, false],
+    ["AUTH_GITHUB_ID", env.githubAuthConfigured, false],
+    ["AUTH_GITHUB_SECRET", env.githubAuthConfigured, false],
   ];
   return getters.map(([name, get, required]) => {
     if (!process.env[name] && !required) return { name, status: "unset" };
+    if (name.startsWith("AUTH_") && isPlaceholder(process.env[name])) return { name, status: "unset", note: "still the .env.example placeholder; GitHub sign-in is off" };
     try {
       get();
       return { name, status: "pass" };

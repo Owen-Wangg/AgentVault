@@ -1,7 +1,7 @@
-import { and, desc, eq } from "drizzle-orm";
-import type { Db } from "@/server/db/client";
+import { and, desc, eq, sql } from "drizzle-orm";
+import { type Db, queryRows } from "@/server/db/client";
 import { workspaces } from "@/server/db/schema";
-import { currentSandbox } from "@/server/sandbox/sandbox";
+import { createWorkspace, currentSandbox } from "@/server/sandbox/sandbox";
 import type { SessionUser } from "./session";
 
 /**
@@ -32,6 +32,29 @@ export async function defaultWorkspace(db: Db, user: SessionUser | null): Promis
   }
   const sandbox = await currentSandbox(db);
   return sandbox ? { id: sandbox.id, isSandbox: true, retired: false } : undefined;
+}
+
+/**
+ * Open a signed-in user's personal workspace, creating it on first visit
+ * (UI-2). A transaction-scoped advisory lock per user makes concurrent
+ * first visits create one workspace, not two.
+ */
+export async function ensurePersonalWorkspace(db: Db, user: SessionUser, options: { key?: Uint8Array; now?: Date } = {}): Promise<ReadableWorkspace> {
+  const existing = await defaultWorkspace(db, user);
+  if (existing) return existing;
+  return db.transaction(async (tx) => {
+    await queryRows(tx, sql`SELECT pg_advisory_xact_lock(hashtext(${`agentvault:personal-workspace:${user.id}`}))`);
+    const [row] = await tx
+      .select({ id: workspaces.id })
+      .from(workspaces)
+      .where(and(eq(workspaces.ownerUserId, user.id), eq(workspaces.isSandbox, false)))
+      .orderBy(desc(workspaces.createdAt))
+      .limit(1);
+    if (row) return { id: row.id, isSandbox: false, retired: false };
+    const name = user.name ? `${user.name}'s workspace` : "My workspace";
+    const id = await createWorkspace(tx, { name, isSandbox: false, ownerUserId: user.id }, options);
+    return { id, isSandbox: false, retired: false };
+  });
 }
 
 export type ReadAccess = { ok: true; workspace: ReadableWorkspace } | { ok: false; status: 401 | 403 | 404; error: string };
