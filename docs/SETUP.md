@@ -211,8 +211,11 @@ You need **two** wallets, because a payment from a wallet to itself would move n
 4. Click **Create API key** and name it `agentvault`.
 5. Fill in the rest of the form:
    - **IP allowlist:** keep **Allow requests from any IP address**. Vercel functions don't have fixed IP addresses, so an allowlist would block the deployed vendor endpoint.
-   - **Permissions** (Account, Transfers, Customers, Orders, each with Read-only and Write): leave every box unchecked. They control Coinbase's custodial account APIs, which AgentVault never calls. The facilitator's verify and settle calls only need a valid key. If the form won't create a key with nothing checked, check only **Account → Read-only**.
-   - **Signature algorithm**, if the form shows one: keep **Ed25519**.
+   - **Permissions:** leave every box unchecked. The facilitator's verify and settle calls only need a valid key, and AgentVault calls nothing else.
+     - **Coinbase App & Advanced Trade → Portfolio** (View, Trade, Transfer, Receive) gives the key access to your personal Coinbase account, where money is real. Never check **Trade** or **Transfer**: anyone with the key could then trade or send your real funds.
+     - **Account → Non-custodial** (Export, Manage) controls CDP server wallets, which AgentVault doesn't use. **Export** would let the key export those wallets' private keys.
+     - If the form won't create a key with nothing checked, check only **Portfolio → View (read-only)**.
+   - **Signature algorithm:** **Ed25519 (Recommended)**.
 6. Click **Create**. A window shows the **API key ID** (it looks like `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) and the **API key secret** (a long string that ends in `==`). Copy both now; the secret isn't shown again. You don't need to download the key file.
 7. In `.env.local`, replace the two placeholders:
 
