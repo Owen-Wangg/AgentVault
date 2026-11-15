@@ -2,7 +2,7 @@
 
 Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase 12** = task 7 (after demo-agents tasks 1–4, which its Playwright test needs). **Phase 15** = task 8. **Phase 18** = task 9.
 
-- [ ] 1. Build the SSE endpoint `GET /api/v1/events`
+- [x] 1. Build the SSE endpoint `GET /api/v1/events`
   - Cursor polling, heartbeat, clean close before the duration limit, workspace scoping
   - Property 1
   - _Requirements: TEL-1, TEL-2, TEL-3, TEL-4, TEL-5_
