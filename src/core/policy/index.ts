@@ -11,6 +11,16 @@ export {
 } from "./reasons";
 export { EvaluateInputSchema } from "./schemas";
 export {
+  EnvelopeWireSchema,
+  MAX_CALLS_PER_MINUTE,
+  MAX_ENTRIES,
+  NAME_PATTERN,
+  envelopeFromWire,
+  envelopeToWire,
+  type EnvelopeWire,
+  type WireLimits,
+} from "./envelope-wire";
+export {
   WINDOWS,
   type Decision,
   type Envelope,
