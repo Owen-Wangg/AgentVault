@@ -108,6 +108,11 @@ type UiKey =
   | "approvals.taintSource"
   | "approvals.request"
   | "approvals.result"
+  | "approvals.executed"
+  | "approvals.denied"
+  | "approvals.failedRecheck"
+  | "approvals.expiredConflict"
+  | "approvals.notPending"
   | "error.generic"
   | "error.rateLimited"
   | "error.unauthorized";
@@ -227,6 +232,11 @@ const defaultCopy: CopyTable = {
   "approvals.taintSource": "Untrusted content read from",
   "approvals.request": "Request",
   "approvals.result": "Result",
+  "approvals.executed": "Approved. The request ran.",
+  "approvals.denied": "Denied. The request won't run.",
+  "approvals.failedRecheck": "Approved, but the request failed its recheck and didn't run.",
+  "approvals.expiredConflict": "This approval expired before you acted. The request won't run.",
+  "approvals.notPending": "Someone already acted on this approval.",
   "error.generic": "That didn't work. Try again.",
   "error.rateLimited": "Too many actions from your address. Wait a minute and try again.",
   "error.unauthorized": "Sign in to do that.",
