@@ -1,6 +1,6 @@
 # Setup
 
-Commands are for Windows PowerShell. Later phases add sections for GitHub sign-in, Stripe, and x402.
+Commands are for Windows PowerShell. Phase 14 adds a section for Stripe.
 
 ## 1. Install the tools
 1. **Node.js 22 or newer.** Check with `node --version`. Install the LTS version from <https://nodejs.org> if it's missing or older.
@@ -165,7 +165,125 @@ On Vercel, add the same three variables under **Project → Settings → Environ
 
 Open <http://localhost:3000> and click **Sign in with GitHub** in the sidebar. After you approve the app on GitHub, the header shows your workspace instead of the **Sandbox** badge. Sessions last 30 days; **Sign out** ends yours.
 
-## 6. Run it
+## 6. x402 test payments (Base Sepolia)
+
+**x402** is a way to pay for a single HTTP request. The server answers the first request with `402 Payment Required` and a price. The client signs a USDC payment, sends the request again with the signature attached, and gets the data. AgentVault plays both sides:
+
+- The demo vendor endpoint `/vendor/api/weather` charges for weather data. A **facilitator** run by Coinbase (the CDP facilitator) checks each signed payment and puts it on the blockchain.
+- The x402 adapter pays that endpoint from an **agent wallet**, but only after the policy allows the payment.
+
+Everything runs on **Base Sepolia**, a test network. Its ETH and USDC have no value. The app refuses any other network.
+
+You'll set up these variables in `.env.local`:
+
+| Variable | What it is | Used by |
+|---|---|---|
+| `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET` | Your Coinbase Developer Platform API key. It lets the vendor endpoint ask the facilitator to check and settle payments. | Vendor |
+| `X402_PAY_TO` | The vendor wallet's address, where payments arrive | Vendor |
+| `AGENT_WALLET_PRIVATE_KEY` | The agent wallet's private key, which signs payments | Payer |
+| `X402_NETWORK` | Already `eip155:84532` (Base Sepolia). Leave it. | Both |
+| `X402_MIN_UNITS` | The smallest payment the facilitator accepts, in USDC units (1 unit = $0.000001). Leave it at `1` for now; Phase 13 measures the real value and updates this line. | Payer |
+
+Leave `RAIL_MODE=mock`. Real mode also needs the Stripe variables, which come in Phase 14. The vendor endpoint and the x402 `@live` tests use these variables in either mode.
+
+### What a wallet and a private key are
+
+A wallet on Base (or Ethereum) is a pair of numbers:
+
+- The **private key**: a secret, 32 random bytes, written as `0x` and 64 hex characters. Whoever has it can sign transfers out of the wallet.
+- The **address**: `0x` and 40 hex characters, calculated from the private key. It's public. Anyone can send money to it and see its balance, and it's safe to share.
+
+There is no password reset and no undo. If someone gets the private key, they own the wallet. The same key also controls the same address on every other network that uses this format, including Base and Ethereum mainnet, where tokens have real value.
+
+So the agent wallet must be a **new wallet made only for this project**, and it must only ever hold faucet test tokens:
+
+- Never send real funds to it, and never import its key into a wallet app you use for real money.
+- Never paste the key into a chat, an issue, a screenshot, or a commit. It goes only into `.env.local` (and later into Vercel's environment variables, if you ever turn on real mode there).
+- AgentVault reads it only from `AGENT_WALLET_PRIVATE_KEY`, never logs it, never sends it to the browser, and never writes it to the audit log.
+
+You need **two** wallets, because a payment from a wallet to itself would move nothing and prove nothing. `pnpm env:check` refuses `X402_PAY_TO` if it's the agent wallet's own address.
+
+### Step 1: Create a CDP API key
+
+1. Go to <https://portal.cdp.coinbase.com> and sign in or create a free account. The portal creates a default project for you.
+2. Open **API Keys** in the left menu and select the **Secret API Keys** tab.
+3. Click **Create API key** and name it `agentvault`.
+4. Under the optional settings:
+   - Leave **IP allowlist** empty. Vercel functions don't have fixed IP addresses, so an allowlist would block the deployed vendor endpoint.
+   - Keep the **signature algorithm** on **Ed25519** (the recommended one).
+   - Leave the permissions at their defaults.
+5. Click **Create**. A window shows the **API key ID** (it looks like `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) and the **API key secret** (a long string that ends in `==`). Copy both now; the secret isn't shown again. You don't need to download the key file.
+6. In `.env.local`, replace the two placeholders:
+
+   ```
+   CDP_API_KEY_ID=<the API key ID>
+   CDP_API_KEY_SECRET=<the API key secret>
+   ```
+
+   Keep the secret on one line, with no quotes and no spaces.
+
+The facilitator's first 1,000 on-chain settlements each month are free, so you don't need to add billing details.
+
+### Step 2: Create the two test wallets
+
+`pnpm wallet:new` makes a new wallet on your machine and prints its address and private key. It sends nothing over the network. Run it once for each wallet:
+
+```powershell
+pnpm wallet:new
+```
+
+1. **Vendor wallet.** Run it, and copy the **Address** into `.env.local` as `X402_PAY_TO`. The app never needs this wallet's private key, so don't put it in `.env.local`. Keep it in your password manager if you'd like to move the test USDC out later, or throw it away; the worst case is losing test tokens.
+2. **Agent wallet.** Run it again. Copy the **Private key** into `.env.local` as `AGENT_WALLET_PRIVATE_KEY`, and note the **Address** for the faucet in step 3.
+
+Then clear the terminal so the keys aren't left on screen:
+
+```powershell
+Clear-Host
+```
+
+### Step 3: Get test USDC from a faucet
+
+A **faucet** is a website that gives out free test tokens, so developers can try payments without spending real money. Faucets limit how often you can claim, so nobody can drain them.
+
+- The **agent wallet** needs test USDC, because it pays.
+- The **vendor wallet** needs nothing. It only receives.
+- **Neither wallet needs test ETH.** On a blockchain, ETH pays the transaction fee ("gas"). In x402, the agent only *signs* a USDC transfer (an EIP-3009 "transfer with authorization"); the facilitator sends the transaction and pays its fee. You'd only need ETH to move USDC out of a wallet yourself later. If you want some for that, claim **ETH** the same way below.
+
+1. In the CDP portal, open **Faucets** (under **Onchain Tools**).
+2. Choose network **Base Sepolia** and token **USDC**.
+3. Paste the **agent wallet's address** (not the vendor's) and click **Claim**.
+4. Claim two or three times. Each claim gives 1 USDC, and you can claim 10 times per 24 hours. 1 USDC covers 100 weather calls at $0.01, or 666 at $0.0015. Measuring the facilitator's minimum and running the `@live` tests uses less than $0.10.
+
+If the CDP faucet is down, Circle's faucet at <https://faucet.circle.com> also gives Base Sepolia USDC.
+
+### Step 4: Check everything
+
+```powershell
+pnpm env:check
+pnpm x402:status
+```
+
+- `pnpm env:check` ends with a section titled **x402 on Base Sepolia (checked as if RAIL_MODE=real)**. Every line there should say `PASS` (`X402_MIN_UNITS` may say `PASS` or `UNSET`), followed by `x402 ready.` The Stripe lines above it may still fail in real mode; that's fine while `RAIL_MODE=mock`.
+- `pnpm x402:status` prints both addresses, their USDC and ETH balances, and a block explorer link for each. It never prints the private key. The agent wallet should show the USDC you claimed. A claim can take a minute to appear.
+
+You can also paste an address into <https://sepolia.basescan.org> to see its balance and every payment.
+
+### Vercel
+
+So the deployed `/vendor/api/weather` can charge, add these under **Project → Settings → Environment Variables** (Production), then redeploy:
+
+- `CDP_API_KEY_ID`
+- `CDP_API_KEY_SECRET` (mark it **Sensitive**)
+- `X402_PAY_TO`
+
+Don't add `AGENT_WALLET_PRIVATE_KEY` to Vercel. The deployed app runs mock rails, so it doesn't need the key, and a key that isn't stored there can't leak from there.
+
+### If a key leaks
+
+- **Agent private key:** run `pnpm wallet:new` for a new agent wallet, put its key in `.env.local`, and claim faucet USDC for it. The old wallet's test USDC is lost, which costs nothing real.
+- **CDP API key:** in the CDP portal, delete the key under **API Keys**, create a new one, and update `.env.local` and Vercel.
+
+## 7. Run it
 | Command | What it does |
 |---|---|
 | `pnpm dev` | Starts the app at <http://localhost:3000>. It keeps running; stop it with Ctrl+C. |
@@ -182,12 +300,14 @@ Open <http://localhost:3000> and click **Sign in with GitHub** in the sidebar. A
 | `pnpm db:migrate` | Applies new migrations to `DATABASE_URL`. |
 | `pnpm db:seed` | Creates the first sandbox workspace if there is none. |
 | `pnpm sandbox:reset` | Replaces the sandbox with a fresh seeded one. Nothing is deleted. |
-| `pnpm env:check` | Checks every environment variable and prints pass, fail, unset, or skipped. Never prints values. |
+| `pnpm env:check` | Checks every environment variable and prints pass, fail, unset, or skipped, then checks the x402 variables on their own. Never prints values. |
+| `pnpm wallet:new` | Prints a new Base Sepolia test wallet's address and private key (section 6). The only command that prints a key. |
+| `pnpm x402:status` | Prints the agent and vendor wallet addresses and their test USDC and ETH balances. Never prints the key. |
 | `pnpm audit:verify` | Checks every workspace's audit hash chain. Pass workspace IDs to check only those. |
 | `pnpm reconcile` | Asks the rails what happened to payments with an unknown outcome, deletes idempotency records older than 24 hours, and lists payments still unknown after 24 hours. It only looks payments up and never pays. On the mock rail it can't resolve anything a different process paid, so those stay listed. |
 | `pnpm demo:policy` | Prints a table of policy decisions for a sample request sequence. |
 
-## 7. Kiro hooks
+## 8. Kiro hooks
 The hooks in `.kiro/hooks/` run automatically in Kiro:
 | Hook | When it runs | What it does |
 |---|---|---|
