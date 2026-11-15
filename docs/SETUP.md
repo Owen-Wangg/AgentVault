@@ -114,7 +114,58 @@ pnpm test --run
 
 To run on PGlite instead, comment out the `DATABASE_URL_TEST` line in `.env.local`.
 
-## 5. Run it
+## 5. GitHub sign-in (optional)
+
+Without sign-in, the dashboard shows the public sandbox to everyone. With it, each person who signs in with GitHub gets their own workspace, created on their first visit. Sign-in stays off until all three variables below are set.
+
+### Create the GitHub OAuth app
+
+You need one OAuth app for local development and a second one for the deployed site, because each app has exactly one callback URL.
+
+1. Open <https://github.com/settings/developers> → **OAuth Apps** → **New OAuth App**.
+2. Fill in the form:
+   | Field | Local development | Vercel |
+   |---|---|---|
+   | Application name | `AgentVault (local)` | `AgentVault` |
+   | Homepage URL | `http://localhost:3000` | `https://<your-app>.vercel.app` |
+   | Authorization callback URL | `http://localhost:3000/api/auth/callback/github` | `https://<your-app>.vercel.app/api/auth/callback/github` |
+   Leave **Enable Device Flow** unchecked.
+3. Click **Register application**. The next page shows the **Client ID**.
+4. Click **Generate a new client secret** and copy it right away. GitHub shows it only once.
+
+AgentVault asks GitHub only for the default scopes (your public profile and email address). It never sees your repositories.
+
+### Set the variables
+
+In `.env.local` for local development:
+
+```
+AUTH_SECRET=<generated below>
+AUTH_GITHUB_ID=<the Client ID>
+AUTH_GITHUB_SECRET=<the client secret>
+```
+
+Generate `AUTH_SECRET` (it signs the session cookie) the same way as the audit key:
+
+```powershell
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+Then check them without printing them:
+
+```powershell
+pnpm env:check
+```
+
+The three `AUTH_` lines should say `PASS`. Restart `pnpm dev` after changing `.env.local`.
+
+On Vercel, add the same three variables under **Project → Settings → Environment Variables**, using the second OAuth app's Client ID and secret and a different `AUTH_SECRET`, then redeploy. Auth.js trusts the request's host automatically under `pnpm dev` and on Vercel. To try a production build locally with `pnpm start`, also set `AUTH_TRUST_HOST=true`; anywhere else, set `AUTH_URL` to the site's origin instead. While the three variables aren't set, `/api/auth/*` answers 404.
+
+### Try it
+
+Open <http://localhost:3000> and click **Sign in with GitHub** in the sidebar. After you approve the app on GitHub, the header shows your workspace instead of the **Sandbox** badge. Sessions last 30 days; **Sign out** ends yours.
+
+## 6. Run it
 | Command | What it does |
 |---|---|
 | `pnpm dev` | Starts the app at <http://localhost:3000>. It keeps running; stop it with Ctrl+C. |
@@ -135,7 +186,7 @@ To run on PGlite instead, comment out the `DATABASE_URL_TEST` line in `.env.loca
 | `pnpm reconcile` | Asks the rails what happened to payments with an unknown outcome, deletes idempotency records older than 24 hours, and lists payments still unknown after 24 hours. It only looks payments up and never pays. On the mock rail it can't resolve anything a different process paid, so those stay listed. |
 | `pnpm demo:policy` | Prints a table of policy decisions for a sample request sequence. |
 
-## 6. Kiro hooks
+## 7. Kiro hooks
 The hooks in `.kiro/hooks/` run automatically in Kiro:
 | Hook | When it runs | What it does |
 |---|---|---|
