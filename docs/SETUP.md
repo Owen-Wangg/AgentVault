@@ -208,10 +208,10 @@ You need **two** wallets, because a payment from a wallet to itself would move n
 1. Go to <https://portal.cdp.coinbase.com> and sign in or create a free account. The portal creates a default project for you.
 2. Open **API Keys** in the left menu and select the **Secret API Keys** tab.
 3. Click **Create API key** and name it `agentvault`.
-4. Under the optional settings:
-   - Leave **IP allowlist** empty. Vercel functions don't have fixed IP addresses, so an allowlist would block the deployed vendor endpoint.
-   - Keep the **signature algorithm** on **Ed25519** (the recommended one).
-   - Leave the permissions at their defaults.
+4. Fill in the rest of the form:
+   - **IP allowlist:** keep **Allow requests from any IP address**. Vercel functions don't have fixed IP addresses, so an allowlist would block the deployed vendor endpoint.
+   - **Permissions** (Account, Transfers, Customers, Orders, each with Read-only and Write): leave every box unchecked. They control Coinbase's custodial account APIs, which AgentVault never calls. The facilitator's verify and settle calls only need a valid key. If the form won't create a key with nothing checked, check only **Account → Read-only**.
+   - **Signature algorithm**, if the form shows one: keep **Ed25519**.
 5. Click **Create**. A window shows the **API key ID** (it looks like `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) and the **API key secret** (a long string that ends in `==`). Copy both now; the secret isn't shown again. You don't need to download the key file.
 6. In `.env.local`, replace the two placeholders:
 
@@ -300,9 +300,7 @@ Don't add `AGENT_WALLET_PRIVATE_KEY` to Vercel. The deployed app runs mock rails
 | `pnpm db:migrate` | Applies new migrations to `DATABASE_URL`. |
 | `pnpm db:seed` | Creates the first sandbox workspace if there is none. |
 | `pnpm sandbox:reset` | Replaces the sandbox with a fresh seeded one. Nothing is deleted. |
-| `pnpm env:check` | Checks every environment variable and prints pass, fail, unset, or skipped, then checks the x402 variables on their own. Never prints values. |
-| `pnpm wallet:new` | Prints a new Base Sepolia test wallet's address and private key (section 6). The only command that prints a key. |
-| `pnpm x402:status` | Prints the agent and vendor wallet addresses and their test USDC and ETH balances. Never prints the key. |
+| `pnpm env:check` | Checks every environment variable and prints pass, fail, unset, or skipped. Never prints values. |
 | `pnpm audit:verify` | Checks every workspace's audit hash chain. Pass workspace IDs to check only those. |
 | `pnpm reconcile` | Asks the rails what happened to payments with an unknown outcome, deletes idempotency records older than 24 hours, and lists payments still unknown after 24 hours. It only looks payments up and never pays. On the mock rail it can't resolve anything a different process paid, so those stay listed. |
 | `pnpm demo:policy` | Prints a table of policy decisions for a sample request sequence. |
