@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { MockRail } from "./mock";
 import { railOptions } from "./real";
 import { RailUnavailableError, railFor } from "./select";
+import { StripeMppRail } from "./stripe-mpp/adapter";
 import { X402Rail } from "./x402/adapter";
 
 const realEnv = {
@@ -30,7 +31,14 @@ describe("railOptions", () => {
     expect(railFor("x402", { isSandbox: true }, railOptions(realEnv))).toBeInstanceOf(MockRail);
   });
 
-  it("Stripe has no real adapter until Phase 14, so a real Stripe request fails closed", () => {
-    expect(() => railFor("stripe", { isSandbox: false }, railOptions(realEnv))).toThrow(RailUnavailableError);
+  it("RAIL-15: real mode routes Stripe outside the sandbox to the Stripe MPP adapter, with the 50-cent minimum", () => {
+    const adapter = railFor("stripe", { isSandbox: false }, railOptions(realEnv));
+    expect(adapter).toBeInstanceOf(StripeMppRail);
+    expect(adapter.minimumUnits).toBe(50n);
+    expect(railFor("stripe", { isSandbox: true }, railOptions(realEnv))).toBeInstanceOf(MockRail);
+  });
+
+  it("an adapter that isn't configured still fails closed", () => {
+    expect(() => railFor("stripe", { isSandbox: false }, { config: railOptions(realEnv).config, real: {} })).toThrow(RailUnavailableError);
   });
 });

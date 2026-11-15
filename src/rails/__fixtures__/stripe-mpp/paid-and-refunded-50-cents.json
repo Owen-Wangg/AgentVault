@@ -1,0 +1,514 @@
+{
+  "recorded_at": "2026-11-15T20:27:34.200Z",
+  "profile_id": "profile_test_61VlXkOyFQ4uAw7pQA6VlXkOCQA8eMeLRjiiViFIOXKS",
+  "payment": {
+    "key": "probe-a6f26f97-fb81-4067-8de0-bb33deb32fd5",
+    "reserved_at": "2026-11-15T20:27:34.200Z",
+    "result": {
+      "ok": true,
+      "ref": "pi_3UcA1K3i6fxzvKeT1Ac861tL",
+      "explorerUrl": "https://dashboard.stripe.com/test/payments/pi_3UcA1K3i6fxzvKeT1Ac861tL",
+      "settledMicros": "500000",
+      "vendorBody": {
+        "vendor": "nimbus-weather",
+        "report": "severe-weather-outlook",
+        "location": {
+          "lat": "49.28",
+          "lon": "-123.12",
+          "name": "Vancouver"
+        },
+        "days": [
+          {
+            "day": 0,
+            "risk": "low",
+            "hazard": "none"
+          },
+          {
+            "day": 1,
+            "risk": "low",
+            "hazard": "none"
+          },
+          {
+            "day": 2,
+            "risk": "moderate",
+            "hazard": "wind"
+          },
+          {
+            "day": 3,
+            "risk": "low",
+            "hazard": "none"
+          },
+          {
+            "day": 4,
+            "risk": "low",
+            "hazard": "none"
+          },
+          {
+            "day": 5,
+            "risk": "low",
+            "hazard": "none"
+          },
+          {
+            "day": 6,
+            "risk": "low",
+            "hazard": "none"
+          }
+        ]
+      }
+    },
+    "lookup": {
+      "status": "settled",
+      "ref": "pi_3UcA1K3i6fxzvKeT1Ac861tL",
+      "explorerUrl": "https://dashboard.stripe.com/test/payments/pi_3UcA1K3i6fxzvKeT1Ac861tL",
+      "settledMicros": "500000"
+    },
+    "replay": {
+      "ok": false,
+      "code": "INVALID_RAIL_RESPONSE",
+      "detail": "the vendor answered 402 to the paid request"
+    }
+  },
+  "refund": {
+    "key": "probe-refund-f879c71b-240a-4f58-9156-48789c78cfe7",
+    "reserved_at": "2026-11-15T20:27:36.027Z",
+    "result": {
+      "ok": true,
+      "ref": "re_3UcA1K3i6fxzvKeT1Qx9dP0w",
+      "explorerUrl": "https://dashboard.stripe.com/test/refunds/re_3UcA1K3i6fxzvKeT1Qx9dP0w",
+      "settledMicros": "500000"
+    },
+    "lookup": {
+      "status": "settled",
+      "ref": "re_3UcA1K3i6fxzvKeT1Qx9dP0w",
+      "explorerUrl": "https://dashboard.stripe.com/test/refunds/re_3UcA1K3i6fxzvKeT1Qx9dP0w",
+      "settledMicros": "500000"
+    }
+  },
+  "http": [
+    {
+      "request": {
+        "url": "http://localhost:3000/vendor/api/report",
+        "credential": null
+      },
+      "response": {
+        "status": 402,
+        "content_type": "application/problem+json",
+        "www_authenticate": "Payment id=\"FaAtdfYpvtc0lfnj7NOlH17BjpShmyq_CkP36TyFoCg\", realm=\"localhost\", method=\"stripe\", intent=\"charge\", request=\"eyJhbW91bnQiOiI1MCIsImN1cnJlbmN5IjoidXNkIiwibWV0aG9kRGV0YWlscyI6eyJuZXR3b3JrSWQiOiJwcm9maWxlX3Rlc3RfNjFWbFhrT3lGUTR1QXc3cFFBNlZsWGtPQ1FBOGVNZUxSamlpVmlGSU9YS1MiLCJwYXltZW50TWV0aG9kVHlwZXMiOlsiY2FyZCIsImxpbmsiXX19\", description=\"Nimbus Weather: 7-day severe-weather outlook\", expires=\"2026-11-15T20:32:34.203Z\", opaque=\"eyJfbXBweF9ub25jZSI6IjB4ODg2YTIxZjZmNjM5YTNkNWZkNDM4YTU3MjM5YzM5YzExNmQzNzhlZGI5MDc0MDMzMzY0MjY3YTNlZDFjOGIzZiJ9\"",
+        "payment_receipt": null,
+        "body": "{\"type\":\"https://paymentauth.org/problems/payment-required\",\"title\":\"Payment Required\",\"status\":402,\"detail\":\"Payment is required (Nimbus Weather: 7-day severe-weather outlook).\",\"hint\":\"Use a supported wallet to pay for this resource using one of the supported payment methods returned in the WWW-Authenticate header. See https://mpp.dev/tools/wallet.md\",\"challengeId\":\"FaAtdfYpvtc0lfnj7NOlH17BjpShmyq_CkP36TyFoCg\"}"
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:3000/vendor/api/report",
+        "credential": "Payment eyJjaGFsbGVuZ2UiOnsiZGVzY3JpcHRpb24iOiJOaW1idXMgV2VhdGhlcjogNy1kYXkgc2V2ZXJlLXdlYXRoZXIgb3V0bG9vayIsImV4cGlyZXMiOiIyMDI2LTExLTE1VDIwOjMyOjM0LjIwM1oiLCJpZCI6IkZhQXRkZllwdnRjMGxmbmo3Tk9sSDE3QmpwU2hteXFfQ2tQMzZUeUZvQ2ciLCJpbnRlbnQiOiJjaGFyZ2UiLCJtZXRob2QiOiJzdHJpcGUiLCJyZWFsbSI6ImxvY2FsaG9zdCIsIm9wYXF1ZSI6ImV5SmZiWEJ3ZUY5dWIyNWpaU0k2SWpCNE9EZzJZVEl4WmpabU5qTTVZVE5rTldaa05ETTRZVFUzTWpNNVl6TTVZekV4Tm1Rek56aGxaR0k1TURjME1ETXpNelkwTWpZM1lUTmxaREZqT0dJelppSjkiLCJyZXF1ZXN0IjoiZXlKaGJXOTFiblFpT2lJMU1DSXNJbU4xY25KbGJtTjVJam9pZFhOa0lpd2liV1YwYUc5a1JHVjBZV2xzY3lJNmV5SnVaWFIzYjNKclNXUWlPaUp3Y205bWFXeGxYM1JsYzNSZk5qRldiRmhyVDNsR1VUUjFRWGMzY0ZGQk5sWnNXR3RQUTFGQk9HVk5aVXhTYW1scFZtbEdTVTlZUzFNaUxDSndZWGx0Wlc1MFRXVjBhRzlrVkhsd1pYTWlPbHNpWTJGeVpDSXNJbXhwYm1zaVhYMTkifSwicGF5bG9hZCI6eyJzcHQiOiJzcHRfMVVjQTFKM2k2Znh6dktlVGFrVTRIS0NlIiwiZXh0ZXJuYWxJZCI6InByb2JlLWE2ZjI2Zjk3LWZiODEtNDA2Ny04ZGUwLWJiMzNkZWIzMmZkNSJ9fQ"
+      },
+      "response": {
+        "status": 200,
+        "content_type": "application/json",
+        "www_authenticate": null,
+        "payment_receipt": "eyJtZXRob2QiOiJzdHJpcGUiLCJzdGF0dXMiOiJzdWNjZXNzIiwidGltZXN0YW1wIjoiMjAyNi0xMS0xNVQyMDoyNzozNS41NDJaIiwicmVmZXJlbmNlIjoicGlfM1VjQTFLM2k2Znh6dktlVDFBYzg2MXRMIn0",
+        "body": "{\"vendor\":\"nimbus-weather\",\"report\":\"severe-weather-outlook\",\"location\":{\"lat\":\"49.28\",\"lon\":\"-123.12\",\"name\":\"Vancouver\"},\"days\":[{\"day\":0,\"risk\":\"low\",\"hazard\":\"none\"},{\"day\":1,\"risk\":\"low\",\"hazard\":\"none\"},{\"day\":2,\"risk\":\"moderate\",\"hazard\":\"wind\"},{\"day\":3,\"risk\":\"low\",\"hazard\":\"none\"},{\"day\":4,\"risk\":\"low\",\"hazard\":\"none\"},{\"day\":5,\"risk\":\"low\",\"hazard\":\"none\"},{\"day\":6,\"risk\":\"low\",\"hazard\":\"none\"}]}"
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:3000/vendor/api/report",
+        "credential": null
+      },
+      "response": {
+        "status": 402,
+        "content_type": "application/problem+json",
+        "www_authenticate": "Payment id=\"on0Ww0AWWZDhLgT_EC9iJ7kJ--4MuoqjaCDLkqpnXwU\", realm=\"localhost\", method=\"stripe\", intent=\"charge\", request=\"eyJhbW91bnQiOiI1MCIsImN1cnJlbmN5IjoidXNkIiwibWV0aG9kRGV0YWlscyI6eyJuZXR3b3JrSWQiOiJwcm9maWxlX3Rlc3RfNjFWbFhrT3lGUTR1QXc3cFFBNlZsWGtPQ1FBOGVNZUxSamlpVmlGSU9YS1MiLCJwYXltZW50TWV0aG9kVHlwZXMiOlsiY2FyZCIsImxpbmsiXX19\", description=\"Nimbus Weather: 7-day severe-weather outlook\", expires=\"2026-11-15T20:32:35.785Z\", opaque=\"eyJfbXBweF9ub25jZSI6IjB4YTg5OTU2ZmYzZjNmMzQxOWRmNTNkNGI3ZjIxNmI2MGM4YTI5NjM4MGJjZmEwZDU0NWE0YjNkNDNkNzMzNGJjMyJ9\"",
+        "payment_receipt": null,
+        "body": "{\"type\":\"https://paymentauth.org/problems/payment-required\",\"title\":\"Payment Required\",\"status\":402,\"detail\":\"Payment is required (Nimbus Weather: 7-day severe-weather outlook).\",\"hint\":\"Use a supported wallet to pay for this resource using one of the supported payment methods returned in the WWW-Authenticate header. See https://mpp.dev/tools/wallet.md\",\"challengeId\":\"on0Ww0AWWZDhLgT_EC9iJ7kJ--4MuoqjaCDLkqpnXwU\"}"
+      }
+    },
+    {
+      "request": {
+        "url": "http://localhost:3000/vendor/api/report",
+        "credential": "Payment eyJjaGFsbGVuZ2UiOnsiZGVzY3JpcHRpb24iOiJOaW1idXMgV2VhdGhlcjogNy1kYXkgc2V2ZXJlLXdlYXRoZXIgb3V0bG9vayIsImV4cGlyZXMiOiIyMDI2LTExLTE1VDIwOjMyOjM1Ljc4NVoiLCJpZCI6Im9uMFd3MEFXV1pEaExnVF9FQzlpSjdrSi0tNE11b3FqYUNETGtxcG5Yd1UiLCJpbnRlbnQiOiJjaGFyZ2UiLCJtZXRob2QiOiJzdHJpcGUiLCJyZWFsbSI6ImxvY2FsaG9zdCIsIm9wYXF1ZSI6ImV5SmZiWEJ3ZUY5dWIyNWpaU0k2SWpCNFlUZzVPVFUyWm1ZelpqTm1NelF4T1dSbU5UTmtOR0kzWmpJeE5tSTJNR000WVRJNU5qTTRNR0pqWm1Fd1pEVTBOV0UwWWpOa05ETmtOek16TkdKak15SjkiLCJyZXF1ZXN0IjoiZXlKaGJXOTFiblFpT2lJMU1DSXNJbU4xY25KbGJtTjVJam9pZFhOa0lpd2liV1YwYUc5a1JHVjBZV2xzY3lJNmV5SnVaWFIzYjNKclNXUWlPaUp3Y205bWFXeGxYM1JsYzNSZk5qRldiRmhyVDNsR1VUUjFRWGMzY0ZGQk5sWnNXR3RQUTFGQk9HVk5aVXhTYW1scFZtbEdTVTlZUzFNaUxDSndZWGx0Wlc1MFRXVjBhRzlrVkhsd1pYTWlPbHNpWTJGeVpDSXNJbXhwYm1zaVhYMTkifSwicGF5bG9hZCI6eyJzcHQiOiJzcHRfMVVjQTFKM2k2Znh6dktlVGFrVTRIS0NlIiwiZXh0ZXJuYWxJZCI6InByb2JlLWE2ZjI2Zjk3LWZiODEtNDA2Ny04ZGUwLWJiMzNkZWIzMmZkNSJ9fQ"
+      },
+      "response": {
+        "status": 402,
+        "content_type": "application/problem+json",
+        "www_authenticate": "Payment id=\"EhaPhqGHxzf5SZQ4gK6kNlrmO26jnljOfm0UwQE3XrI\", realm=\"localhost\", method=\"stripe\", intent=\"charge\", request=\"eyJhbW91bnQiOiI1MCIsImN1cnJlbmN5IjoidXNkIiwibWV0aG9kRGV0YWlscyI6eyJuZXR3b3JrSWQiOiJwcm9maWxlX3Rlc3RfNjFWbFhrT3lGUTR1QXc3cFFBNlZsWGtPQ1FBOGVNZUxSamlpVmlGSU9YS1MiLCJwYXltZW50TWV0aG9kVHlwZXMiOlsiY2FyZCIsImxpbmsiXX19\", description=\"Nimbus Weather: 7-day severe-weather outlook\", expires=\"2026-11-15T20:32:35.895Z\", opaque=\"eyJfbXBweF9ub25jZSI6IjB4MTkzYjU2MDI3YWExMzA5NDI3OWY5MWE4NDdjNjg5YTEzZjIwNDk1ZDM4M2JjMGQxMDg4NTgyZDAwMTBiMzRmMyJ9\"",
+        "payment_receipt": null,
+        "body": "{\"type\":\"https://paymentauth.org/problems/verification-failed\",\"title\":\"Verification Failed\",\"status\":402,\"detail\":\"Payment verification failed: Stripe PaymentIntent failed: The shared payment granted token cannot be used because it is already in a deactivated state..\",\"challengeId\":\"EhaPhqGHxzf5SZQ4gK6kNlrmO26jnljOfm0UwQE3XrI\"}"
+      }
+    }
+  ],
+  "stripe": {
+    "pay": [
+      {
+        "request": {
+          "method": "POST",
+          "path": "/v1/test_helpers/shared_payment/granted_tokens",
+          "params": {
+            "payment_method": "pm_card_visa",
+            "usage_limits[currency]": "usd",
+            "usage_limits[max_amount]": "50",
+            "usage_limits[expires_at]": "1794775054"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "id": "spt_1UcA1J3i6fxzvKeTakU4HKCe",
+            "object": "shared_payment.granted_token",
+            "agent_details": {
+              "network_business_profile": "profile_test_61U92KWAstyE3VYhXA6U91t01FSQ3ByrZzKJOCR0y5ey"
+            },
+            "created": 1794774445,
+            "deactivated_at": null,
+            "deactivated_reason": null,
+            "livemode": false,
+            "payment_method_details": {
+              "billing_details": {
+                "address": {
+                  "city": null,
+                  "country": null,
+                  "line1": null,
+                  "line2": null,
+                  "postal_code": null,
+                  "state": null
+                },
+                "email": null,
+                "name": null,
+                "phone": null,
+                "tax_id": null
+              },
+              "card": {
+                "brand": "visa",
+                "country": "US",
+                "display_brand": "visa",
+                "exp_month": 11,
+                "exp_year": 2027,
+                "fingerprint": "o7KIX4LzHzFkY3VY",
+                "funding": "credit",
+                "last4": "4242",
+                "networks": {
+                  "available": [
+                    "visa"
+                  ],
+                  "preferred": null
+                },
+                "wallet": null
+              },
+              "type": "card"
+            },
+            "shared_metadata": {},
+            "usage_details": {
+              "amount_captured": {
+                "currency": "usd",
+                "value": 0
+              }
+            },
+            "usage_limits": {
+              "currency": "usd",
+              "expires_at": 1794775054,
+              "max_amount": 50,
+              "recurring": null,
+              "recurring_interval": null
+            }
+          }
+        }
+      }
+    ],
+    "lookup_payment": [
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/refunds",
+          "params": {
+            "created[gte]": "1794774334",
+            "created[lte]": "1794775174",
+            "limit": "100"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "object": "list",
+            "count": 0,
+            "data": [],
+            "has_more": false,
+            "url": "/v1/refunds"
+          }
+        }
+      },
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/payment_intents",
+          "params": {
+            "created[gte]": "1794774334",
+            "created[lte]": "1794775174",
+            "limit": "100"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "object": "list",
+            "data": [
+              {
+                "id": "pi_3UcA1K3i6fxzvKeT1Ac861tL",
+                "object": "payment_intent",
+                "agent_details": null,
+                "allowed_payment_method_types": null,
+                "amount": 50,
+                "amount_capturable": 0,
+                "amount_details": {
+                  "surcharge": {},
+                  "tip": {}
+                },
+                "amount_received": 50,
+                "application": null,
+                "application_fee_amount": null,
+                "automatic_payment_methods": {
+                  "allow_redirects": "never",
+                  "enabled": true
+                },
+                "canceled_at": null,
+                "cancellation_reason": null,
+                "capture_method": "automatic_async",
+                "confirmation_method": "automatic",
+                "created": 1794774446,
+                "currency": "usd",
+                "customer": null,
+                "customer_account": null,
+                "description": null,
+                "excluded_payment_method_types": null,
+                "last_payment_error": null,
+                "latest_charge": "ch_3UcA1K3i6fxzvKeT1xaTL1L1",
+                "livemode": false,
+                "managed_payments": {
+                  "enabled": false
+                },
+                "metadata": {
+                  "idempotency_key": "probe-a6f26f97-fb81-4067-8de0-bb33deb32fd5",
+                  "machine_payment": "true",
+                  "mpp_challenge_id": "FaAtdfYpvtc0lfnj7NOlH17BjpShmyq_CkP36TyFoCg",
+                  "mpp_intent": "charge",
+                  "mpp_sdk": "mppx/0.19.0"
+                },
+                "next_action": null,
+                "on_behalf_of": null,
+                "payment_method": "pm_1UcA1K3i6fxzvKeTV9frTMrj",
+                "payment_method_configuration_details": {
+                  "id": "pmc_1UbKwz3i6fxzvKeTM8YxRFf7",
+                  "parent": null
+                },
+                "payment_method_options": {
+                  "card": {
+                    "installments": null,
+                    "mandate_options": null,
+                    "network": null,
+                    "request_three_d_secure": "automatic"
+                  },
+                  "link": {
+                    "persistent_token": null
+                  }
+                },
+                "payment_method_types": [
+                  "card",
+                  "link"
+                ],
+                "payment_record": "pr_test_65VlXygo8CRzDfUK9GF413i6fxzvKeTFCC",
+                "processing": null,
+                "receipt_email": null,
+                "review": null,
+                "setup_future_usage": null,
+                "shared_payment_granted_token": "spt_1UcA1J3i6fxzvKeTakU4HKCe",
+                "shipping": null,
+                "source": null,
+                "statement_descriptor": null,
+                "statement_descriptor_suffix": null,
+                "status": "succeeded",
+                "transfer_data": null,
+                "transfer_group": null
+              }
+            ],
+            "has_more": false,
+            "url": "/v1/payment_intents"
+          }
+        }
+      }
+    ],
+    "replay": [
+      {
+        "request": {
+          "method": "POST",
+          "path": "/v1/test_helpers/shared_payment/granted_tokens",
+          "params": {
+            "payment_method": "pm_card_visa",
+            "usage_limits[currency]": "usd",
+            "usage_limits[max_amount]": "50",
+            "usage_limits[expires_at]": "1794775054"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "id": "spt_1UcA1J3i6fxzvKeTakU4HKCe",
+            "object": "shared_payment.granted_token",
+            "agent_details": {
+              "network_business_profile": "profile_test_61U92KWAstyE3VYhXA6U91t01FSQ3ByrZzKJOCR0y5ey"
+            },
+            "created": 1794774445,
+            "deactivated_at": null,
+            "deactivated_reason": null,
+            "livemode": false,
+            "payment_method_details": {
+              "billing_details": {
+                "address": {
+                  "city": null,
+                  "country": null,
+                  "line1": null,
+                  "line2": null,
+                  "postal_code": null,
+                  "state": null
+                },
+                "email": null,
+                "name": null,
+                "phone": null,
+                "tax_id": null
+              },
+              "card": {
+                "brand": "visa",
+                "country": "US",
+                "display_brand": "visa",
+                "exp_month": 11,
+                "exp_year": 2027,
+                "fingerprint": "o7KIX4LzHzFkY3VY",
+                "funding": "credit",
+                "last4": "4242",
+                "networks": {
+                  "available": [
+                    "visa"
+                  ],
+                  "preferred": null
+                },
+                "wallet": null
+              },
+              "type": "card"
+            },
+            "shared_metadata": {},
+            "usage_details": {
+              "amount_captured": {
+                "currency": "usd",
+                "value": 0
+              }
+            },
+            "usage_limits": {
+              "currency": "usd",
+              "expires_at": 1794775054,
+              "max_amount": 50,
+              "recurring": null,
+              "recurring_interval": null
+            }
+          }
+        }
+      }
+    ],
+    "refund": [
+      {
+        "request": {
+          "method": "POST",
+          "path": "/v1/refunds",
+          "params": {
+            "payment_intent": "pi_3UcA1K3i6fxzvKeT1Ac861tL",
+            "amount": "50",
+            "metadata[idempotency_key]": "probe-refund-f879c71b-240a-4f58-9156-48789c78cfe7"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "id": "re_3UcA1K3i6fxzvKeT1Qx9dP0w",
+            "object": "refund",
+            "amount": 50,
+            "application": null,
+            "balance_transaction": "txn_3UcA1K3i6fxzvKeT1W8174aT",
+            "charge": "ch_3UcA1K3i6fxzvKeT1xaTL1L1",
+            "created": 1794774447,
+            "currency": "usd",
+            "customer": null,
+            "customer_account": null,
+            "destination_details": {
+              "card": {
+                "reference_status": "pending",
+                "reference_type": "acquirer_reference_number",
+                "type": "refund"
+              },
+              "type": "card"
+            },
+            "metadata": {
+              "idempotency_key": "probe-refund-f879c71b-240a-4f58-9156-48789c78cfe7"
+            },
+            "payment_intent": "pi_3UcA1K3i6fxzvKeT1Ac861tL",
+            "payment_method": "pm_1UcA1K3i6fxzvKeTV9frTMrj",
+            "reason": null,
+            "receipt_number": null,
+            "source_transfer_reversal": null,
+            "status": "succeeded",
+            "transfer_reversal": null
+          }
+        }
+      },
+      {
+        "request": {
+          "method": "GET",
+          "path": "/v1/refunds",
+          "params": {
+            "created[gte]": "1794774336",
+            "created[lte]": "1794775176",
+            "limit": "100"
+          }
+        },
+        "response": {
+          "status": 200,
+          "json": {
+            "object": "list",
+            "count": 1,
+            "data": [
+              {
+                "id": "re_3UcA1K3i6fxzvKeT1Qx9dP0w",
+                "object": "refund",
+                "amount": 50,
+                "application": null,
+                "balance_transaction": "txn_3UcA1K3i6fxzvKeT1W8174aT",
+                "charge": "ch_3UcA1K3i6fxzvKeT1xaTL1L1",
+                "created": 1794774447,
+                "currency": "usd",
+                "customer": null,
+                "customer_account": null,
+                "destination_details": {
+                  "card": {
+                    "reference_status": "pending",
+                    "reference_type": "acquirer_reference_number",
+                    "type": "refund"
+                  },
+                  "type": "card"
+                },
+                "metadata": {
+                  "idempotency_key": "probe-refund-f879c71b-240a-4f58-9156-48789c78cfe7"
+                },
+                "payment_intent": "pi_3UcA1K3i6fxzvKeT1Ac861tL",
+                "payment_method": "pm_1UcA1K3i6fxzvKeTV9frTMrj",
+                "reason": null,
+                "receipt_number": null,
+                "source_transfer_reversal": null,
+                "status": "succeeded",
+                "transfer_reversal": null
+              }
+            ],
+            "has_more": false,
+            "url": "/v1/refunds"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -16,11 +16,21 @@ function testDatabaseUrl(): string | undefined {
 }
 
 /**
- * `pnpm test:live` also needs the x402 variables (docs/SETUP.md, section
- * 6). They're loaded only in live mode, so `pnpm test` never sees the
- * agent wallet key. Values set in the shell win.
+ * `pnpm test:live` also needs the x402 and Stripe variables
+ * (docs/SETUP.md, sections 6 and 7). They're loaded only in live mode, so
+ * `pnpm test` never sees the agent wallet key or the Stripe key. Values
+ * set in the shell win.
  */
-const LIVE_VARIABLES = ["CDP_API_KEY_ID", "CDP_API_KEY_SECRET", "X402_PAY_TO", "X402_NETWORK", "X402_MIN_UNITS", "AGENT_WALLET_PRIVATE_KEY"];
+const LIVE_VARIABLES = [
+  "CDP_API_KEY_ID",
+  "CDP_API_KEY_SECRET",
+  "X402_PAY_TO",
+  "X402_NETWORK",
+  "X402_MIN_UNITS",
+  "AGENT_WALLET_PRIVATE_KEY",
+  "STRIPE_SECRET_KEY",
+  "STRIPE_PROFILE_ID",
+];
 function liveEnv(): Record<string, string> {
   const file = fileURLToPath(new URL("./.env.local", import.meta.url));
   const fromFile = existsSync(file) ? parseEnv(readFileSync(file, "utf8")) : {};

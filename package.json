@@ -33,7 +33,8 @@
     "x402:probe": "tsx scripts/x402-probe.ts",
     "stripe:profile": "tsx scripts/stripe-profile.ts",
     "stripe:seed": "tsx scripts/stripe-seed.ts",
-    "mpp:validate": "tsx scripts/mpp-validate.ts"
+    "mpp:validate": "tsx scripts/mpp-validate.ts",
+    "stripe:probe": "tsx scripts/stripe-probe.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "1.11.3",
