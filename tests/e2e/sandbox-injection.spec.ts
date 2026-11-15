@@ -27,7 +27,8 @@ test("UI-21, AGT-8, AUD-6: a signed-out visitor runs the prompt injection, appro
 
   // UI-9, UI-21: the held refund, approvable while signed out, with the sandbox note.
   await expect(page).toHaveURL(/\/approvals$/);
-  await expect(page.getByText("Sandbox: mock rails only.")).toBeVisible();
+  // Two notes: the workspace header's, and the inbox's once it has loaded.
+  await expect(page.getByRole("note").filter({ hasText: "Sandbox: mock rails only." })).toHaveCount(2);
   const card = page.getByRole("region", { name: /stripe\.refund/ });
   await expect(card).toContainText("$480.00");
   await expect(card).toContainText(`Untrusted content read from ${DOCS}`);
