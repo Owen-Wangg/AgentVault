@@ -22,6 +22,7 @@ flowchart LR
 - Payloads carry amounts as micros strings. `data` is the stored event: `workspace_id`, `seq`, `type`, `created_at`, `payload`, `prev_hash`, `hash`.
 - **Why the cursor can't skip:** `appendEvent` holds the workspace's audit head lock until commit, so a workspace's events commit in `seq` order. A query that sees `seq = n` sees every lower `seq`, and an event committed during a poll is picked up by the next one.
 - **Workspace (TEL-5):** `?workspace_id=` names it. Any sandbox, current or retired, is public to read; other workspaces need their owner signed in (401 or 403). Without the parameter, the reader gets the same workspace as the approvals list: their own, or the current sandbox. Any `Authorization` header is 403 `AGENT_KEY_FORBIDDEN`, as on the other dashboard routes.
+- After the first poll that returns less than a full batch, the stream sends an id-less `event: ready` with the cursor, so the client can tell an empty workspace from one still loading (UI-15).
 - Each connection's second message is `event: workspace` with `{ workspace_id, sandbox, retired }` and no `id`, so it doesn't move the browser's last event ID. `useEventStream` reconnects with that `workspace_id`, so a `Last-Event-ID` is never applied to another workspace's chain after a sandbox reset, and reloads when `retired` is true.
 - Opening a sandbox stream counts toward a per-IP limit (30 per minute), because each stream holds a function for up to 55 s.
 - Code: the loop is `pumpEvents()` in `src/server/events/stream.ts`, with the event source and clock injected; the handler is `src/server/events/handler.ts`.
@@ -38,7 +39,9 @@ flowchart LR
 | `/scenarios` | Scenario runner (demo-agents spec) |
 | `/settings` | Theme toggle, workspace info, trusted origins |
 
-Navigation: left sidebar on desktop, bottom sheet on mobile. Components from shadcn/ui: `Card`, `Table`, `Dialog`, `Badge`, `Button`, `Form`, `Tabs`, `Sonner` toasts.
+Navigation: left sidebar on desktop, and a navigation bar fixed to the bottom of the screen below the `md` breakpoint (one tap to every page at 375 px). Components follow the shadcn/ui style (`Card`, `Badge`, `Button`) but are written in `src/ui/components/primitives.tsx`, so there's no Radix dependency. Dialogs use the native `<dialog>` element, which handles focus, Escape, and the inert background. Status messages use `role="status"` live regions instead of toasts.
+
+Built in Phase 10: `/`, `/feed`, `/agents`, `/agents/[id]`, `/approvals`. The rest arrive with their tasks. The approvals count badge in the sidebar isn't built; it would open a second event stream on every page.
 
 ## Reason explanations
 `src/ui/copy.ts` maps each reason code to a plain-language sentence per theme:
@@ -58,8 +61,11 @@ The `satisfies` check makes a missing string a compile error.
 - Decorative touches (subtle fog gradient, bat icon on frozen agents) are CSS only and disabled under `prefers-reduced-motion`.
 
 ## Auth and access
-- Auth.js v5 with the GitHub provider and the Drizzle adapter.
-- Middleware resolves the workspace: signed-in user → their workspace; anonymous → the current sandbox (newest `is_sandbox` workspace with `retired_at IS NULL`). Anonymous visitors can read, run scenarios, approve, deny, and unfreeze there (UI-21, HITL-11). The inbox shows a "Sandbox: mock rails only" note.
+- Auth.js v5 with the GitHub provider and the Drizzle adapter. Sessions are JWTs (`session.strategy: "jwt"`), so reading one makes no database query; the adapter writes users and accounts on the OAuth callback only, over Neon's HTTP driver. Sign-in is on only when `AUTH_SECRET`, `AUTH_GITHUB_ID`, and `AUTH_GITHUB_SECRET` are set and aren't the `.env.example` placeholders; otherwise `/api/auth/*` is 404 and everyone is anonymous.
+- The dashboard layout resolves the workspace (`loadDashboardContext()`, not middleware, so no database call runs in the proxy layer): signed-in user → their workspace, created on first visit under a per-user advisory lock (UI-2); anonymous → the current sandbox (newest `is_sandbox` workspace with `retired_at IS NULL`). Anonymous visitors can read, run scenarios, approve, deny, and unfreeze there (UI-21, HITL-11). The inbox shows a "Sandbox: mock rails only" note.
+- Creating agents (`POST /api/v1/agents`) and saving envelopes (`PUT /api/v1/agents/:id/envelope`) are owner-only, and the sandbox is read-only for both (403 `SANDBOX_READ_ONLY`): visitors shouldn't mint API keys in the shared sandbox or change the limits every visitor's demo runs under. Scenarios get their own fresh agents (demo-agents AGT-2).
+- Every human-only POST or PUT refuses a cross-site request (another `Origin` host, or `Sec-Fetch-Site: cross-site`) with 403 `CROSS_ORIGIN` before the database opens. The session cookie is also `SameSite=Lax`. Sign-in and sign-out are server actions, which Next.js origin-checks.
+- Envelope saves send the version the editor loaded; a save over a newer version is 409 `ENVELOPE_CHANGED`. Each save appends `envelope_updated` with the actor and the new envelope, after locking the envelope row (the pay flow's lock order). New agents get small limits ($5 per transaction, $20 per day, approval over $1, 30 calls per minute) and payment tools only.
 - Nightly reset: Vercel Cron calls `/api/cron/sandbox-reset` (UI-3, AUD-9). Open dashboards keep their SSE connection to the retired workspace, so the client checks the current sandbox ID on reconnect and reloads if it changed.
 - Rate limiting: a Postgres-backed fixed window per IP on sandbox mutations (no extra service needed).
 
