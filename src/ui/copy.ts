@@ -140,6 +140,27 @@ type UiKey =
   | "scenarios.openApprovals"
   | "scenarios.busy"
   | "scenarios.stopped"
+  | "nav.audit"
+  | "audit.title"
+  | "audit.intro"
+  | "audit.empty"
+  | "audit.seq"
+  | "audit.time"
+  | "audit.type"
+  | "audit.agent"
+  | "audit.hash"
+  | "audit.older"
+  | "audit.newest"
+  | "audit.verify"
+  | "audit.verifying"
+  | "audit.verified"
+  | "audit.eventsChecked"
+  | "audit.headSeq"
+  | "audit.broken"
+  | "audit.why.hash"
+  | "audit.why.link"
+  | "audit.why.gap"
+  | "audit.why.head"
   | "error.generic"
   | "error.rateLimited"
   | "error.unauthorized";
@@ -291,6 +312,27 @@ const defaultCopy: CopyTable = {
   "scenarios.openApprovals": "Approve or deny the held request in the inbox",
   "scenarios.busy": "Someone else is running this scenario right now. Try again in a few seconds.",
   "scenarios.stopped": "The run stopped before it finished. Try again in a moment.",
+  "nav.audit": "Audit",
+  "audit.title": "Audit log",
+  "audit.intro": "Every decision and action, in order. Each event's hash covers the event and the hash before it, and the server signs the newest one, so an edited, removed, or reordered event breaks the chain.",
+  "audit.empty": "No events yet.",
+  "audit.seq": "Seq",
+  "audit.time": "Time",
+  "audit.type": "Event",
+  "audit.agent": "Agent",
+  "audit.hash": "Hash",
+  "audit.older": "Older events",
+  "audit.newest": "Newest events",
+  "audit.verify": "Verify chain",
+  "audit.verifying": "Verifying…",
+  "audit.verified": "Chain verified.",
+  "audit.eventsChecked": "Events checked",
+  "audit.headSeq": "Signed head at seq",
+  "audit.broken": "Chain broken at seq",
+  "audit.why.hash": "That event's hash doesn't match its contents.",
+  "audit.why.link": "That event doesn't link to the one before it.",
+  "audit.why.gap": "That event is missing.",
+  "audit.why.head": "The signed chain head doesn't match the last event.",
   "error.generic": "That didn't work. Try again.",
   "error.rateLimited": "Too many actions from your address. Wait a minute and try again.",
   "error.unauthorized": "Sign in to do that.",
