@@ -44,6 +44,16 @@ export default defineConfig([
     },
   },
   {
+    // UI code reaches the server only through server components and route handlers in app/.
+    files: ["src/ui/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        { patterns: [{ group: ["@/server", "@/server/*", "**/server/**"], message: "src/ui must not import src/server. Load data in app/ and pass it in." }] },
+      ],
+    },
+  },
+  {
     files: ["src/rails/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [
