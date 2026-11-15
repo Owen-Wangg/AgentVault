@@ -7,7 +7,7 @@ import { X402Rail } from "./x402/adapter";
 const realEnv = {
   RAIL_MODE: "real",
   STRIPE_SECRET_KEY: "sk_test_51abcDEF",
-  STRIPE_PROFILE_ID: "profile_123",
+  STRIPE_PROFILE_ID: "profile_test_61abcDEF",
   CDP_API_KEY_ID: "id",
   CDP_API_KEY_SECRET: "secret",
   X402_PAY_TO: "0x" + "ab".repeat(20),

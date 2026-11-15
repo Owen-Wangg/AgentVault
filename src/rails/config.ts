@@ -63,7 +63,12 @@ const CHECKS: readonly Check[] = [
     always: (v) => (LIVE_KEY.test(v) ? "is a live key; only test mode (sk_test_) is allowed" : null),
     real: regexCheck(/^sk_test_\w+$/, "must be a test-mode key starting with sk_test_"),
   },
-  { name: "STRIPE_PROFILE_ID", requiredWhenReal: true, real: regexCheck(/^profile_\w+$/, "must start with profile_") },
+  {
+    name: "STRIPE_PROFILE_ID",
+    requiredWhenReal: true,
+    // Stripe's MPP guide: a sandbox's profile ID starts with profile_test_. A live profile can't take test payments.
+    real: regexCheck(/^profile_test_\w+$/, "must be a sandbox profile ID starting with profile_test_"),
+  },
   { name: "CDP_API_KEY_ID", requiredWhenReal: true },
   { name: "CDP_API_KEY_SECRET", requiredWhenReal: true },
   {
@@ -202,6 +207,40 @@ export function loadX402PayerConfig(env: Env = process.env): X402PayerConfig {
     minUnits: env.X402_MIN_UNITS ? MinUnits.parse(env.X402_MIN_UNITS) : DEFAULT_X402_MIN_UNITS,
     account: privateKeyToAccount(env.AGENT_WALLET_PRIVATE_KEY as `0x${string}`),
   };
+}
+
+/** The Stripe variables, in the order `pnpm env:check` lists them. */
+export const STRIPE_VARIABLES = ["STRIPE_SECRET_KEY", "STRIPE_PROFILE_ID"] as const;
+
+/**
+ * The Stripe variables checked with the real-mode rules, whatever
+ * RAIL_MODE says, like checkX402Env. The MPP vendor endpoint, the Stripe
+ * scripts, and the `@live` tests use Stripe test mode in mock mode too.
+ */
+export function checkStripeEnv(env: Env = process.env): VariableCheck[] {
+  const names: ReadonlySet<string> = new Set(STRIPE_VARIABLES);
+  return checkRailEnv({ ...env, RAIL_MODE: "real" })
+    .filter((c) => names.has(c.name))
+    .map((c) => (c.problem === "is required when RAIL_MODE=real" ? { ...c, problem: "is required for Stripe" } : c));
+}
+
+export interface StripeConfig {
+  /**
+   * The test-mode key (sk_test_). A function, so a logged or inspected
+   * config shows `[Function]` instead of the key. Pass its result only to
+   * StripeApi or the Stripe SDK.
+   */
+  secretKey: () => string;
+  /** The sandbox's Stripe profile, the MPP `networkId` (profile_test_…). */
+  profileId: string;
+}
+
+/** Configuration for Stripe test mode. Throws RailConfigError, naming variables only. */
+export function loadStripeConfig(env: Env = process.env): StripeConfig {
+  const failures = checkStripeEnv(env).filter((c) => c.status === "fail");
+  if (failures.length > 0) throw new RailConfigError(failures);
+  const key = env.STRIPE_SECRET_KEY ?? "";
+  return { secretKey: () => key, profileId: env.STRIPE_PROFILE_ID ?? "" };
 }
 
 const MinUnits = z.string().regex(/^[1-9]\d{0,17}$/).transform(BigInt);

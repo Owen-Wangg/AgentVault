@@ -2,7 +2,7 @@
 // unset for each variable. Values are never printed (RAIL-9), so it is
 // safe to run where output is shared, such as the /validate-mpp steering
 // command. Exits 1 if anything fails.
-import { checkRailEnv, checkX402Env } from "@/rails/config";
+import { checkRailEnv, checkStripeEnv, checkX402Env } from "@/rails/config";
 import { env, isPlaceholder, resetEnvCache } from "@/server/env";
 import { loadLocalEnv } from "./lib/load-env";
 
@@ -70,6 +70,11 @@ function main() {
   console.log("x402 on Base Sepolia (checked as if RAIL_MODE=real):");
   print(x402.lines);
   console.log(x402.ready ? "x402 ready." : "x402 not ready. See docs/SETUP.md, section 6.");
+  const stripe = checkStripeEnv();
+  console.log("");
+  console.log("Stripe test mode (checked as if RAIL_MODE=real):");
+  print(stripe);
+  console.log(stripe.every((l) => l.status === "pass") ? "Stripe ready." : "Stripe not ready. See docs/SETUP.md, section 7.");
   if (failed > 0) process.exitCode = 1;
 }
 

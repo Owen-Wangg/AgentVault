@@ -2,12 +2,21 @@ import { describe, expect, it } from "vitest";
 import { inspect } from "node:util";
 import { getAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { RailConfigError, checkRailEnv, checkX402Env, loadRailConfig, loadX402PayerConfig, loadX402VendorConfig } from "./config";
+import {
+  RailConfigError,
+  checkRailEnv,
+  checkStripeEnv,
+  checkX402Env,
+  loadRailConfig,
+  loadStripeConfig,
+  loadX402PayerConfig,
+  loadX402VendorConfig,
+} from "./config";
 
 const realEnv = {
   RAIL_MODE: "real",
   STRIPE_SECRET_KEY: "sk_test_51abcDEF",
-  STRIPE_PROFILE_ID: "profile_123",
+  STRIPE_PROFILE_ID: "profile_test_61abcDEF",
   CDP_API_KEY_ID: "id",
   CDP_API_KEY_SECRET: "secret",
   X402_PAY_TO: "0x" + "ab".repeat(20),
@@ -96,6 +105,35 @@ describe("RAIL-7: Stripe test mode only", () => {
 
   it("RAIL-7: real mode needs a key starting with sk_test_", () => {
     expect(() => loadRailConfig({ ...realEnv, STRIPE_SECRET_KEY: "pk_test_abc" })).toThrow("sk_test_");
+  });
+
+  it("RAIL-7: real mode needs a sandbox profile ID (profile_test_)", () => {
+    expect(() => loadRailConfig({ ...realEnv, STRIPE_PROFILE_ID: "profile_61abc" })).toThrow("profile_test_");
+  });
+});
+
+describe("Stripe variables, checked on their own", () => {
+  const stripeEnv = { RAIL_MODE: "mock", STRIPE_SECRET_KEY: "sk_test_51abcDEF", STRIPE_PROFILE_ID: "profile_test_61abcDEF" };
+  const status = (env: Record<string, string>) => Object.fromEntries(checkStripeEnv(env).map((c) => [c.name, c.status]));
+
+  it("RAIL-7: checks the Stripe variables with the real-mode rules while RAIL_MODE is mock", () => {
+    expect(status(stripeEnv)).toEqual({ STRIPE_SECRET_KEY: "pass", STRIPE_PROFILE_ID: "pass" });
+    expect(status(exampleEnv)).toEqual({ STRIPE_SECRET_KEY: "fail", STRIPE_PROFILE_ID: "fail" });
+    expect(checkStripeEnv({}).find((c) => c.name === "STRIPE_SECRET_KEY")?.problem).toBe("is required for Stripe");
+    expect(status({ ...stripeEnv, STRIPE_SECRET_KEY: "sk_live_51abc" }).STRIPE_SECRET_KEY).toBe("fail");
+  });
+
+  it("RAIL-7: a loaded Stripe config never shows the key when logged", () => {
+    const config = loadStripeConfig({ STRIPE_SECRET_KEY: "sk_test_supersecret", STRIPE_PROFILE_ID: stripeEnv.STRIPE_PROFILE_ID });
+    expect(config.secretKey()).toBe("sk_test_supersecret");
+    expect(config.profileId).toBe(stripeEnv.STRIPE_PROFILE_ID);
+    expect(inspect(config, { depth: 10, showHidden: true })).not.toContain("supersecret");
+    expect(() => loadStripeConfig({ STRIPE_SECRET_KEY: "sk_live_supersecret" })).toThrow(RailConfigError);
+    try {
+      loadStripeConfig({ STRIPE_SECRET_KEY: "sk_live_supersecret" });
+    } catch (error) {
+      expect(String(error)).not.toContain("supersecret");
+    }
   });
 });
 
