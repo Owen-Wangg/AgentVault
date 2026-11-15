@@ -15,10 +15,28 @@ function testDatabaseUrl(): string | undefined {
   return parseEnv(readFileSync(file, "utf8")).DATABASE_URL_TEST || undefined;
 }
 
+/**
+ * `pnpm test:live` also needs the x402 variables (docs/SETUP.md, section
+ * 6). They're loaded only in live mode, so `pnpm test` never sees the
+ * agent wallet key. Values set in the shell win.
+ */
+const LIVE_VARIABLES = ["CDP_API_KEY_ID", "CDP_API_KEY_SECRET", "X402_PAY_TO", "X402_NETWORK", "X402_MIN_UNITS", "AGENT_WALLET_PRIVATE_KEY"];
+function liveEnv(): Record<string, string> {
+  const file = fileURLToPath(new URL("./.env.local", import.meta.url));
+  const fromFile = existsSync(file) ? parseEnv(readFileSync(file, "utf8")) : {};
+  const out: Record<string, string> = {};
+  for (const name of LIVE_VARIABLES) {
+    const value = process.env[name] || fromFile[name];
+    if (value) out[name] = value;
+  }
+  return out;
+}
+
 // Tests whose name contains "@live" hit real testnets or Stripe test mode
 // (testing-standards.md). `pnpm test` skips them; `pnpm test:live` runs only them.
 export default defineConfig(({ mode }) => {
   const databaseUrlTest = testDatabaseUrl();
+  const live = mode === "live" ? liveEnv() : {};
   return {
     resolve: {
       alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
@@ -30,7 +48,7 @@ export default defineConfig(({ mode }) => {
       // resolver refuses. Inlining it lets Vite resolve the import, as Next.js's bundler does.
       server: { deps: { inline: ["@x402/next"] } },
       testNamePattern: mode === "live" ? /@live/ : /^(?!.*@live)/,
-      env: databaseUrlTest ? { DATABASE_URL_TEST: databaseUrlTest } : {},
+      env: { ...live, ...(databaseUrlTest ? { DATABASE_URL_TEST: databaseUrlTest } : {}) },
     },
   };
 });
