@@ -7,26 +7,26 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
   - Property 1
   - _Requirements: TEL-1, TEL-2, TEL-3, TEL-4, TEL-5_
 
-- [ ] 2. Set up the app shell, theme variables, and `copy.ts`
+- [x] 2. Set up the app shell, theme variables, and `copy.ts`
   - Sidebar layout, `<DataState>`, default theme tokens, `copy.ts` with the `satisfies` check
   - _Requirements: UI-12, UI-13, UI-14, UI-15_
 
-- [ ] 3. Add Auth.js with GitHub, workspace resolution, and the sandbox
+- [x] 3. Add Auth.js with GitHub, workspace resolution, and the sandbox
   - Step-by-step GitHub OAuth app setup in `docs/SETUP.md`
   - Replace the `getSessionUser()` stub from audit-and-approvals task 7 with the Auth.js session
   - Sandbox badge, rate limiting on sandbox mutations, anonymous approve/deny/unfreeze in the sandbox with a "mock rails only" note
   - _Requirements: UI-1, UI-2, UI-4, UI-21_
 
-- [ ] 4. Build the overview and live feed
+- [x] 4. Build the overview and live feed
   - `useEventStream` hook, KPI cards, Recharts charts, feed table with filters
   - _Requirements: UI-5, UI-6, UI-11_
 
-- [ ] 5. Build the agents pages and envelope editor
+- [x] 5. Build the agents pages and envelope editor
   - Create agent (key shown once), unfreeze, envelope form with Zod validation and dollar-to-micros conversion via `fromDecimalString`
   - Component tests for the form and amount display
   - _Requirements: UI-7, UI-8, UI-11_
 
-- [ ] 6. Build the approvals inbox
+- [x] 6. Build the approvals inbox
   - Reason explanations, taint source, countdown, approve and deny
   - _Requirements: UI-9_
 
