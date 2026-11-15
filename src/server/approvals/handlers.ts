@@ -83,11 +83,31 @@ async function underRateLimit(db: Db, request: Request, action: string, deps: Hu
 }
 
 /**
- * Reject bearer auth before touching the database, then run `handle` with
+ * A state-changing request sent from another site (CSRF). The session
+ * cookie is SameSite=Lax, which already keeps it off most cross-site
+ * POSTs; this also refuses them when a browser says so. Browsers send
+ * Origin on every cross-origin POST. Requests without it (scripts, curl)
+ * carry no victim's cookie, so they are judged by the other checks.
+ */
+export function isCrossSite(request: Request): boolean {
+  if (request.method === "GET" || request.method === "HEAD") return false;
+  if (request.headers.get("sec-fetch-site") === "cross-site") return true;
+  const origin = request.headers.get("origin");
+  if (origin === null) return false;
+  try {
+    return new URL(origin).host !== new URL(request.url).host;
+  } catch {
+    return true; // "null" or garbage
+  }
+}
+
+/**
+ * Reject bearer auth and cross-site requests before touching the database, then run `handle` with
  * a fail-closed 503 for any error. Only the error message is logged.
  */
-async function withHuman(request: Request, deps: HumanRouteDeps, label: string, handle: (db: Db) => Promise<Response>): Promise<Response> {
+export async function withHuman(request: Request, deps: Pick<HumanRouteDeps, "openDb">, label: string, handle: (db: Db) => Promise<Response>): Promise<Response> {
   if (request.headers.has("authorization")) return json(403, { error: "AGENT_KEY_FORBIDDEN" });
+  if (isCrossSite(request)) return json(403, { error: "CROSS_ORIGIN" });
   let database: Database | undefined;
   try {
     database = deps.openDb();
