@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_TIMING, EVENTS_MAX_DURATION_S, HEARTBEAT, formatEvent, formatInfo, parseLastEventId } from "./stream";
+import { DEFAULT_TIMING, EVENTS_MAX_DURATION_S, HEARTBEAT, formatEvent, formatInfo, parseLastEventId, pumpEvents } from "./stream";
 import { maxDuration } from "../../../app/api/v1/events/route";
 
 describe("event stream helpers", () => {
@@ -32,6 +32,23 @@ describe("event stream helpers", () => {
     expect(lines[2]).toMatch(/^data: /);
     expect(lines.slice(3)).toEqual(["", ""]);
     expect(JSON.parse(lines[2]!.slice("data: ".length))).toMatchObject({ seq: 7, payload: { amount_micros: "1500" } });
+  });
+
+  it("UI-15: sends one id-less ready message once the backlog is sent, after every full batch", async () => {
+    const all = Array.from({ length: 5 }, (_, i) => ({ workspace_id: "w", seq: i + 1, type: "decision", created_at: "", payload: {}, prev_hash: "", hash: "" }));
+    let t = 0;
+    const chunks: string[] = [];
+    await pumpEvents({
+      read: async (after, limit) => all.filter((e) => e.seq > after).slice(0, limit),
+      after: 0,
+      write: (c) => chunks.push(c),
+      clock: { now: () => t, sleep: async (ms) => void (t += ms) },
+      signal: new AbortController().signal,
+      timing: { ...DEFAULT_TIMING, batchSize: 2, durationMs: 5_000 },
+    });
+    const kinds = chunks.map((c) => /^event: (\w+)/m.exec(c)?.[1] ?? c.trim());
+    expect(kinds).toEqual(["audit", "audit", "audit", "audit", "audit", "ready"]);
+    expect(chunks.at(-1)).toBe('event: ready\ndata: {"seq":5}\n\n');
   });
 
   it("TEL-2: the workspace message has no id, so it never moves the browser's last event ID", () => {

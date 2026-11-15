@@ -113,6 +113,7 @@ export async function pumpEvents(input: {
   const deadline = start + timing.durationMs;
   let cursor = input.after;
   let lastWrite = start;
+  let caughtUp = false;
 
   while (!signal.aborted) {
     const batch = await read(cursor, timing.batchSize);
@@ -123,11 +124,17 @@ export async function pumpEvents(input: {
     }
     const now = clock.now();
     if (batch.length > 0) lastWrite = now;
+    const full = batch.length >= timing.batchSize;
+    if (!full && !caughtUp) {
+      // The backlog is sent, so the client can tell "nothing yet" from "still loading".
+      caughtUp = true;
+      write(formatInfo("ready", { seq: cursor }));
+      lastWrite = now;
+    }
     if (now - lastWrite >= timing.heartbeatMs) {
       write(HEARTBEAT);
       lastWrite = now;
     }
-    const full = batch.length >= timing.batchSize;
     const nextPollAt = full ? now : now + timing.pollMs;
     if (nextPollAt >= deadline) return "deadline";
     if (!full) await clock.sleep(timing.pollMs, signal);
