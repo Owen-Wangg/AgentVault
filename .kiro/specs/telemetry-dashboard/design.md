@@ -41,7 +41,7 @@ flowchart LR
 
 Navigation: left sidebar on desktop, and a navigation bar fixed to the bottom of the screen below the `md` breakpoint (one tap to every page at 375 px). Components follow the shadcn/ui style (`Card`, `Badge`, `Button`) but are written in `src/ui/components/primitives.tsx`, so there's no Radix dependency. Dialogs use the native `<dialog>` element, which handles focus, Escape, and the inert background. Status messages use `role="status"` live regions instead of toasts.
 
-Built in Phase 10: `/`, `/feed`, `/agents`, `/agents/[id]`, `/approvals`. The rest arrive with their tasks. The approvals count badge in the sidebar isn't built; it would open a second event stream on every page.
+Built in Phase 10: `/`, `/feed`, `/agents`, `/agents/[id]`, `/approvals`. Phase 11 added `/scenarios`, which always streams the current sandbox. The rest arrive with their tasks. The approvals count badge in the sidebar isn't built; it would open a second event stream on every page.
 
 ## Reason explanations
 `src/ui/copy.ts` maps each reason code to a plain-language sentence per theme:
