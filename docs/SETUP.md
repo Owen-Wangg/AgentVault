@@ -1,6 +1,6 @@
 # Setup
 
-Commands are for Windows PowerShell. Phase 14 adds a section for Stripe.
+Commands are for Windows PowerShell.
 
 ## 1. Install the tools
 1. **Node.js 22 or newer.** Check with `node --version`. Install the LTS version from <https://nodejs.org> if it's missing or older.
@@ -184,7 +184,7 @@ You'll set up these variables in `.env.local`:
 | `X402_NETWORK` | Already `eip155:84532` (Base Sepolia). Leave it. | Both |
 | `X402_MIN_UNITS` | The smallest payment the facilitator accepts, in USDC units (1 unit = $0.000001). Set it to `1000` ($0.001), or delete the line: 1000 is also the default. Phase 13 measured it: the CDP facilitator refuses 999 units with `amount_too_low` and settles 1000. A lower value lets the adapter send payments the facilitator will refuse. | Payer |
 
-Leave `RAIL_MODE=mock`. Real mode also needs the Stripe variables, which come in Phase 14. The vendor endpoint and the x402 `@live` tests use these variables in either mode.
+Leave `RAIL_MODE=mock`. Real mode also needs the Stripe variables (section 7). The vendor endpoint and the x402 `@live` tests use these variables in either mode.
 
 ### What a wallet and a private key are
 
@@ -299,7 +299,93 @@ Don't add `AGENT_WALLET_PRIVATE_KEY` to Vercel. The deployed app runs mock rails
 - **Agent private key:** run `pnpm wallet:new` for a new agent wallet, put its key in `.env.local`, and claim faucet USDC for it. The old wallet's test USDC is lost, which costs nothing real.
 - **CDP API key:** in the CDP portal, delete the key under **API Keys**, create a new one, and update `.env.local` and Vercel.
 
-## 7. Run it
+## 7. Stripe test payments (MPP)
+
+The **Machine Payments Protocol (MPP)** is Stripe's way for an agent to pay for one HTTP request with a card. The server answers the first request with `402 Payment Required` and a `WWW-Authenticate: Payment` challenge that names a price. The agent answers with a **Shared Payment Token (SPT)**: a one-time permission to charge a card up to a set amount before a set time. The server turns the SPT into a Stripe payment (a PaymentIntent) and returns the data with a receipt. AgentVault plays both sides, in one Stripe account:
+
+- The demo vendor endpoint `/vendor/api/report` charges $0.50 per call, Stripe's minimum for SPT card payments.
+- The Stripe adapter pays it on the agent's behalf, after the policy allows the payment. In test mode it gets each SPT from Stripe's test helper, backed by Stripe's test Visa card.
+- `stripe.refund` refunds through Stripe's Refunds API.
+
+Everything runs in a Stripe **sandbox**, Stripe's test environment. Its payments use test cards and move no real money. The app refuses a live key (`sk_live_` or `rk_live_`) in every mode, even while it uses mock rails.
+
+You'll set up two variables in `.env.local`:
+
+| Variable | What it is |
+|---|---|
+| `STRIPE_SECRET_KEY` | Your sandbox's secret API key. It starts with `sk_test_`. The vendor endpoint uses it to charge SPTs, and the adapter uses it to get SPTs and make refunds. |
+| `STRIPE_PROFILE_ID` | Your sandbox's Stripe profile ID. It starts with `profile_test_`. MPP challenges name it as the account that gets paid, and SPTs are granted to it. |
+
+### Step 1: Create a Stripe account and open its sandbox
+
+1. Sign up at <https://dashboard.stripe.com/register>, or sign in. It's free. You don't need to activate payments or add bank details, because a sandbox needs neither.
+   - SPTs are available to businesses in the US, Canada, the UK, and most of Europe. Pick one of those countries for the account. Stripe lists them under "View all supported countries" at <https://docs.stripe.com/agentic-commerce/concepts/shared-payment-tokens>.
+2. Switch to a sandbox. Click the account name at the top left and choose a sandbox (new accounts come with one; **Create sandbox** makes another). The Dashboard then shows a sandbox banner at the top. Older accounts may show a **Test mode** switch instead; turn it on. Do every step below in the sandbox.
+
+### Step 2: Copy the secret key
+
+1. In the sandbox, open **Developers → API keys**. You can also type "API keys" in the Dashboard's search bar.
+2. Under **Standard keys**, find **Secret key** and click **Reveal test key**. It starts with `sk_test_`.
+3. In `.env.local`, replace the placeholder:
+
+   ```
+   STRIPE_SECRET_KEY=<the sk_test_ key>
+   ```
+
+   Keep it on one line, with no quotes.
+
+Use the secret key, not the **Publishable key** (`pk_test_`), which AgentVault doesn't use, and not a restricted key (`rk_test_`), which `pnpm env:check` doesn't accept.
+
+The secret key can do anything in the sandbox, but nothing with real money. Treat it like a password anyway: never paste it into a chat, an issue, a screenshot, or a commit. AgentVault reads it only from `STRIPE_SECRET_KEY`, never logs it, and never sends it to the browser.
+
+### Step 3: Create the Stripe profile and copy its ID
+
+A **Stripe profile** is your business's public identity on Stripe's network. MPP uses its ID to say who gets paid.
+
+1. Still in the sandbox, open **Stripe profile** (<https://dashboard.stripe.com/profiles>) and click **Get started**.
+2. Fill in:
+   - **Display name:** for example `AgentVault Demo Vendor`.
+   - **Handle:** for example `@agentvault-demo-yourname`. Handles are unique across Stripe, so add something of your own.
+   - Leave the optional fields empty.
+3. Click **Create profile**.
+4. Print the profile's ID. This uses the key from step 2 and only reads from Stripe:
+
+   ```powershell
+   pnpm stripe:profile
+   ```
+
+   It prints the handle and an ID like `profile_test_61Ab…`. The ID is a public identifier, not a secret. If it says the sandbox has no profile, check that the Dashboard was in the sandbox when you created it. If the ID doesn't start with `profile_test_`, the key belongs to a live account; go back to step 1.
+5. In `.env.local`, replace the placeholder:
+
+   ```
+   STRIPE_PROFILE_ID=<the profile_test_ ID>
+   ```
+
+### Step 4: Check the variables
+
+```powershell
+pnpm env:check
+```
+
+The last section, **Stripe test mode (checked as if RAIL_MODE=real)**, should show `PASS` for both variables, followed by `Stripe ready.` Leave `RAIL_MODE=mock`. It doesn't need these variables, and the public sandbox always uses mock rails.
+
+### Step 5: Seed the $500 billing payment
+
+In the prompt-injection scenario, a poisoned docs page tells the agent to refund $480 of a customer's $500 payment. Create that $500 payment in the sandbox, so a real-mode run has a real payment to refund:
+
+```powershell
+pnpm stripe:seed
+```
+
+It charges $500 to Stripe's test Visa card (`pm_card_visa`, the card number `4242 4242 4242 4242`) and prints the payment's ID (`pi_…`), how much of it has been refunded, and a Dashboard link. Running it again finds the same payment instead of creating another. You can also see it in the Dashboard under **Payments**.
+
+The public sandbox's scenario never touches this payment: it runs on mock rails, where the refund targets a mock reference.
+
+### If the key leaks
+
+In the Dashboard, open **Developers → API keys**, click the **⋯** menu next to the secret key, and choose **Roll key**. Put the new key in `.env.local` (and in Vercel, if you added it there). A sandbox key can't move real money, but someone with it could fill your sandbox with test data.
+
+## 8. Run it
 | Command | What it does |
 |---|---|
 | `pnpm dev` | Starts the app at <http://localhost:3000>. It keeps running; stop it with Ctrl+C. |
@@ -316,7 +402,9 @@ Don't add `AGENT_WALLET_PRIVATE_KEY` to Vercel. The deployed app runs mock rails
 | `pnpm db:migrate` | Applies new migrations to `DATABASE_URL`. |
 | `pnpm db:seed` | Creates the first sandbox workspace if there is none. |
 | `pnpm sandbox:reset` | Replaces the sandbox with a fresh seeded one. Nothing is deleted. |
-| `pnpm env:check` | Checks every environment variable and prints pass, fail, unset, or skipped, then checks the x402 variables on their own. Never prints values. |
+| `pnpm env:check` | Checks every environment variable and prints pass, fail, unset, or skipped, then checks the x402 and Stripe variables on their own. Never prints values. |
+| `pnpm stripe:profile` | Prints the Stripe profile ID of the sandbox your key belongs to (section 7). Only reads. |
+| `pnpm stripe:seed` | Creates the $500 test payment the refund scenario targets, or finds the existing one (section 7). |
 | `pnpm wallet:new` | Prints a new Base Sepolia test wallet's address and private key (section 6). The only command that prints a key. |
 | `pnpm x402:status` | Prints the agent and vendor wallet addresses and their test USDC and ETH balances. Never prints the key. |
 | `pnpm x402:probe [units...]` | Pays the weather endpoint on Base Sepolia at each price, in USDC units, and looks each payment up. `--record <dir>` saves the exchanges as test fixtures; `--lookup <file>` only looks up a recorded payment again. Spends test USDC. |
@@ -324,7 +412,7 @@ Don't add `AGENT_WALLET_PRIVATE_KEY` to Vercel. The deployed app runs mock rails
 | `pnpm reconcile` | Asks the rails what happened to payments with an unknown outcome, deletes idempotency records older than 24 hours, and lists payments still unknown after 24 hours. It only looks payments up and never pays. On the mock rail it can't resolve anything a different process paid, so those stay listed. |
 | `pnpm demo:policy` | Prints a table of policy decisions for a sample request sequence. |
 
-## 8. Kiro hooks
+## 9. Kiro hooks
 The hooks in `.kiro/hooks/` run automatically in Kiro:
 | Hook | When it runs | What it does |
 |---|---|---|
