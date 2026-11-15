@@ -381,6 +381,39 @@ It charges $500 to Stripe's test Visa card (`pm_card_visa`, the card number `424
 
 The public sandbox's scenario never touches this payment: it runs on mock rails, where the refund targets a mock reference.
 
+### Step 6: Make a test payment and a refund
+
+```powershell
+pnpm stripe:probe
+pnpm test:live
+```
+
+- `pnpm stripe:probe` runs the report endpoint inside the command, with the real Stripe test-mode API. It pays it $0.50 through the Stripe adapter, looks the payment up the way the reconciler does, tries the same idempotency key again (Stripe refuses the used SPT, so nothing is charged twice), then refunds the 50 cents and looks the refund up. `--record <dir>` saves the exchanges as test fixtures. `--refund-seed 480` instead refunds $480 of the seeded billing payment, as an approved `stripe.refund` would. A payment can't be refunded past its amount, so run that only once, for the demo.
+- `pnpm test:live` runs the `@live` tests for both rails. For Stripe: the endpoint's 402 challenge, a refused overcharge, and a guarded $0.50 `mpp.pay` and its refund, recorded in a test database's audit log and found again by `lookup()`. Stripe's part uses test cards and costs nothing. `pnpm test` never runs them and never reads the Stripe key.
+
+You'll see each payment and refund in the Dashboard under **Payments**.
+
+### Step 7: Run the MPP validator
+
+With the app running (`pnpm dev` in its own terminal):
+
+```powershell
+pnpm mpp:validate
+```
+
+It runs `npx mppx@latest validate http://localhost:3000`, Stripe's MPP checker. It finds `/vendor/api/report` through `/openapi.json`, checks the challenge and the error handling, and makes a $0.50 test payment. The command gives the validator your `sk_test_` key through its environment, without printing it; without the key, the validator skips the payment. A missing `/llms.txt` shows as a suggestion, not a failure.
+
+With `pnpm dev` running, <http://localhost:3000/vendor/api/report> answers `402 Payment Required`, with the challenge in the `WWW-Authenticate` header. Without the Stripe variables it answers `503`.
+
+### Vercel
+
+So the deployed `/vendor/api/report` can charge, add these under **Project → Settings → Environment Variables** (Production), then redeploy:
+
+- `STRIPE_SECRET_KEY` (the sandbox's `sk_test_` key; mark it **Sensitive**)
+- `STRIPE_PROFILE_ID`
+
+The deployed app keeps `RAIL_MODE=mock`, so its agents still pay on mock rails. Only the demo vendor endpoint uses the key.
+
 ### If the key leaks
 
 In the Dashboard, open **Developers → API keys**, click the **⋯** menu next to the secret key, and choose **Roll key**. Put the new key in `.env.local` (and in Vercel, if you added it there). A sandbox key can't move real money, but someone with it could fill your sandbox with test data.
@@ -405,6 +438,8 @@ In the Dashboard, open **Developers → API keys**, click the **⋯** menu next 
 | `pnpm env:check` | Checks every environment variable and prints pass, fail, unset, or skipped, then checks the x402 and Stripe variables on their own. Never prints values. |
 | `pnpm stripe:profile` | Prints the Stripe profile ID of the sandbox your key belongs to (section 7). Only reads. |
 | `pnpm stripe:seed` | Creates the $500 test payment the refund scenario targets, or finds the existing one (section 7). |
+| `pnpm stripe:probe` | Pays the MPP report endpoint $0.50 in Stripe test mode, refunds it, and looks both up. `--record <dir>` saves the exchanges as test fixtures; `--refund-seed <dollars>` refunds part of the seeded billing payment instead. |
+| `pnpm mpp:validate [origin]` | Runs Stripe's MPP validator (`npx mppx@latest validate`) against the app, default `http://localhost:3000`, including a test payment. Needs the app running. |
 | `pnpm wallet:new` | Prints a new Base Sepolia test wallet's address and private key (section 6). The only command that prints a key. |
 | `pnpm x402:status` | Prints the agent and vendor wallet addresses and their test USDC and ETH balances. Never prints the key. |
 | `pnpm x402:probe [units...]` | Pays the weather endpoint on Base Sepolia at each price, in USDC units, and looks each payment up. `--record <dir>` saves the exchanges as test fixtures; `--lookup <file>` only looks up a recorded payment again. Spends test USDC. |
