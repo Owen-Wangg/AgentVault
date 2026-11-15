@@ -33,19 +33,21 @@ Plan (`docs/PLAN.md`): **Phase 6** = tasks 1–2. **Phase 13** = tasks 3–5. **
   - Property 3
   - _Requirements: RAIL-11, RAIL-12, RAIL-13, RAIL-21, RAIL-22_
 
-- [ ] 6. Set up Stripe test mode (step-by-step in `docs/SETUP.md`)
-  - Find the `sk_test_` key, create the Stripe profile, get the `profile_` ID
-  - Seed a $500 test PaymentIntent for the refund scenario
+- [x] 6. Set up Stripe test mode (step-by-step in `docs/SETUP.md`)
+  - Find the `sk_test_` key, create the Stripe profile, get the `profile_` ID. A sandbox's profile ID starts with `profile_test_`, which real mode now requires; `pnpm stripe:profile` prints it
+  - Seed a $500 test PaymentIntent for the refund scenario (`pnpm stripe:seed`)
+  - A Stripe section in `pnpm env:check`
   - _Requirements: RAIL-7_
 
-- [ ] 7. Build the MPP vendor endpoint `/vendor/api/report` and pass the validator
-  - `mppx` at $0.50
-  - Run `/validate-mpp`
+- [x] 7. Build the MPP vendor endpoint `/vendor/api/report` and pass the validator
+  - `mppx` at $0.50, through its SPT-only entry points (mppx 0.19's `defaultMethods()` needs a shared store)
+  - Discovery at `/openapi.json`; the validator runs against the origin, because it resolves paths against the URL it's given
+  - Run `/validate-mpp` (`pnpm mpp:validate`): 18 checks pass, including a $0.50 test payment
   - _Requirements: RAIL-14, RAIL-18_
 
-- [ ] 8. Build the Stripe MPP payer adapter and refunds
+- [x] 8. Build the Stripe MPP payer adapter and refunds
   - Test SPT from the test helper, present to the challenge, record PaymentIntent ID
   - `refund()` through the Refunds API with an idempotency key and `metadata.idempotency_key`
-  - `lookup()` for payments and refunds by `metadata.idempotency_key`
-  - Contract tests with fixtures; `@live` tests
+  - `lookup()` for payments and refunds by `metadata.idempotency_key`. Confirmed: the MPP flow carries it to the PaymentIntent through the credential's `externalId`. Absence can't be proven, so it stays `unknown`
+  - Contract tests with fixtures (`pnpm stripe:probe --record`); `@live` tests
   - _Requirements: RAIL-15, RAIL-16, RAIL-17, RAIL-21, RAIL-22_
