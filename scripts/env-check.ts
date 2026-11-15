@@ -2,7 +2,7 @@
 // unset for each variable. Values are never printed (RAIL-9), so it is
 // safe to run where output is shared, such as the /validate-mpp steering
 // command. Exits 1 if anything fails.
-import { checkRailEnv } from "@/rails/config";
+import { checkRailEnv, checkX402Env } from "@/rails/config";
 import { env, isPlaceholder, resetEnvCache } from "@/server/env";
 import { loadLocalEnv } from "./lib/load-env";
 
@@ -44,13 +44,32 @@ export function runEnvCheck(): Line[] {
   return [...checkServerEnv(), ...checkRailEnv()];
 }
 
+/**
+ * The x402 variables checked as if RAIL_MODE=real (docs/SETUP.md, "x402
+ * test payments"). Informational: it doesn't change the exit code, because
+ * mock mode doesn't need them.
+ */
+function runX402Check(): { lines: Line[]; ready: boolean } {
+  const lines = checkX402Env();
+  return { lines, ready: lines.every((l) => l.status === "pass" || (l.status === "unset" && (l.name === "X402_NETWORK" || l.name === "X402_MIN_UNITS"))) };
+}
+
+function print(lines: Line[]) {
+  const width = Math.max(...lines.map((l) => l.name.length));
+  for (const l of lines) console.log(`${l.name.padEnd(width)}  ${l.status.toUpperCase()}${l.problem ? `  ${l.problem}` : ""}${l.note ? `  (${l.note})` : ""}`);
+}
+
 function main() {
   loadLocalEnv();
   const lines = runEnvCheck();
-  const width = Math.max(...lines.map((l) => l.name.length));
-  for (const l of lines) console.log(`${l.name.padEnd(width)}  ${l.status.toUpperCase()}${l.problem ? `  ${l.problem}` : ""}${l.note ? `  (${l.note})` : ""}`);
+  print(lines);
   const failed = lines.filter((l) => l.status === "fail").length;
   console.log(failed === 0 ? "Environment OK." : `${failed} variable(s) failed.`);
+  const x402 = runX402Check();
+  console.log("");
+  console.log("x402 on Base Sepolia (checked as if RAIL_MODE=real):");
+  print(x402.lines);
+  console.log(x402.ready ? "x402 ready." : "x402 not ready. See docs/SETUP.md, section 6.");
   if (failed > 0) process.exitCode = 1;
 }
 

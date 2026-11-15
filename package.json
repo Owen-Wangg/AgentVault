@@ -27,7 +27,9 @@
     "sandbox:reset": "tsx scripts/sandbox-reset.ts",
     "audit:verify": "tsx scripts/audit-verify.ts",
     "reconcile": "tsx scripts/reconcile.ts",
-    "env:check": "tsx scripts/env-check.ts"
+    "env:check": "tsx scripts/env-check.ts",
+    "wallet:new": "tsx scripts/wallet-new.ts",
+    "x402:status": "tsx scripts/x402-status.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "1.11.3",

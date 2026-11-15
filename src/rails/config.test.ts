@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { RailConfigError, checkRailEnv, loadRailConfig } from "./config";
+import { inspect } from "node:util";
+import { getAddress } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { RailConfigError, checkRailEnv, checkX402Env, loadRailConfig, loadX402PayerConfig, loadX402VendorConfig } from "./config";
 
 const realEnv = {
   RAIL_MODE: "real",
@@ -25,6 +28,65 @@ const exampleEnv = {
   X402_MIN_UNITS: "1",
   AGENT_WALLET_PRIVATE_KEY: "0xreplace_with_testnet_only_key",
 };
+
+/** A valid key, its address, and a different vendor address. Test values only. */
+const agentKey = ("0x" + "11".repeat(32)) as `0x${string}`;
+const agentAddress = privateKeyToAccount(agentKey).address;
+const x402Env = {
+  RAIL_MODE: "mock",
+  CDP_API_KEY_ID: "3f1c0f0e-0000-4000-8000-000000000000",
+  CDP_API_KEY_SECRET: "c2VjcmV0LXRlc3QtdmFsdWU=",
+  X402_PAY_TO: "0x" + "ab".repeat(20),
+  AGENT_WALLET_PRIVATE_KEY: agentKey,
+};
+
+describe("x402 variables, checked on their own", () => {
+  const status = (env: Record<string, string>) => Object.fromEntries(checkX402Env(env).map((c) => [c.name, c.status]));
+
+  it("RAIL-8, RAIL-9: checks the x402 variables with the real-mode rules while RAIL_MODE is mock", () => {
+    expect(status(x402Env)).toEqual({
+      CDP_API_KEY_ID: "pass",
+      CDP_API_KEY_SECRET: "pass",
+      X402_PAY_TO: "pass",
+      X402_NETWORK: "unset",
+      X402_MIN_UNITS: "unset",
+      AGENT_WALLET_PRIVATE_KEY: "pass",
+    });
+    expect(status(exampleEnv)).toMatchObject({ CDP_API_KEY_ID: "fail", X402_PAY_TO: "fail", AGENT_WALLET_PRIVATE_KEY: "fail" });
+    expect(checkX402Env({}).find((c) => c.name === "CDP_API_KEY_ID")?.problem).toBe("is required for x402");
+  });
+
+  it("RAIL-8: refuses a mainnet network here too", () => {
+    expect(status({ ...x402Env, X402_NETWORK: "eip155:8453" }).X402_NETWORK).toBe("fail");
+  });
+
+  it("refuses a vendor address that is the agent wallet's own, in any letter case", () => {
+    for (const payTo of [agentAddress, agentAddress.toLowerCase()]) {
+      const payToCheck = checkX402Env({ ...x402Env, X402_PAY_TO: payTo }).find((c) => c.name === "X402_PAY_TO");
+      expect(payToCheck).toMatchObject({ status: "fail", problem: expect.stringContaining("agent wallet") });
+    }
+  });
+
+  it("refuses a mixed-case address with a wrong checksum", () => {
+    const flipped = agentAddress.replace(/[a-f]/, (c) => c.toUpperCase());
+    expect(status({ ...x402Env, X402_PAY_TO: flipped }).X402_PAY_TO).toBe("fail");
+  });
+
+  it("refuses a key outside the secp256k1 range", () => {
+    expect(status({ ...x402Env, AGENT_WALLET_PRIVATE_KEY: "0x" + "ff".repeat(32) }).AGENT_WALLET_PRIVATE_KEY).toBe("fail");
+  });
+
+  it("loads the vendor and payer configurations separately", () => {
+    const vendor = loadX402VendorConfig({ CDP_API_KEY_ID: x402Env.CDP_API_KEY_ID, CDP_API_KEY_SECRET: x402Env.CDP_API_KEY_SECRET, X402_PAY_TO: x402Env.X402_PAY_TO });
+    expect(vendor).toMatchObject({ network: "eip155:84532", payTo: getAddress(x402Env.X402_PAY_TO) });
+    const payer = loadX402PayerConfig({ AGENT_WALLET_PRIVATE_KEY: agentKey, X402_MIN_UNITS: "100" });
+    expect(payer.account.address).toBe(agentAddress);
+    expect(payer.minUnits).toBe(100n);
+    expect(loadX402PayerConfig({ AGENT_WALLET_PRIVATE_KEY: agentKey }).minUnits).toBe(1n);
+    expect(() => loadX402VendorConfig({ X402_PAY_TO: x402Env.X402_PAY_TO })).toThrow("CDP_API_KEY_ID");
+    expect(() => loadX402PayerConfig({})).toThrow("AGENT_WALLET_PRIVATE_KEY");
+  });
+});
 
 describe("RAIL-7: Stripe test mode only", () => {
   it.each(["sk_live_51abc", "rk_live_51abc"])("RAIL-7: refuses %s in every mode", (key) => {
@@ -94,6 +156,20 @@ describe("rail configuration", () => {
 
   it("reads X402_MIN_UNITS as a bigint", () => {
     expect(loadRailConfig({ X402_MIN_UNITS: "10000" }).x402MinUnits).toBe(10_000n);
+  });
+
+  it("RAIL-9: x402 results and errors never contain the agent key", () => {
+    const secret = "0x" + "ef".repeat(32);
+    const env = { ...exampleEnv, AGENT_WALLET_PRIVATE_KEY: secret };
+    expect(JSON.stringify(checkX402Env(env))).not.toContain("efefefef");
+    // inspect() is what console.log prints, so a logged config can't show the key.
+    expect(inspect(loadX402PayerConfig(env), { depth: 10, showHidden: true })).not.toContain("efefefef");
+    expect(() => loadX402PayerConfig({ AGENT_WALLET_PRIVATE_KEY: "0x" + "ff".repeat(32) })).toThrow(RailConfigError);
+    try {
+      loadX402PayerConfig({ AGENT_WALLET_PRIVATE_KEY: "0x" + "ff".repeat(32) });
+    } catch (error) {
+      expect(String(error)).not.toContain("ffffffff");
+    }
   });
 
   it("RAIL-9: results and errors never contain values", () => {

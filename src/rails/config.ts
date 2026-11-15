@@ -1,3 +1,5 @@
+import { getAddress, isAddress } from "viem";
+import { type LocalAccount, privateKeyToAccount } from "viem/accounts";
 import { z } from "zod";
 
 /**
@@ -12,6 +14,8 @@ import { z } from "zod";
  */
 
 export const BASE_SEPOLIA = "eip155:84532";
+/** The x402 minimum when X402_MIN_UNITS is unset, in USDC atomic units (rail-adapters task 4 measures it). */
+export const DEFAULT_X402_MIN_UNITS = 1n;
 
 export interface RailConfig {
   mode: "mock" | "real";
@@ -58,7 +62,12 @@ const CHECKS: readonly Check[] = [
   { name: "STRIPE_PROFILE_ID", requiredWhenReal: true, real: regexCheck(/^profile_\w+$/, "must start with profile_") },
   { name: "CDP_API_KEY_ID", requiredWhenReal: true },
   { name: "CDP_API_KEY_SECRET", requiredWhenReal: true },
-  { name: "X402_PAY_TO", requiredWhenReal: true, real: regexCheck(/^0x[0-9a-fA-F]{40}$/, "must be a 0x address") },
+  {
+    name: "X402_PAY_TO",
+    requiredWhenReal: true,
+    // isAddress checks the EIP-55 checksum of a mixed-case address, which catches a mistyped one.
+    real: (v) => (!/^0x[0-9a-fA-F]{40}$/.test(v) ? "must be a 0x address" : isAddress(v) ? null : "has a wrong checksum; copy the address again"),
+  },
   {
     name: "X402_NETWORK",
     requiredWhenReal: false,
@@ -110,6 +119,87 @@ export class RailConfigError extends Error {
   }
 }
 
+/** The x402 variables, in the order `pnpm env:check` lists them. */
+export const X402_VARIABLES = ["CDP_API_KEY_ID", "CDP_API_KEY_SECRET", "X402_PAY_TO", "X402_NETWORK", "X402_MIN_UNITS", "AGENT_WALLET_PRIVATE_KEY"] as const;
+
+/** The agent wallet's address, or null if the key isn't a valid secp256k1 key. Never returns or throws the key. */
+function agentAddressOf(key: string): string | null {
+  try {
+    return privateKeyToAccount(key as `0x${string}`).address;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The x402 variables checked with the real-mode rules, whatever RAIL_MODE
+ * says. The vendor endpoint and the `@live` tests use x402 in mock mode
+ * too, and real mode also needs the Stripe variables (Phase 14). Adds one
+ * check real mode alone can't express: the vendor and the agent must be
+ * different wallets, or a "payment" would move nothing.
+ */
+export function checkX402Env(env: Env = process.env): VariableCheck[] {
+  const names: ReadonlySet<string> = new Set(X402_VARIABLES);
+  const checks = checkRailEnv({ ...env, RAIL_MODE: "real" })
+    .filter((c) => names.has(c.name))
+    .map((c) => (c.problem === "is required when RAIL_MODE=real" ? { ...c, problem: "is required for x402" } : c));
+  const payTo = checks.find((c) => c.name === "X402_PAY_TO");
+  const key = checks.find((c) => c.name === "AGENT_WALLET_PRIVATE_KEY");
+  if (key?.status === "pass" && agentAddressOf(env.AGENT_WALLET_PRIVATE_KEY ?? "") === null) {
+    Object.assign(key, { status: "fail", problem: "is not a valid secp256k1 private key" });
+  }
+  if (payTo?.status === "pass" && key?.status === "pass") {
+    const agent = agentAddressOf(env.AGENT_WALLET_PRIVATE_KEY ?? "");
+    if (agent && agent.toLowerCase() === (env.X402_PAY_TO ?? "").toLowerCase()) {
+      Object.assign(payTo, { status: "fail", problem: "is the agent wallet's own address; the vendor needs a separate wallet" });
+    }
+  }
+  return checks;
+}
+
+function requireX402(env: Env, needed: readonly (typeof X402_VARIABLES)[number][]): void {
+  const failures = checkX402Env(env).filter((c) => (needed as readonly string[]).includes(c.name) && c.status === "fail");
+  if (failures.length > 0) throw new RailConfigError(failures);
+}
+
+export interface X402VendorConfig {
+  network: typeof BASE_SEPOLIA;
+  payTo: `0x${string}`;
+  cdpApiKeyId: string;
+  cdpApiKeySecret: string;
+}
+
+/** Configuration for the demo vendor's x402 endpoint. Throws RailConfigError, naming variables only. */
+export function loadX402VendorConfig(env: Env = process.env): X402VendorConfig {
+  requireX402(env, ["CDP_API_KEY_ID", "CDP_API_KEY_SECRET", "X402_PAY_TO", "X402_NETWORK"]);
+  return {
+    network: BASE_SEPOLIA,
+    payTo: getAddress(env.X402_PAY_TO ?? ""),
+    cdpApiKeyId: env.CDP_API_KEY_ID ?? "",
+    cdpApiKeySecret: env.CDP_API_KEY_SECRET ?? "",
+  };
+}
+
+export interface X402PayerConfig {
+  network: typeof BASE_SEPOLIA;
+  minUnits: bigint;
+  /**
+   * The agent wallet. A viem account signs without exposing its key, so
+   * the key string is not kept anywhere after this returns (RAIL-9).
+   */
+  account: LocalAccount;
+}
+
+/** Configuration for the x402 payer adapter. Throws RailConfigError, naming variables only. */
+export function loadX402PayerConfig(env: Env = process.env): X402PayerConfig {
+  requireX402(env, ["AGENT_WALLET_PRIVATE_KEY", "X402_NETWORK", "X402_MIN_UNITS"]);
+  return {
+    network: BASE_SEPOLIA,
+    minUnits: env.X402_MIN_UNITS ? MinUnits.parse(env.X402_MIN_UNITS) : DEFAULT_X402_MIN_UNITS,
+    account: privateKeyToAccount(env.AGENT_WALLET_PRIVATE_KEY as `0x${string}`),
+  };
+}
+
 const MinUnits = z.string().regex(/^[1-9]\d{0,17}$/).transform(BigInt);
 
 /** Validated rail configuration. Throws RailConfigError, which stops startup (RAIL-7, RAIL-8). */
@@ -119,6 +209,6 @@ export function loadRailConfig(env: Env = process.env): RailConfig {
   return {
     mode: env.RAIL_MODE === "real" ? "real" : "mock",
     x402Network: BASE_SEPOLIA,
-    x402MinUnits: env.X402_MIN_UNITS ? MinUnits.parse(env.X402_MIN_UNITS) : 1n,
+    x402MinUnits: env.X402_MIN_UNITS ? MinUnits.parse(env.X402_MIN_UNITS) : DEFAULT_X402_MIN_UNITS,
   };
 }
