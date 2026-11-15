@@ -6,7 +6,7 @@ import type { SessionUser } from "./session";
 
 /**
  * Which workspace a dashboard read shows (telemetry-dashboard design,
- * "Auth and access"). Used by the approvals list.
+ * "Auth and access"). Used by the approvals list and the event stream.
  */
 
 export interface ReadableWorkspace {
@@ -32,4 +32,27 @@ export async function defaultWorkspace(db: Db, user: SessionUser | null): Promis
   }
   const sandbox = await currentSandbox(db);
   return sandbox ? { id: sandbox.id, isSandbox: true, retired: false } : undefined;
+}
+
+export type ReadAccess = { ok: true; workspace: ReadableWorkspace } | { ok: false; status: 401 | 403 | 404; error: string };
+
+/**
+ * Read access to a named workspace (TEL-5). Any sandbox, current or
+ * retired, is public to read: retired sandboxes stay readable (AUD-9),
+ * so an open dashboard can finish showing the old one. Any other
+ * workspace needs its owner signed in: 401 without a session, 403 for
+ * someone else's workspace, 404 if it doesn't exist.
+ */
+export async function readAccess(db: Db, workspaceId: string, user: SessionUser | null): Promise<ReadAccess> {
+  const [row] = await db
+    .select({ id: workspaces.id, isSandbox: workspaces.isSandbox, retiredAt: workspaces.retiredAt, ownerUserId: workspaces.ownerUserId })
+    .from(workspaces)
+    .where(eq(workspaces.id, workspaceId));
+  if (!row) return { ok: false, status: 404, error: "NO_WORKSPACE" };
+  const workspace = { id: row.id, isSandbox: row.isSandbox, retired: row.retiredAt !== null };
+  if (row.isSandbox) return { ok: true, workspace };
+  if (!user) return { ok: false, status: 401, error: "UNAUTHORIZED" };
+  // A workspace has one member, its owner (audit-and-approvals design).
+  if (row.ownerUserId === null || row.ownerUserId !== user.id) return { ok: false, status: 403, error: "FORBIDDEN" };
+  return { ok: true, workspace };
 }
