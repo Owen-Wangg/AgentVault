@@ -206,14 +206,15 @@ You need **two** wallets, because a payment from a wallet to itself would move n
 ### Step 1: Create a CDP API key
 
 1. Go to <https://portal.cdp.coinbase.com> and sign in or create a free account. The portal creates a default project for you.
-2. Open **API Keys** in the left menu and select the **Secret API Keys** tab.
-3. Click **Create API key** and name it `agentvault`.
-4. Fill in the rest of the form:
+2. If the portal has a **Sandbox / Live** switch, choose **Live**. CDP's Sandbox simulates its custodial account APIs on `sandbox.cdp.coinbase.com`, and its keys don't work with the x402 facilitator, which runs only on `api.cdp.coinbase.com`. "Live" here means the real CDP service, not real money: the network you pay on decides that, and AgentVault only uses Base Sepolia, where tokens have no value.
+3. Open **API Keys** in the left menu and select the **Secret API Keys** tab.
+4. Click **Create API key** and name it `agentvault`.
+5. Fill in the rest of the form:
    - **IP allowlist:** keep **Allow requests from any IP address**. Vercel functions don't have fixed IP addresses, so an allowlist would block the deployed vendor endpoint.
    - **Permissions** (Account, Transfers, Customers, Orders, each with Read-only and Write): leave every box unchecked. They control Coinbase's custodial account APIs, which AgentVault never calls. The facilitator's verify and settle calls only need a valid key. If the form won't create a key with nothing checked, check only **Account → Read-only**.
    - **Signature algorithm**, if the form shows one: keep **Ed25519**.
-5. Click **Create**. A window shows the **API key ID** (it looks like `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) and the **API key secret** (a long string that ends in `==`). Copy both now; the secret isn't shown again. You don't need to download the key file.
-6. In `.env.local`, replace the two placeholders:
+6. Click **Create**. A window shows the **API key ID** (it looks like `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) and the **API key secret** (a long string that ends in `==`). Copy both now; the secret isn't shown again. You don't need to download the key file.
+7. In `.env.local`, replace the two placeholders:
 
    ```
    CDP_API_KEY_ID=<the API key ID>
