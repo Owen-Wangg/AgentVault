@@ -30,7 +30,7 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
   - Reason explanations, taint source, countdown, approve and deny
   - _Requirements: UI-9_
 
-- [ ] 7. Build the audit page and the Playwright test
+- [x] 7. Build the audit page and the Playwright test
   - Event list with hashes, "Verify chain"
   - Playwright: sandbox → prompt-injection scenario → approve refund → see result
   - _Requirements: UI-10, AUD-6_
