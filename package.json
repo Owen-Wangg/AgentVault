@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@auth/drizzle-adapter": "1.11.3",
+    "@hookform/resolvers": "7.0.6",
     "@neondatabase/serverless": "1.2.0",
     "@noble/hashes": "2.4.0",
     "@tailwindcss/postcss": "4.3.5",
@@ -40,6 +41,7 @@
     "pg": "8.23.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
+    "react-hook-form": "7.92.0",
     "react-is": "19.3.1",
     "recharts": "3.10.1",
     "tailwindcss": "4.3.5",

@@ -68,6 +68,8 @@ type UiKey =
   | "agents.frozen"
   | "agents.tainted"
   | "agents.active"
+  | "agents.revoked"
+  | "agents.actions"
   | "agents.unfreeze"
   | "agents.keyOnce"
   | "agents.copyKey"
@@ -185,6 +187,8 @@ const defaultCopy: CopyTable = {
   "agents.frozen": "Frozen",
   "agents.tainted": "Tainted session",
   "agents.active": "Active",
+  "agents.revoked": "Revoked",
+  "agents.actions": "Actions",
   "agents.unfreeze": "Unfreeze",
   "agents.keyOnce": "Copy this API key now. It's shown once and can't be recovered.",
   "agents.copyKey": "Copy key",
