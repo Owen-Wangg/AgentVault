@@ -19,12 +19,12 @@ Plan (`docs/PLAN.md`): **Phase 11** = tasks 1–4. **Phase 17** (optional, cut f
   - Scenario cards, live step list, summary panel
   - _Requirements: AGT-1, AGT-3, AGT-10_
 
-- [ ] 5. (Optional) Build the Gemini agent
+- [x] 5. (Optional) Build the Gemini agent
   - Step-by-step Gemini API key setup in `docs/SETUP.md`; confirm free-tier limits in AI Studio first
   - Three tools, Zod validation, 15-call cap, 429 handling
   - _Requirements: AGT-11, AGT-12, AGT-13, AGT-14, AGT-15_
 
-- [ ] 6. (Optional) Add the advisory drift score
+- [x] 6. (Optional) Add the advisory drift score
   - Second Gemini call; pass the score to the policy as advisory
   - Property 3 with recorded responses
   - _Requirements: AGT-16, INT-7, INT-8, INT-9_

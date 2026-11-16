@@ -106,7 +106,7 @@ Tools with no rail (for example `payee.update`) still go through the full flow. 
 ## Idempotency
 Each agent has its own idempotency keys (PXY-8, PXY-12 to PXY-14).
 
-- `request_hash` = `sha256(canonicalJson(body))` over the validated request body (`vendor`, `tool`, `amount_micros`, `session_id`, plus `args` for tool requests) using the CJ rules. The hash uses the parsed body, so key order and whitespace in the client's JSON don't matter.
+- `request_hash` = `sha256(canonicalJson(body))` over the validated request body (`vendor`, `tool`, `amount_micros`, `session_id`, plus `args` for tool requests and `advisory_drift_score` when sent) using the CJ rules. The hash uses the parsed body, so key order and whitespace in the client's JSON don't matter.
 - A record is "live" if `created_at > now() - interval '24 hours'`. Lookups ignore records that aren't live. The reconciler cron also deletes records older than 24 hours. These are operational rows, not audit events.
 - After the envelope lock, in the same transaction:
   1. If no live row exists, delete any expired row for that key, then insert `(agent_id, key, request_hash, response: null)`. The row is claimed in the decision transaction, so a concurrent duplicate can't evaluate twice.
@@ -233,7 +233,7 @@ Responses:
 ## API
 | Method and path | Auth | Purpose |
 |---|---|---|
-| `POST /api/v1/pay` | Agent key | Pay request. Body: `vendor`, `tool`, `amount_micros` (string), `session_id`. Header: `Idempotency-Key` |
+| `POST /api/v1/pay` | Agent key | Pay request. Body: `vendor`, `tool`, `amount_micros` (string), `session_id`, optional `advisory_drift_score` (integer 0 to 100, taint-and-intent INT-7). Header: `Idempotency-Key` |
 | `POST /api/v1/fetch` | Agent key | Proxied fetch with origin labels. Body: `url`, `session_id` (defined in `taint-and-intent`) |
 | `POST /api/v1/tool` | Agent key | High-privilege tool request. Body: `tool`, `session_id`, `args`. Header: `Idempotency-Key` (defined in `taint-and-intent`) |
 | `GET /api/v1/approvals` | Dashboard session or sandbox | List approvals. Runs expiry first |

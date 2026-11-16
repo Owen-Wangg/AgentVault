@@ -45,5 +45,5 @@ This spec covers the two defenses against a hijacked agent: **taint tracking**, 
 
 ### Acceptance criteria
 - **INT-7** WHERE the Gemini agent integration is enabled, THE SYSTEM SHALL accept an advisory drift score between 0 and 100 for a request.
-- **INT-8** IF the advisory score is at or above the workspace threshold (default 70), THEN THE SYSTEM SHALL add the hold reason `ADVISORY_DRIFT`.
+- **INT-8** IF the advisory score is at or above the advisory threshold (70, one constant for every workspace for now), THEN THE SYSTEM SHALL add the hold reason `ADVISORY_DRIFT`.
 - **INT-9** THE SYSTEM SHALL never let an advisory score remove a deny or hold reason.

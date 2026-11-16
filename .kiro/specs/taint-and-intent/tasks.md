@@ -33,6 +33,6 @@ Plan (`docs/PLAN.md`): **Phase 7** = tasks 1–6. **Phase 17** (optional) uses t
   - Integration test: poisoned fetch, then `stripe.refund` → 202 `HELD_TAINTED`
   - _Requirements: TAINT-4, TAINT-6, INT-2_
 
-- [ ] 7. Implement `advisoryRule` (used by the optional Gemini agent)
+- [x] 7. Implement `advisoryRule` (used by the optional Gemini agent)
   - Property 3
   - _Requirements: INT-7, INT-8, INT-9_
