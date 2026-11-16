@@ -32,6 +32,17 @@ const SCHEMAS = {
   AUTH_SECRET: optionalUnlessPlaceholder(z.string().min(32, "must be at least 32 characters")),
   AUTH_GITHUB_ID: optionalUnlessPlaceholder(z.string().min(1)),
   AUTH_GITHUB_SECRET: optionalUnlessPlaceholder(z.string().min(1)),
+  /**
+   * Optional. Turns on the live Gemini agent (demo-agents AGT-11). Checked
+   * for format only: Google's key formats vary, so any 30 to 128 URL-safe
+   * characters pass. Never logged or sent to the client.
+   */
+  GEMINI_API_KEY: optionalUnlessPlaceholder(z.string().regex(/^[A-Za-z0-9_.-]{30,128}$/, "must be 30 to 128 letters, digits, '.', '_' or '-'")),
+  /** The model the live agent uses. An exact API model ID from models.list (pnpm gemini:probe). */
+  GEMINI_MODEL: z
+    .string()
+    .regex(/^gemini-[a-z0-9.-]{1,60}$/, "must be a Gemini model ID such as gemini-3.5-flash-lite")
+    .default("gemini-3.5-flash-lite"),
 } as const;
 
 type Name = keyof typeof SCHEMAS;
@@ -77,6 +88,22 @@ export const env = {
    * or the approval routes down. Nobody is signed in then (fail closed),
    * and `pnpm env:check` reports which variable is wrong.
    */
+  /** The Gemini key, or undefined when the live agent is off. Throws if it's set but malformed. */
+  geminiApiKey: (): string | undefined => read("GEMINI_API_KEY"),
+  geminiModel: (): string => read("GEMINI_MODEL"),
+  /**
+   * Whether the live Gemini agent is on (AGT-11). A malformed key or model
+   * turns it off instead of throwing, so the scenarios page still loads;
+   * `pnpm env:check` reports which variable is wrong.
+   */
+  geminiEnabled: (): boolean => {
+    try {
+      return env.geminiApiKey() !== undefined && env.geminiModel().length > 0;
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : "GEMINI_ variables are invalid", "The live agent is off.");
+      return false;
+    }
+  },
   githubAuthEnabled: (): boolean => {
     try {
       return env.githubAuthConfigured();

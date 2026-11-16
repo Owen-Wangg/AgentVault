@@ -100,3 +100,34 @@ describe("environment variables", () => {
     expect(env.appOrigin()).toBe("https://agentvault.example");
   });
 });
+
+describe("AGT-11: Gemini variables", () => {
+  const key = `AIza${"x".repeat(35)}`;
+
+  it("AGT-11: the live agent is on only when GEMINI_API_KEY is set", () => {
+    set("GEMINI_API_KEY", undefined);
+    expect(env.geminiEnabled()).toBe(false);
+    set("GEMINI_API_KEY", "");
+    expect(env.geminiEnabled()).toBe(false);
+    set("GEMINI_API_KEY", key);
+    expect(env.geminiEnabled()).toBe(true);
+    expect(env.geminiApiKey()).toBe(key);
+  });
+
+  it("AGT-11: a malformed key turns the live agent off and its error never contains the value", () => {
+    const bad = "has spaces in it and is long enough to pass the length";
+    set("GEMINI_API_KEY", bad);
+    expect(env.geminiEnabled()).toBe(false);
+    expect(() => env.geminiApiKey()).toThrow("GEMINI_API_KEY must be");
+    expect(() => env.geminiApiKey()).not.toThrow(bad);
+  });
+
+  it("AGT-11: the model defaults to gemini-3.5-flash-lite and must look like a Gemini model ID", () => {
+    set("GEMINI_MODEL", undefined);
+    expect(env.geminiModel()).toBe("gemini-3.5-flash-lite");
+    set("GEMINI_MODEL", "gemini-3.1-flash-lite");
+    expect(env.geminiModel()).toBe("gemini-3.1-flash-lite");
+    set("GEMINI_MODEL", "../models/evil");
+    expect(() => env.geminiModel()).toThrow("GEMINI_MODEL must be");
+  });
+});

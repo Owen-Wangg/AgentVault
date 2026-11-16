@@ -39,6 +39,29 @@ function checkServerEnv(): Line[] {
   });
 }
 
+/**
+ * The optional live Gemini agent: presence and format only. It never
+ * calls Gemini; `pnpm gemini:probe` does that. A key that's set but
+ * malformed fails, like any other invalid variable.
+ */
+export function checkGeminiEnv(): Line[] {
+  resetEnvCache();
+  const check = (name: string, get: () => unknown, unsetNote: string): Line => {
+    if (!process.env[name] || isPlaceholder(process.env[name])) return { name, status: "unset", note: unsetNote };
+    try {
+      get();
+      return { name, status: "pass" };
+    } catch (error) {
+      const problem = error instanceof Error ? error.message.replace(/^Environment variable \S+ /, "").replace(/\. See \.env\.example\.$/, "") : "is invalid";
+      return { name, status: "fail", problem };
+    }
+  };
+  return [
+    check("GEMINI_API_KEY", env.geminiApiKey, "the live agent is off"),
+    check("GEMINI_MODEL", env.geminiModel, "defaults to gemini-3.5-flash-lite"),
+  ];
+}
+
 export function runEnvCheck(): Line[] {
   resetEnvCache();
   return [...checkServerEnv(), ...checkRailEnv()];
@@ -75,7 +98,14 @@ function main() {
   console.log("Stripe test mode (checked as if RAIL_MODE=real):");
   print(stripe);
   console.log(stripe.every((l) => l.status === "pass") ? "Stripe ready." : "Stripe not ready. See docs/SETUP.md, section 7.");
-  if (failed > 0) process.exitCode = 1;
+  const gemini = checkGeminiEnv();
+  console.log("");
+  console.log("Live Gemini agent (optional, format only; pnpm gemini:probe calls Gemini):");
+  print(gemini);
+  const geminiFailed = gemini.filter((l) => l.status === "fail").length;
+  const key = gemini[0];
+  console.log(geminiFailed > 0 ? "Gemini not ready. See docs/SETUP.md, section 8." : key?.status === "pass" ? "Gemini ready." : "Gemini off.");
+  if (failed + geminiFailed > 0) process.exitCode = 1;
 }
 
 main();

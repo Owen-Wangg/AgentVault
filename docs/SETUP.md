@@ -420,7 +420,50 @@ The deployed app keeps `RAIL_MODE=mock`, so its agents still pay on mock rails. 
 
 In the Dashboard, open **Developers → API keys**, click the **⋯** menu next to the secret key, and choose **Roll key**. Put the new key in `.env.local` (and in Vercel, if you added it there). A sandbox key can't move real money, but someone with it could fill your sandbox with test data.
 
-## 8. Run it
+## 8. Live Gemini agent (optional)
+
+The scenarios page can run three of the four scenarios with a real LLM agent on Gemini's free tier (demo-agents AGT-11 to AGT-16). Without `GEMINI_API_KEY` the "Run with live AI agent" buttons are hidden and everything else works the same. Tests never call Gemini; they use recorded responses.
+
+### Step 1: Check the free-tier limits
+
+Open [Google AI Studio](https://aistudio.google.com/), choose your project, and open **Rate limit** (under **Dashboard** or **Usage**). Limits are per project and shared by every use of the key; daily limits reset at midnight Pacific time. The default model, `gemini-3.5-flash-lite`, had 15 requests per minute, 250,000 tokens per minute, and 500 requests per day when this was written. `gemini-3.1-flash-lite` had the same limits and is the fallback. Models that show 0 there aren't available on your tier.
+
+One live run makes about 4 to 8 Gemini requests: one per agent turn, plus one drift score per payment or tool call. That's roughly 60 runs a day on 500 requests.
+
+### Step 2: Create the key
+
+1. In AI Studio, open **Get API key** and click **Create API key**.
+2. Pick your project. Don't set up billing; the free tier is enough.
+3. Copy the key. AI Studio shows it again later, but treat it as a secret anyway.
+
+### Step 3: Set the variables
+
+Add to `.env.local`:
+```
+GEMINI_API_KEY=<the key>
+# Optional. Defaults to gemini-3.5-flash-lite.
+GEMINI_MODEL=gemini-3.5-flash-lite
+```
+
+### Step 4: Check it
+
+```powershell
+pnpm env:check        # presence and format only; never calls Gemini or prints the key
+pnpm gemini:probe     # one models.list call: confirms the key and lists the Flash model IDs
+pnpm gemini:probe --generate gemini-3.5-flash-lite   # plus one 8-token request (1 of the day's 500)
+```
+
+If `models.list` fails with `HTTP 400 INVALID_ARGUMENT` or `HTTP 403 PERMISSION_DENIED`, the key was rejected: create a new one. Use an exact ID from the probe's list for `GEMINI_MODEL`.
+
+### Vercel
+
+The deployed app shows the live buttons only if `GEMINI_API_KEY` is set in **Project → Settings → Environment Variables** (mark it **Sensitive**, then redeploy). Every visitor's runs then share your project's daily quota, so the live route allows 3 runs per IP per 10 minutes and 40 runs a day in total. Leave the variable unset to keep live runs local.
+
+### If the key leaks
+
+In AI Studio, open **Get API key**, delete the key, and create a new one. A free-tier key can't run up a bill, but someone with it could use up your daily quota.
+
+## 9. Run it
 | Command | What it does |
 |---|---|
 | `pnpm dev` | Starts the app at <http://localhost:3000>. It keeps running; stop it with Ctrl+C. |
@@ -449,7 +492,7 @@ In the Dashboard, open **Developers → API keys**, click the **⋯** menu next 
 | `pnpm reconcile` | Asks the rails what happened to payments with an unknown outcome, deletes idempotency records older than 24 hours, and lists payments still unknown after 24 hours. It only looks payments up and never pays. On the mock rail it can't resolve anything a different process paid, so those stay listed. |
 | `pnpm demo:policy` | Prints a table of policy decisions for a sample request sequence. |
 
-## 9. Kiro hooks
+## 10. Kiro hooks
 The hooks in `.kiro/hooks/` run automatically in Kiro:
 | Hook | When it runs | What it does |
 |---|---|---|
