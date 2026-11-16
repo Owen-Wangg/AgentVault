@@ -31,7 +31,7 @@ export function Sidebar({ footer }: { footer?: ReactNode }) {
   return (
     <>
       <nav aria-label={t("nav.label")} className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface p-4 md:flex">
-        <Link href="/" className="mb-6 px-2 text-lg font-semibold">
+        <Link href="/" className="brand mb-6 px-2 text-lg font-semibold">
           {t("app.name")}
         </Link>
         <ul className="flex flex-col gap-1">

@@ -52,7 +52,7 @@ describe("<ThemeToggle>", () => {
     expect(screen.getByText("The Crypt")).toBeTruthy();
     expect(screen.getByText("Haunted")).toBeTruthy();
     expect(screen.queryByText("Frozen")).toBeNull();
-    expect(screen.getByText("Kiroween mode is on.")).toBeTruthy();
+    expect(screen.getByText("Kiroween mode is on. Happy haunting.")).toBeTruthy();
     // Server components re-render with the new cookie.
     expect(refresh).toHaveBeenCalledTimes(1);
 
@@ -81,6 +81,23 @@ describe("<ThemeToggle>", () => {
     );
     expect(screen.getByRole<HTMLInputElement>("switch", { name: "Kiroween mode" }).checked).toBe(true);
     expect(screen.getByText("The Crypt")).toBeTruthy();
+  });
+
+  it("UI-16, UI-19: Kiroween adds a skull and a ghost to the status badges, hidden from screen readers and marked to stop under reduced motion", () => {
+    const icons = (theme: "default" | "kiroween") => {
+      const { container, unmount } = render(
+        <ThemeProvider initial={theme}>
+          <AgentsTable agents={[frozenAgent]} canUnfreeze />
+        </ThemeProvider>,
+      );
+      const found = [...container.querySelectorAll("svg.av-float")];
+      expect(found.every((svg) => svg.getAttribute("aria-hidden") === "true")).toBe(true);
+      const count = found.length;
+      unmount();
+      return count;
+    };
+    expect(icons("default")).toBe(0);
+    expect(icons("kiroween")).toBe(2);
   });
 
   it("UI-17: the cookie lasts a year, is sent only to this site, and is Secure on https", () => {

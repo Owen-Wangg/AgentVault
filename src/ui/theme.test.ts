@@ -32,4 +32,33 @@ describe("theme tokens", () => {
       for (const name of TOKEN_NAMES) expect(vars[name], name).toBe(TOKENS[theme][name]);
     });
   }
+
+  it("UI-16: Kiroween is a dark palette of its own, with dark native controls", () => {
+    const changed = TOKEN_NAMES.filter((name) => TOKENS.kiroween[name] !== TOKENS.default[name]);
+    expect(changed).toEqual([...TOKEN_NAMES]);
+    // Light text on a dark background.
+    expect(contrastRatio(TOKENS.kiroween.bg, "#000000")).toBeLessThan(1.5);
+    expect(/\[data-theme="kiroween"\]\s*\{[^}]*color-scheme:\s*dark;/.exec(css)).not.toBeNull();
+  });
+
+  it("UI-19: under prefers-reduced-motion, the fog and the floating icons don't move", () => {
+    const start = css.indexOf("@media (prefers-reduced-motion: reduce)");
+    expect(start).toBeGreaterThan(-1);
+    const block = css.slice(start);
+    expect(block).toMatch(/\[data-theme="kiroween"\] body,\s*\.av-float\s*\{\s*animation:\s*none !important;/);
+    // Every animation the stylesheet declares is one of those two.
+    const code = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const animated = [...code.matchAll(/([^{}]+)\{[^}]*\banimation:\s*av-/g)].map((m) => m[1]!.trim());
+    expect(animated).toEqual(['[data-theme="kiroween"] body', ".av-float"]);
+  });
+});
+
+describe("open-licensed assets", () => {
+  const layout = readFileSync(fileURLToPath(new URL("../../app/layout.tsx", import.meta.url)), "utf8");
+
+  it("UI-20: every font is one of the SIL Open Font License fonts named in the design", () => {
+    const imported = /import \{([^}]+)\} from "next\/font\/google"/.exec(layout)?.[1]?.split(",").map((s) => s.trim());
+    expect(imported?.sort()).toEqual(["Creepster", "Inter", "JetBrains_Mono"]);
+    expect(css).not.toMatch(/@font-face|url\(\s*["']?https?:/);
+  });
 });

@@ -22,21 +22,65 @@
   --radius: 0.5rem;
 }
 
-/* Kiroween's palette arrives with telemetry-dashboard task 8. */
+/*
+ * Kiroween mode (UI-16): near-black, pumpkin orange, ghost white, and
+ * toxic green. It changes styling only; this block must stay the first
+ * one whose selector names the kiroween theme (the token test reads it).
+ */
 [data-theme="kiroween"] {
-  --bg: #f8fafc;
-  --surface: #ffffff;
-  --surface-muted: #f1f5f9;
-  --border: #cbd5e1;
-  --text: #0f172a;
-  --text-muted: #475569;
-  --accent: #4338ca;
-  --accent-text: #ffffff;
-  --allow: #166534;
-  --hold: #92400e;
-  --deny: #b91c1c;
-  --focus: #4338ca;
+  --bg: #0d0b12;
+  --surface: #17141f;
+  --surface-muted: #221d2d;
+  --border: #4a4160;
+  --text: #f3efe6;
+  --text-muted: #b9b0c9;
+  --accent: #ff8c1a;
+  --accent-text: #120d05;
+  --allow: #7fe35a;
+  --hold: #f5c84b;
+  --deny: #ff7a7a;
+  --focus: #ff8c1a;
   --radius: 0.5rem;
+  /* Native controls (selects, checkboxes, scrollbars, dialogs) follow the dark palette. */
+  color-scheme: dark;
+}
+
+/* Creepster for page headings and the app name only; body text stays Inter, for reading. */
+[data-theme="kiroween"] h1,
+[data-theme="kiroween"] .brand {
+  font-family: var(--font-creepster), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+/* A faint fog behind the page. CSS only, and still under reduced motion (UI-19). */
+[data-theme="kiroween"] body {
+  background-image:
+    radial-gradient(ellipse 60% 40% at 10% 100%, rgb(185 176 201 / 0.07), transparent 70%),
+    radial-gradient(ellipse 50% 35% at 90% 0%, rgb(255 140 26 / 0.06), transparent 70%);
+  background-attachment: fixed;
+  background-size: 150% 100%;
+  animation: av-fog 40s ease-in-out infinite alternate;
+}
+
+@keyframes av-fog {
+  from {
+    background-position: 0% 0%, 100% 0%;
+  }
+  to {
+    background-position: 40% 0%, 60% 0%;
+  }
+}
+
+/* The ghost and skull on haunted and crypt badges bob gently. */
+.av-float {
+  animation: av-float 3s ease-in-out infinite;
+}
+
+@keyframes av-float {
+  50% {
+    transform: translateY(-2px);
+  }
 }
 
 @theme inline {
@@ -68,6 +112,7 @@ html {
   outline-offset: 2px;
 }
 
+/* UI-19: no decorative motion when the system asks for less. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -75,5 +120,10 @@ html {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  [data-theme="kiroween"] body,
+  .av-float {
+    animation: none !important;
   }
 }

@@ -3,8 +3,8 @@
  * here are the source of truth for the contrast check (UI-12); a test
  * checks that app/globals.css declares the same values.
  *
- * Kiroween's palette arrives with telemetry-dashboard task 8. Until then
- * it repeats the default values so every theme has every token.
+ * Kiroween (UI-16) is a dark theme. Only the colors, the heading font,
+ * the copy, and a few decorations change (app/globals.css).
  */
 
 export const THEMES = ["default", "kiroween"] as const;
@@ -59,19 +59,20 @@ export const TOKENS = {
     deny: "#b91c1c",
     focus: "#4338ca",
   },
+  // Near-black, pumpkin orange accent, ghost-white text, toxic green for "allowed".
   kiroween: {
-    bg: "#f8fafc",
-    surface: "#ffffff",
-    "surface-muted": "#f1f5f9",
-    border: "#cbd5e1",
-    text: "#0f172a",
-    "text-muted": "#475569",
-    accent: "#4338ca",
-    "accent-text": "#ffffff",
-    allow: "#166534",
-    hold: "#92400e",
-    deny: "#b91c1c",
-    focus: "#4338ca",
+    bg: "#0d0b12",
+    surface: "#17141f",
+    "surface-muted": "#221d2d",
+    border: "#4a4160",
+    text: "#f3efe6",
+    "text-muted": "#b9b0c9",
+    accent: "#ff8c1a",
+    "accent-text": "#120d05",
+    allow: "#7fe35a",
+    hold: "#f5c84b",
+    deny: "#ff7a7a",
+    focus: "#ff8c1a",
   },
 } satisfies Record<Theme, Record<TokenName, string>>;
 

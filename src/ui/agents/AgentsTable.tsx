@@ -1,5 +1,6 @@
 "use client";
 
+import { Ghost, Skull } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -29,7 +30,9 @@ const ERRORS: Record<number, UiKey> = { 401: "error.unauthorized", 429: "error.r
 /** The agents list (UI-7): frozen and tainted status, a link to each envelope, and unfreeze. */
 export function AgentsTable({ agents, canUnfreeze, unfreeze = postUnfreeze, onChanged }: { agents: AgentRow[]; canUnfreeze: boolean; unfreeze?: Unfreeze; onChanged?: () => void }) {
   const router = useRouter();
-  const { t } = useCopy();
+  const { t, theme } = useCopy();
+  // Decoration only: the badges' text and tones are the same in both themes.
+  const spooky = theme === "kiroween";
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState("");
 
@@ -78,9 +81,15 @@ export function AgentsTable({ agents, canUnfreeze, unfreeze = postUnfreeze, onCh
                 <td className="px-3 py-2 font-medium">{agent.name}</td>
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap gap-1">
-                    {agent.frozenAt ? <Badge tone="deny">{t("agents.frozen")}</Badge> : null}
+                    {agent.frozenAt ? (
+                      <Badge tone="deny">
+                        {spooky ? <Skull aria-hidden="true" className="av-float size-3" /> : null}
+                        {t("agents.frozen")}
+                      </Badge>
+                    ) : null}
                     {agent.tainted ? (
                       <Badge tone="hold">
+                        {spooky ? <Ghost aria-hidden="true" className="av-float size-3" /> : null}
                         <span title={agent.taintSourceUrl ?? undefined}>{t("agents.tainted")}</span>
                       </Badge>
                     ) : null}

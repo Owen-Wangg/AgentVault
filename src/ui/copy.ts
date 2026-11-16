@@ -359,10 +359,23 @@ const kiroweenCopy: CopyTable = {
   VELOCITY_EXCEEDED: "Denied: the agent ran wild, so it was sealed in The Crypt.",
   HELD_TAINTED: "Sealed in The Crypt: this session is Haunted by an untrusted page.",
   NEEDS_APPROVAL: "Held: a sum this large needs a living person's blessing.",
+  DENY_INTENT_DRIFT: "Denied: the agent wandered off the path of the task it was given.",
+  "app.tagline": "Wards for AI agents that spend money: spend limits, taint tracking, and approvals.",
+  "state.loading": "Summoning…",
   "agents.frozen": "The Crypt",
   "agents.tainted": "Haunted",
   "agents.unfreeze": "Release from The Crypt",
+  "agents.empty": "No agents have been summoned yet.",
   "workspace.sandbox": "Haunted sandbox",
+  "workspace.sandboxNote": "Haunted sandbox: mock rails only. Anyone can approve, deny, and release agents from The Crypt here, and no real money moves.",
+  "overview.frozen": "Agents in The Crypt",
+  "overview.alerts": "Recent hauntings",
+  "overview.noAlerts": "All quiet in the graveyard: no denials, holds, or freezes in this range.",
+  "feed.empty": "Nothing stirs yet. Run a scenario or send a request with an agent key.",
+  "approvals.empty": "No souls await judgment. Nothing is waiting for approval.",
+  "audit.verified": "The chain holds. No spirit has meddled with it.",
+  "audit.broken": "The chain is cursed at seq",
+  "settings.on": "Kiroween mode is on. Happy haunting.",
 };
 
 export const copy = { default: defaultCopy, kiroween: kiroweenCopy } satisfies Record<Theme, CopyTable>;
