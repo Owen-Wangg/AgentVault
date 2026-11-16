@@ -62,7 +62,8 @@ export function FeedView({ workspaceId, agentNames, stream }: { workspaceId: str
         </FilterSelect>
       </div>
       <DataState status={status_} empty={t("feed.empty")}>
-        <div className="overflow-x-auto rounded-card border border-border bg-surface">
+        {/* `relative` keeps the cells' sr-only text inside the scrolling box (UI-14). */}
+        <div className="relative overflow-x-auto rounded-card border border-border bg-surface">
           <table className="w-full min-w-[44rem] text-left text-sm">
             <caption className="sr-only">{t("feed.title")}</caption>
             <thead className="border-b border-border bg-surface-muted text-text-muted">

@@ -126,7 +126,8 @@ export function AuditLog({
       </div>
 
       <DataState status={events.length === 0 ? "empty" : "ready"} empty={t("audit.empty")}>
-        <div className="overflow-x-auto rounded-card border border-border bg-surface">
+        {/* `relative` keeps the cells' sr-only text inside the scrolling box (UI-14). */}
+        <div className="relative overflow-x-auto rounded-card border border-border bg-surface">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border text-text-muted">
               <tr>

@@ -56,7 +56,8 @@ export function AgentsTable({ agents, canUnfreeze, unfreeze = postUnfreeze, onCh
       <p role="status" aria-live="polite" className="mb-2 text-sm text-deny">
         {message}
       </p>
-      <div className="overflow-x-auto rounded-card border border-border bg-surface">
+      {/* `relative` makes this the containing block of the cells' sr-only text, so it scrolls with the table instead of widening the page (UI-14). */}
+      <div className="relative overflow-x-auto rounded-card border border-border bg-surface">
         <table className="w-full min-w-[36rem] text-left text-sm">
           <caption className="sr-only">{t("agents.title")}</caption>
           <thead className="border-b border-border bg-surface-muted text-text-muted">
