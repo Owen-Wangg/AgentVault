@@ -90,7 +90,7 @@ describe("<ScenarioRunner>", () => {
     const { api, finish } = pendingApi();
     mount(api);
     fireEvent.click(screen.getByRole("button", { name: "Run: Prompt injection" }));
-    expect(api.run).toHaveBeenCalledWith("injection", "run-1");
+    expect(api.run).toHaveBeenCalledWith("injection", "run-1", "scripted");
     for (const button of screen.getAllByRole("button", { name: /^Run:/ })) expect((button as HTMLButtonElement).disabled).toBe(true);
     expect(await screen.findByText("Starting the run…")).toBeTruthy();
 
@@ -165,6 +165,90 @@ describe("<ScenarioRunner>", () => {
     mount(failing);
     fireEvent.click(screen.getByRole("button", { name: "Run: Runaway loop" }));
     await waitFor(() => expect(statusText()).toContain("That didn't work"));
+  });
+});
+
+const LIVE = ["normal", "injection", "drift"] as const;
+const mountLive = (api: ScenariosApi, live: readonly (typeof SCENARIO_NAMES)[number][] = LIVE) =>
+  render(<ScenarioRunner workspaceId="sandbox-1" scenarios={SCENARIO_NAMES} liveScenarios={live} api={api} stream={stream} newRunId={() => "run-1"} />);
+
+describe("<ScenarioRunner> with the live agent", () => {
+  it("AGT-11: without GEMINI_API_KEY there are no live buttons and no live note", () => {
+    mount(pendingApi().api);
+    expect(screen.queryAllByRole("button", { name: /^Run with live AI agent/ })).toHaveLength(0);
+    expect(screen.queryByText(/Gemini/)).toBeNull();
+  });
+
+  it("AGT-11: with it, three scenarios offer a live run, and the runaway loop says it's scripted only", () => {
+    mountLive(pendingApi().api);
+    for (const title of ["Normal purchase", "Prompt injection", "Intent drift"]) {
+      expect(within(screen.getByRole("region", { name: title })).getByRole("button", { name: `Run with live AI agent: ${title}` })).toBeTruthy();
+    }
+    const runaway = screen.getByRole("region", { name: "Runaway loop" });
+    expect(within(runaway).queryByRole("button", { name: /live/ })).toBeNull();
+    expect(runaway.textContent).toContain("Scripted only");
+    expect(screen.getAllByRole("note").map((n) => n.textContent).join(" ")).toContain("Gemini on its free tier");
+  });
+
+  it("AGT-16: a live run is labeled, and each step shows its drift score next to the decision", async () => {
+    const { api, finish } = pendingApi();
+    mountLive(api);
+    fireEvent.click(screen.getByRole("button", { name: "Run with live AI agent: Intent drift" }));
+    expect(api.run).toHaveBeenCalledWith("drift", "run-1", "gemini");
+    await act(async () => {
+      FakeSource.last.emit("audit", started("run-1", "agent-run"));
+      FakeSource.last.emit(
+        "audit",
+        event("decision", {
+          agent_id: "agent-run",
+          request: { vendor: "gpu-cloud", tool: "x402.pay", amount_micros: "250000", advisory_drift_score: 100 },
+          decision: "deny",
+          reasons: [{ code: "DENY_INTENT_DRIFT" }, { code: "ADVISORY_DRIFT" }],
+        }),
+      );
+    });
+    const item = within(await screen.findByRole("log", { name: "Steps" })).getAllByRole("listitem")[0]!;
+    expect(item.textContent).toContain("Drift score: 100/100");
+    expect(item.textContent).toContain("Held: the drift check thinks this may be off-task");
+    await finish({ status: 200, body: { ...injectionResponse, agent: "gemini", stop: "finished" } });
+    expect(screen.getByRole("heading", { name: /^Intent drift\s*Live AI agent$/ })).toBeTruthy();
+  });
+
+  it("AGT-14: a Gemini rate limit says so and offers the scripted run, which then runs scripted", async () => {
+    const { api, finish } = pendingApi();
+    mountLive(api);
+    fireEvent.click(screen.getByRole("button", { name: "Run with live AI agent: Prompt injection" }));
+    await finish({ status: 200, body: { ...injectionResponse, completed: false, agent: "gemini", stop: "gemini_rate_limited" } });
+    expect(statusText()).toContain("free-tier rate limit");
+    expect(statusText()).not.toContain("The run stopped before it finished");
+    fireEvent.click(screen.getByRole("button", { name: "Run the scripted agent instead" }));
+    expect(api.run).toHaveBeenLastCalledWith("injection", "run-1", "scripted");
+  });
+
+  it("AGT-14, AGT-15: other stops get their own message; only Gemini failures offer the scripted run", async () => {
+    for (const [stop, message, offer] of [
+      ["gemini_failed", "couldn't get an answer from Gemini", true],
+      ["tool_call_cap", "limit of 15 tool calls", false],
+      ["turn_cap", "limit of 8 turns", false],
+      ["time_limit", "ran out of time", false],
+    ] as const) {
+      const { api, finish } = pendingApi();
+      const { unmount } = mountLive(api);
+      fireEvent.click(screen.getByRole("button", { name: "Run with live AI agent: Normal purchase" }));
+      await finish({ status: 200, body: { ...injectionResponse, completed: false, agent: "gemini", stop } });
+      expect(statusText()).toContain(message);
+      expect(screen.queryByRole("button", { name: "Run the scripted agent instead" }) !== null).toBe(offer);
+      unmount();
+    }
+  });
+
+  it("AGT-11: a used-up daily quota has its own message", async () => {
+    const { api, finish } = pendingApi();
+    mountLive(api);
+    fireEvent.click(screen.getByRole("button", { name: "Run with live AI agent: Normal purchase" }));
+    await finish({ status: 429, body: { error: "LIVE_QUOTA_USED" } });
+    expect(statusText()).toContain("Today's live AI runs are used up");
+    expect(screen.getByRole("button", { name: "Run the scripted agent instead" })).toBeTruthy();
   });
 });
 

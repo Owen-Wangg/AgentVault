@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { LIVE_SCENARIO_NAMES } from "@/agents/gemini/scenarios";
 import { SCENARIO_NAMES } from "@/agents/scripted/scenarios";
 import { defaultDashboardDeps, withDashboardDb } from "@/server/dashboard/context";
+import { env } from "@/server/env";
 import { currentSandbox } from "@/server/sandbox/sandbox";
 import { DataState } from "@/ui/components/DataState";
 import { getCopy } from "@/ui/server-copy";
@@ -16,5 +18,7 @@ export const metadata: Metadata = { title: "Scenarios" };
 export default async function ScenariosPage() {
   const sandbox = await withDashboardDb(defaultDashboardDeps(), "scenarios sandbox", (db) => currentSandbox(db));
   if (!sandbox) return <DataState status="empty" empty={(await getCopy()).t("workspace.none")} />;
-  return <ScenarioRunner workspaceId={sandbox.id} scenarios={SCENARIO_NAMES} />;
+  // AGT-11: live buttons only where GEMINI_API_KEY is set. Only the scenario names reach the client, never the key.
+  const liveScenarios = env.geminiEnabled() ? LIVE_SCENARIO_NAMES : [];
+  return <ScenarioRunner workspaceId={sandbox.id} scenarios={SCENARIO_NAMES} liveScenarios={liveScenarios} />;
 }

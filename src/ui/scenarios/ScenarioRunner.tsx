@@ -1,6 +1,6 @@
 "use client";
 
-import { Play, ShieldAlert } from "lucide-react";
+import { Bot, Play, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import type { ScenarioName } from "@/agents/scripted/scenarios";
@@ -10,27 +10,29 @@ import { Badge, Button, Card, CardTitle, PageTitle } from "@/ui/components/primi
 import type { UiKey } from "@/ui/copy";
 import { useCopy } from "@/ui/ThemeProvider";
 import { type EventStreamOptions, useEventStream } from "@/ui/events/use-event-stream";
-import { type RunResult, type RunStep, parseRunResult, runAgentId, runSteps } from "./run-view";
+import { type LiveStop, type RunResult, type RunStep, parseRunResult, runAgentId, runSteps } from "./run-view";
+
+export type RunAgentKind = "scripted" | "gemini";
 
 export interface ScenariosApi {
-  run: (name: ScenarioName, runId: string) => Promise<{ status: number; body: unknown }>;
+  run: (name: ScenarioName, runId: string, agent?: RunAgentKind) => Promise<{ status: number; body: unknown }>;
 }
 
 export const httpScenariosApi: ScenariosApi = {
-  run: async (name, runId) => {
+  run: async (name, runId, agent = "scripted") => {
     const response = await fetch(`/api/v1/scenarios/${encodeURIComponent(name)}/run`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ run_id: runId }),
+      body: JSON.stringify({ run_id: runId, ...(agent === "gemini" ? { agent } : {}) }),
     });
     return { status: response.status, body: await response.json().catch(() => null) };
   },
 };
 
 type Run =
-  | { name: ScenarioName; runId: string; phase: "running" }
-  | { name: ScenarioName; runId: string; phase: "done"; result: RunResult }
-  | { name: ScenarioName; runId: string; phase: "failed"; message: UiKey };
+  | { name: ScenarioName; runId: string; agent: RunAgentKind; phase: "running" }
+  | { name: ScenarioName; runId: string; agent: RunAgentKind; phase: "done"; result: RunResult }
+  | { name: ScenarioName; runId: string; agent: RunAgentKind; phase: "failed"; message: UiKey };
 
 const titleKey = (name: ScenarioName) => `scenario.${name}.title` as UiKey;
 const descriptionKey = (name: ScenarioName) => `scenario.${name}.description` as UiKey;
@@ -38,27 +40,43 @@ const descriptionKey = (name: ScenarioName) => `scenario.${name}.description` as
 const DECISION_TONE = { allow: "allow", hold: "hold", deny: "deny" } as const;
 
 /** Why a run didn't start or didn't return, as a copy key. */
-function failureOf(status: number): UiKey {
+function failureOf(status: number, body: unknown): UiKey {
   if (status === 409) return "scenarios.busy";
+  if (status === 429 && (body as { error?: unknown } | null)?.error === "LIVE_QUOTA_USED") return "scenarios.liveQuotaUsed";
   if (status === 429) return "error.rateLimited";
   return "error.generic";
 }
+
+/** What to say about a live run that didn't finish on its own (AGT-14, AGT-15), and whether to offer the scripted run. */
+const LIVE_STOP_COPY: Partial<Record<LiveStop, { key: UiKey; offerScripted: boolean }>> = {
+  gemini_rate_limited: { key: "scenarios.liveRateLimited", offerScripted: true },
+  gemini_failed: { key: "scenarios.liveFailed", offerScripted: true },
+  tool_call_cap: { key: "scenarios.liveToolCap", offerScripted: false },
+  turn_cap: { key: "scenarios.liveTurnCap", offerScripted: false },
+  time_limit: { key: "scenarios.liveTimeLimit", offerScripted: false },
+};
 
 /**
  * The scenarios page (demo-agents AGT-1, AGT-3, AGT-10): one card per
  * scenario, the running scenario's steps as they arrive on the event
  * stream, and a summary when it finishes. Runs always use the public
  * sandbox, so `workspaceId` is the current sandbox's.
+ *
+ * `liveScenarios` lists the scenarios the live Gemini agent can run. It
+ * is empty when GEMINI_API_KEY is unset, which hides every live button
+ * (AGT-11).
  */
 export function ScenarioRunner({
   workspaceId,
   scenarios,
+  liveScenarios = [],
   api = httpScenariosApi,
   stream,
   newRunId = () => crypto.randomUUID(),
 }: {
   workspaceId: string;
   scenarios: readonly ScenarioName[];
+  liveScenarios?: readonly ScenarioName[];
   api?: ScenariosApi;
   stream?: EventStreamOptions;
   newRunId?: () => string;
@@ -69,30 +87,39 @@ export function ScenarioRunner({
   const [run, setRun] = useState<Run | null>(null);
   const { events, status } = useEventStream(workspaceId, stream);
   const running = run?.phase === "running";
+  const liveOn = liveScenarios.length > 0;
 
   // The response names the agent too, but the stream's scenario_started arrives first.
   const agentId = run ? (run.phase === "done" ? run.result.agentId : runAgentId(events, run.runId)) : null;
   const steps = agentId ? runSteps(events, agentId) : [];
 
-  async function start(name: ScenarioName) {
+  async function start(name: ScenarioName, agent: RunAgentKind = "scripted") {
     const runId = newRunId();
-    setRun({ name, runId, phase: "running" });
+    setRun({ name, runId, agent, phase: "running" });
     try {
-      const r = await api.run(name, runId);
+      const r = await api.run(name, runId, agent);
       const result = r.status === 200 ? parseRunResult(r.body) : null;
-      setRun(result ? { name, runId, phase: "done", result } : { name, runId, phase: "failed", message: failureOf(r.status) });
+      setRun(result ? { name, runId, agent, phase: "done", result } : { name, runId, agent, phase: "failed", message: failureOf(r.status, r.body) });
     } catch {
-      setRun({ name, runId, phase: "failed", message: "error.generic" });
+      setRun({ name, runId, agent, phase: "failed", message: "error.generic" });
     }
   }
+
+  const liveStop = run?.phase === "done" && run.result.stop ? LIVE_STOP_COPY[run.result.stop] : undefined;
+  const offerScripted = run !== null && run.agent === "gemini" && ((run.phase === "done" && liveStop?.offerScripted) || run.phase === "failed");
 
   return (
     <>
       <PageTitle actions={<StreamStatusBadge status={status} />}>{t("scenarios.title")}</PageTitle>
       <p className="mb-2 text-sm">{t("scenarios.intro")}</p>
-      <p className="mb-6 text-sm text-text-muted" role="note">
+      <p className={`${liveOn ? "mb-2" : "mb-6"} text-sm text-text-muted`} role="note">
         {t("scenarios.sandboxNote")}
       </p>
+      {liveOn ? (
+        <p className="mb-6 text-sm text-text-muted" role="note">
+          {t("scenarios.liveNote")}
+        </p>
+      ) : null}
 
       <ul className="grid gap-4 sm:grid-cols-2">
         {scenarios.map((name) => (
@@ -102,12 +129,19 @@ export function ScenarioRunner({
                 {title(name)}
               </h2>
               <p className="flex-1 text-sm text-text-muted">{description(name)}</p>
-              <div>
+              <div className="flex flex-wrap items-center gap-2">
                 <Button disabled={running} onClick={() => void start(name)} aria-label={`${t("scenarios.run")}: ${title(name)}`}>
                   <Play aria-hidden="true" className="size-4" />
-                  {run?.phase === "running" && run.name === name ? t("scenarios.running") : t("scenarios.run")}
+                  {run?.phase === "running" && run.name === name && run.agent === "scripted" ? t("scenarios.running") : t("scenarios.run")}
                 </Button>
+                {liveOn && liveScenarios.includes(name) ? (
+                  <Button variant="secondary" disabled={running} onClick={() => void start(name, "gemini")} aria-label={`${t("scenarios.runLive")}: ${title(name)}`}>
+                    <Bot aria-hidden="true" className="size-4" />
+                    {run?.phase === "running" && run.name === name && run.agent === "gemini" ? t("scenarios.running") : t("scenarios.runLive")}
+                  </Button>
+                ) : null}
               </div>
+              {liveOn && !liveScenarios.includes(name) ? <p className="text-xs text-text-muted">{t("scenarios.liveScriptedOnly")}</p> : null}
             </Card>
           </li>
         ))}
@@ -115,14 +149,22 @@ export function ScenarioRunner({
 
       {run ? (
         <section aria-labelledby="run-title" className="mt-8">
-          <h2 id="run-title" className="mb-3 text-lg font-semibold">
+          <h2 id="run-title" className="mb-3 flex flex-wrap items-center gap-2 text-lg font-semibold">
             {title(run.name)}
+            {run.agent === "gemini" ? <Badge tone="accent">{t("scenarios.liveBadge")}</Badge> : null}
           </h2>
-          <p role="status" aria-live="polite" className="mb-3 text-sm">
+          <div role="status" aria-live="polite" className="mb-3 flex flex-wrap items-center gap-2 text-sm">
             {run.phase === "running" ? t("scenarios.running") : null}
             {run.phase === "failed" ? <Badge tone="deny">{t(run.message)}</Badge> : null}
-            {run.phase === "done" && !run.result.completed ? <Badge tone="hold">{t("scenarios.stopped")}</Badge> : null}
-          </p>
+            {run.phase === "done" && liveStop ? <Badge tone="hold">{t(liveStop.key)}</Badge> : null}
+            {run.phase === "done" && !run.result.completed && !liveStop ? <Badge tone="hold">{t("scenarios.stopped")}</Badge> : null}
+            {offerScripted ? (
+              <Button variant="secondary" disabled={running} onClick={() => void start(run.name)}>
+                <Play aria-hidden="true" className="size-4" />
+                {t("scenarios.runScripted")}
+              </Button>
+            ) : null}
+          </div>
           <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
             <Card>
               <CardTitle>{t("scenarios.steps")}</CardTitle>
@@ -160,6 +202,12 @@ function StepList({ steps, running }: { steps: RunStep[]; running: boolean }) {
                 <span>{step.row.vendor}</span>
                 <Amount value={step.row.amountMicros} />
                 <Badge tone={DECISION_TONE[step.row.decision]}>{t(`decision.${step.row.decision}`)}</Badge>
+                {/* AGT-16: the advisory score next to the decision it fed. */}
+                {step.row.advisoryDriftScore !== undefined ? (
+                  <span className="text-text-muted">
+                    {t("scenarios.driftScore")}: <span className="font-mono">{step.row.advisoryDriftScore}/100</span>
+                  </span>
+                ) : null}
               </span>
               <span className="text-text-muted">
                 {step.row.reasons.length === 0 ? t("feed.noReasons") : step.row.reasons.map((r) => reasonText(r.code)).join(" ")}

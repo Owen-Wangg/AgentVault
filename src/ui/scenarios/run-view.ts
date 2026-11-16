@@ -48,10 +48,17 @@ export interface RunSummaryView {
   reasons: { code: string; count: number }[];
 }
 
+/** Why a live run stopped (demo-agents AGT-14, AGT-15). Scripted runs have none. */
+export const LIVE_STOPS = ["finished", "tool_call_cap", "turn_cap", "time_limit", "gemini_rate_limited", "gemini_failed", "api_error"] as const;
+export type LiveStop = (typeof LIVE_STOPS)[number];
+
 export interface RunResult {
   agentId: string;
   completed: boolean;
   summary: RunSummaryView;
+  /** Which agent ran the steps. */
+  agent: "scripted" | "gemini";
+  stop?: LiveStop;
 }
 
 const Count = z.number().int().nonnegative();
@@ -59,6 +66,9 @@ const Count = z.number().int().nonnegative();
 const RunResponse = z.looseObject({
   agent_id: z.string(),
   completed: z.boolean(),
+  agent: z.enum(["scripted", "gemini"]).optional(),
+  // An unknown stop code still shows the run, just without a reason.
+  stop: z.enum(LIVE_STOPS).optional().catch(undefined),
   summary: z.looseObject({
     requests: Count,
     allowed_micros: MicrosSchema,
@@ -77,6 +87,8 @@ export function parseRunResult(body: unknown): RunResult | null {
   return {
     agentId: r.data.agent_id,
     completed: r.data.completed,
+    agent: r.data.agent ?? "scripted",
+    ...(r.data.stop ? { stop: r.data.stop } : {}),
     summary: {
       requests: s.requests,
       allowedMicros: s.allowed_micros,

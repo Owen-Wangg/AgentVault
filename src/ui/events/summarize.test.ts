@@ -26,6 +26,22 @@ const decision = (decision: "allow" | "hold" | "deny", amount: string, codes: st
 const rail = (decisionSeq: number, status: "settled" | "failed" | "unknown", settled?: string, msAgo?: number) =>
   ev("rail_result", { status, rail: "mock", decision_seq: decisionSeq, ...(settled ? { settled_micros: settled } : {}) }, msAgo);
 
+describe("advisory drift score on a decision", () => {
+  const scored = (score: unknown) =>
+    ev("decision", { agent_id: "a1", request: { vendor: "gpu-cloud", tool: "x402.pay", amount_micros: "250000", advisory_drift_score: score }, decision: "hold", reasons: [{ code: "ADVISORY_DRIFT" }] });
+
+  it("AGT-16: a row carries the score the live agent sent", () => {
+    expect(feedRows([scored(85)])[0]?.advisoryDriftScore).toBe(85);
+    expect(feedRows([decision("allow", "1500")])[0]).not.toHaveProperty("advisoryDriftScore");
+  });
+
+  it.each([101, -1, 7.5, "85", null])("AGT-16: a malformed score (%j) is dropped and the row still shows", (score) => {
+    const [row] = feedRows([scored(score)]);
+    expect(row?.decision).toBe("hold");
+    expect(row).not.toHaveProperty("advisoryDriftScore");
+  });
+});
+
 describe("feed rows", () => {
   it("UI-6: one row per decision, newest first, with the rail outcome attached and amounts as exact micros", () => {
     const d1 = decision("allow", "1500");

@@ -54,6 +54,8 @@ export interface FeedRow {
   railStatus?: RailStatus;
   /** Set for a re-run of an approved request (HITL-2). */
   approvalId?: string;
+  /** The live agent's advisory drift score, 0 to 100, when it sent one (AGT-16). */
+  advisoryDriftScore?: number;
 }
 
 const DetailSchema = z
@@ -62,7 +64,8 @@ const DetailSchema = z
 
 const DecisionPayload = z.looseObject({
   agent_id: z.string(),
-  request: z.looseObject({ vendor: z.string(), tool: z.string(), amount_micros: MicrosSchema }),
+  // A malformed score is dropped rather than hiding the whole decision.
+  request: z.looseObject({ vendor: z.string(), tool: z.string(), amount_micros: MicrosSchema, advisory_drift_score: z.unknown().optional() }),
   decision: z.enum(["allow", "hold", "deny"]),
   reasons: z.array(z.looseObject({ code: z.string(), detail: DetailSchema.optional() })),
   approval_id: z.string().optional(),
@@ -91,8 +94,11 @@ export function decisionRow(event: AuditEventMessage): FeedRow | null {
     decision: p.data.decision,
     reasons: p.data.reasons.map((r) => (r.detail ? { code: r.code, detail: r.detail } : { code: r.code })),
     ...(p.data.approval_id ? { approvalId: p.data.approval_id } : {}),
+    ...(isScore(p.data.request.advisory_drift_score) ? { advisoryDriftScore: p.data.request.advisory_drift_score } : {}),
   };
 }
+
+const isScore = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 100;
 
 /** Decision rows, newest first, with each rail outcome attached to its decision. */
 export function feedRows(events: readonly AuditEventMessage[]): FeedRow[] {

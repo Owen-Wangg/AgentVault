@@ -140,6 +140,18 @@ type UiKey =
   | "scenarios.openApprovals"
   | "scenarios.busy"
   | "scenarios.stopped"
+  | "scenarios.runLive"
+  | "scenarios.liveNote"
+  | "scenarios.liveBadge"
+  | "scenarios.liveScriptedOnly"
+  | "scenarios.liveRateLimited"
+  | "scenarios.liveFailed"
+  | "scenarios.liveQuotaUsed"
+  | "scenarios.liveToolCap"
+  | "scenarios.liveTurnCap"
+  | "scenarios.liveTimeLimit"
+  | "scenarios.runScripted"
+  | "scenarios.driftScore"
   | "nav.audit"
   | "audit.title"
   | "audit.intro"
@@ -330,6 +342,19 @@ const defaultCopy: CopyTable = {
   "scenarios.openApprovals": "Approve or deny the held request in the inbox",
   "scenarios.busy": "Someone else is running this scenario right now. Try again in a few seconds.",
   "scenarios.stopped": "The run stopped before it finished. Try again in a moment.",
+  "scenarios.runLive": "Run with live AI agent",
+  "scenarios.liveNote":
+    "The live AI agent is Gemini on its free tier. The model chooses what to ask for, and AgentVault's rules still decide every request. A real model may not fall for the attack, and then there is nothing to stop.",
+  "scenarios.liveBadge": "Live AI agent",
+  "scenarios.liveScriptedOnly": "Scripted only: the loop comes from a retry bug in agent code, not from a model's choice.",
+  "scenarios.liveRateLimited": "The live AI agent hit Gemini's free-tier rate limit, so the run stopped. Run the scripted agent, or try again in a minute.",
+  "scenarios.liveFailed": "The live AI agent couldn't get an answer from Gemini, so the run stopped. Run the scripted agent instead.",
+  "scenarios.liveQuotaUsed": "Today's live AI runs are used up. The scripted runs still work.",
+  "scenarios.liveToolCap": "The live AI agent stopped at its limit of 15 tool calls.",
+  "scenarios.liveTurnCap": "The live AI agent stopped at its limit of 8 turns.",
+  "scenarios.liveTimeLimit": "The live AI agent ran out of time and stopped.",
+  "scenarios.runScripted": "Run the scripted agent instead",
+  "scenarios.driftScore": "Drift score",
   "nav.audit": "Audit",
   "audit.title": "Audit log",
   "audit.intro": "Every decision and action, in order. Each event's hash covers the event and the hash before it, and the server signs the newest one, so an edited, removed, or reordered event breaks the chain.",
@@ -403,6 +428,9 @@ const kiroweenCopy: CopyTable = {
   "audit.verified": "The chain holds. No spirit has meddled with it.",
   "audit.broken": "The chain is cursed at seq",
   "settings.on": "Kiroween mode is on. Happy haunting.",
+  "scenarios.runLive": "Summon a live AI agent",
+  "scenarios.liveBadge": "Summoned AI agent",
+  "scenarios.liveQuotaUsed": "Today's summonings are spent. The scripted runs still work.",
 };
 
 export const copy = { default: defaultCopy, kiroween: kiroweenCopy } satisfies Record<Theme, CopyTable>;
