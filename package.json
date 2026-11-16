@@ -35,6 +35,7 @@
     "stripe:seed": "tsx scripts/stripe-seed.ts",
     "mpp:validate": "tsx scripts/mpp-validate.ts",
     "stripe:probe": "tsx scripts/stripe-probe.ts",
+    "connect:check": "tsx scripts/connect-check.ts",
     "gemini:probe": "tsx scripts/gemini-probe.ts",
     "mcp": "tsx src/mcp/stdio.ts",
     "mcp:agent": "tsx scripts/mcp-agent.ts"
