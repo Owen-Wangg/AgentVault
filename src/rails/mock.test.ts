@@ -159,7 +159,7 @@ describe("RAIL-2: railFor", () => {
 
   it("RAIL-2: mock mode uses the mock adapter for every rail", () => {
     const mocks = createMockRails(mockConfig);
-    for (const rail of ["stripe", "x402", "mock"] as const) {
+    for (const rail of ["stripe", "x402", "mock", "paypal"] as const) {
       expect(railFor(rail, { isSandbox: false }, { config: mockConfig, mocks, real: { x402: fakeReal } })).toBe(mocks[rail]);
     }
   });
@@ -183,6 +183,6 @@ describe("RAIL-2: railFor", () => {
 
   it("each simulated rail has its rail's minimum", () => {
     const mocks = createMockRails({ x402MinUnits: 25n });
-    expect([mocks.stripe.minimumUnits, mocks.x402.minimumUnits, mocks.mock.minimumUnits]).toEqual([50n, 25n, 1n]);
+    expect([mocks.stripe.minimumUnits, mocks.x402.minimumUnits, mocks.mock.minimumUnits, mocks.paypal.minimumUnits]).toEqual([50n, 25n, 1n, 1n]);
   });
 });

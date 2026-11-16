@@ -20,6 +20,13 @@ describe("ENV-15: input schemas", () => {
     expect(EvaluateInputSchema.safeParse(validInput()).success).toBe(true);
   });
 
+  it("PO-14: accepts a tool on the paypal rail", () => {
+    const input = validInput();
+    input.tool = { name: "paypal.payout", privileged: true, rail: "paypal" };
+    input.request.tool = "paypal.payout";
+    expect(EvaluateInputSchema.safeParse(input).success).toBe(true);
+  });
+
   it("ENV-15: the schema accepts every value of the EvaluateInput type", () => {
     // Compile-time check: if a field is added to the types but not the schema, this stops compiling.
     type Extends<A, B> = [A] extends [B] ? true : false;
@@ -55,7 +62,7 @@ describe("ENV-15: input schemas", () => {
     ["a missing tool definition", (i) => delete (i as Record<string, unknown>).tool],
     ["a tool definition for another tool", (i) => (i.tool!.name = "stripe.refund")],
     ["a non-boolean privileged flag", (i) => (i.tool!.privileged = "true")],
-    ["an unknown rail", (i) => (i.tool!.rail = "paypal")],
+    ["an unknown rail", (i) => (i.tool!.rail = "venmo")],
     ["an unknown tool definition field", (i) => (i.tool!.direction = "debit")],
     ["a non-string task category", (i) => (i.scope!.allowedVendorCategories = [1])],
   ])("ENV-15: rejects %s", (_name, change) => {

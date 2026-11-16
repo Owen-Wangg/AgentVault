@@ -102,7 +102,7 @@ export const TaskScopeSchema = z.strictObject({
 export const ToolDefSchema = z.strictObject({
   name: Id,
   privileged: z.boolean(),
-  rail: z.enum(["stripe", "x402", "mock"]).nullable(),
+  rail: z.enum(["stripe", "x402", "mock", "paypal"]).nullable(),
 });
 
 export const EvaluateInputSchema = z

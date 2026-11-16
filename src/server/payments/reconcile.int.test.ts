@@ -160,7 +160,8 @@ describe("RES-6, RES-3, RES-9: resolving unknown outcomes", () => {
       throw new Error("ECONNRESET");
     });
     expect(await reconcile({ ...base, railFor: () => throwing }, { agentId: scene.agent.id })).toMatchObject({ unknown: 1 });
-    await db().update(spendReservations).set({ rail: "paypal" }).where(eq(spendReservations.agentId, scene.agent.id));
+    // A rail name the reconciler doesn't know.
+    await db().update(spendReservations).set({ rail: "venmo" }).where(eq(spendReservations.agentId, scene.agent.id));
     expect(await reconcile({ ...base, railFor: deps.railFor }, { agentId: scene.agent.id })).toMatchObject({ unknown: 1 });
     expect((await reservationsOf(scene.agent.id))[0]?.status).toBe("reserved");
   });

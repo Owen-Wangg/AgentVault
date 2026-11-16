@@ -7,7 +7,8 @@ import { chargeableMicros, toRailUnits, type Direction, type Rail } from "./rail
 
 const RUNS = { numRuns: 1000 };
 const CENT = 10_000n;
-const rails = fc.constantFrom<Rail>("stripe", "x402", "mock");
+const rails = fc.constantFrom<Rail>("stripe", "x402", "mock", "paypal");
+const centRails = fc.constantFrom<Rail>("stripe", "paypal");
 const directions = fc.constantFrom<Direction>("debit", "credit");
 
 /** Property 3 as a reusable predicate, so it can also be run against the broken fixture. */
@@ -39,6 +40,24 @@ describe("rail conversion properties", () => {
   // for all m, rails, and directions, chargeableMicros(m, rail, dir) >= m.
   it("MON-10, MON-11: the amount counted against the envelope is never less than requested", () => {
     fc.assert(fc.property(microsWithEdges(), rails, directions, (m, rail, dir) => chargeableMicros(m, rail, dir) >= m), RUNS);
+  });
+
+  // payout-rails property 2, payouts never favor the payee (PO-3): for any
+  // amount, toRailUnits(m, "stripe" | "paypal", "credit") * 10_000n <= m,
+  // and the envelope counts at least m.
+  it("PO-3: a Stripe or PayPal payout never sends more than approved, and counts at least the full amount", () => {
+    fc.assert(
+      fc.property(microsWithEdges(), centRails, (m, rail) => {
+        const cents = toRailUnits(m, rail, "credit");
+        return cents * CENT <= m && cents * CENT > m - CENT && chargeableMicros(m, rail, "credit") >= m;
+      }),
+      RUNS,
+    );
+  });
+
+  // Property 3 holds for PayPal too: a cent-rail debit never rounds below the amount.
+  it("MON-7, PO-3: PayPal debits round like Stripe debits", () => {
+    fc.assert(fc.property(microsWithEdges(), (m) => toRailUnits(m, "paypal", "debit") === toRailUnits(m, "stripe", "debit")), RUNS);
   });
 
   it("MON-9: x402 and mock conversion is exact in both directions", () => {

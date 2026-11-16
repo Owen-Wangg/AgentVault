@@ -33,6 +33,28 @@ describe("MON-8: Stripe credits round down to the whole cent", () => {
   });
 });
 
+describe("PO-3: PayPal uses cents with the same directional rounding as Stripe", () => {
+  it.each([
+    [0n, 0n, 0n],
+    [1n, 1n, 0n],
+    [9_999n, 1n, 0n],
+    [10_000n, 1n, 1n],
+    [19_999n, 2n, 1n],
+    [900_000_000n, 90_000n, 90_000n],
+  ])("PO-3: %s micros debits %s cents and pays out %s cents", (amount, debitCents, creditCents) => {
+    expect(toRailUnits(m(amount), "paypal", "debit")).toBe(debitCents);
+    expect(toRailUnits(m(amount), "paypal", "credit")).toBe(creditCents);
+  });
+
+  it("PO-3: a PayPal payout of 19,999 micros sends 1 cent and counts in full", () => {
+    expect(chargeableMicros(m(19_999n), "paypal", "credit")).toBe(19_999n);
+  });
+
+  it("PO-3: PayPal cents convert back to micros exactly", () => {
+    expect(fromRailUnits(90_000n, "paypal")).toBe(900_000_000n);
+  });
+});
+
 describe("MON-9: x402 and mock convert 1:1", () => {
   it.each(["x402", "mock"] as const)("MON-9: %s units equal micros in both directions", (rail) => {
     for (const amount of [0n, 1n, 1_500n, 9_999n, MAX_MICROS]) {
@@ -85,8 +107,9 @@ describe("conversion input checks", () => {
 
   it("rejects an unknown rail, an unknown direction, and number inputs", () => {
     const asAny = (v: unknown) => v as never;
-    expect(() => toRailUnits(m(1n), asAny("paypal"), "debit")).toThrow(InvalidAmountError);
-    expect(() => chargeableMicros(m(1n), asAny("paypal"), "credit")).toThrow(InvalidAmountError);
+    expect(() => toRailUnits(m(1n), asAny("venmo"), "debit")).toThrow(InvalidAmountError);
+    expect(() => chargeableMicros(m(1n), asAny("venmo"), "credit")).toThrow(InvalidAmountError);
+    expect(() => fromRailUnits(1n, asAny("venmo"))).toThrow(InvalidAmountError);
     expect(() => toRailUnits(m(1n), "stripe", asAny("sideways"))).toThrow(InvalidAmountError);
     expect(() => fromRailUnits(asAny(50), "stripe")).toThrow(InvalidAmountError);
     expect(() => toRailUnits(asAny(1500), "stripe", "debit")).toThrow(InvalidAmountError);

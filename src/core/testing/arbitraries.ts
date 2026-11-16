@@ -134,7 +134,7 @@ export const toolDefArb = (name: string): fc.Arbitrary<ToolDef> =>
   fc.record({
     name: fc.constant(name),
     privileged: fc.boolean(),
-    rail: fc.constantFrom<Rail | null>("stripe", "x402", "mock", null),
+    rail: fc.constantFrom<Rail | null>("stripe", "x402", "mock", "paypal", null),
   });
 
 /** Hold codes an approval re-run might carry (HITL-2). Duplicates are allowed: the schema accepts them. */

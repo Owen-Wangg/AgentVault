@@ -35,6 +35,10 @@ describe("TAINT-6, TAINT-7: taintRules", () => {
     expect(taintRules(tainted(), { name, privileged: false, rail: null }).map((r) => r.code)).toEqual(["HELD_TAINTED"]);
   });
 
+  it("PO-18: paypal.payout is on the high-privilege list", () => {
+    expect(HIGH_PRIVILEGE_TOOLS).toContain("paypal.payout");
+  });
+
   it("TAINT-6: any tool flagged privileged is held", () => {
     expect(taintRules(tainted(), { name: "custom.tool", privileged: true, rail: null }).map((r) => r.code)).toEqual(["HELD_TAINTED"]);
   });

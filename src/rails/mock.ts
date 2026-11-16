@@ -22,6 +22,9 @@ import type {
 
 export const STRIPE_MINIMUM_CENTS = 50n;
 
+/** 1 cent until `pnpm paypal:probe` measures PayPal's minimum (payout-rails PO-22). */
+export const PAYPAL_MINIMUM_CENTS = 1n;
+
 /** `mock_tx_` + the first 16 hex chars of sha256(key) (RAIL-19). */
 export function mockRef(idempotencyKey: string): string {
   return `mock_tx_${createHash("sha256").update(idempotencyKey, "utf8").digest("hex").slice(0, 16)}`;

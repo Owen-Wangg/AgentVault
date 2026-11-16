@@ -1,6 +1,6 @@
 import type { Rail } from "@/core/money";
 import type { RailConfig } from "./config";
-import { MockRail, STRIPE_MINIMUM_CENTS } from "./mock";
+import { MockRail, PAYPAL_MINIMUM_CENTS, STRIPE_MINIMUM_CENTS } from "./mock";
 import type { RailAdapter } from "./types";
 
 /**
@@ -30,6 +30,7 @@ export function createMockRails(config: Pick<RailConfig, "x402MinUnits">): MockR
     stripe: new MockRail("stripe", STRIPE_MINIMUM_CENTS),
     x402: new MockRail("x402", config.x402MinUnits),
     mock: new MockRail("mock", 1n),
+    paypal: new MockRail("paypal", PAYPAL_MINIMUM_CENTS),
   };
 }
 

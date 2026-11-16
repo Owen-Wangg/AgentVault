@@ -1,6 +1,6 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
-import { MAX_MICROS, micros } from "@/core/money";
+import { MAX_MICROS, type Rail, micros } from "@/core/money";
 import { evaluate } from "@/core/policy/evaluate";
 import type { EvaluateInput } from "@/core/policy/types";
 import { evaluateInputArb, withoutApproval } from "@/core/testing/arbitraries";
@@ -82,6 +82,47 @@ describe("taint properties", () => {
         const decision = evaluate(tainted);
         if (isHighPrivilege(input.tool)) expect(decision).toMatchObject({ decision: "hold", reasons: [{ code: "HELD_TAINTED" }] });
         else expect(decision).toEqual({ decision: "allow", reasons: [] });
+      }),
+      RUNS,
+    );
+  });
+
+  // payout-rails property 4, taint holds payouts on every rail (PO-19):
+  // after any untrusted fetch, no payout.create, paypal.payout, or
+  // payee.update reaches `allow` without an approval, whatever its rail or
+  // the registry's flag. Half the inputs pass every other rule, so the
+  // taint rule is the only thing between them and `allow`.
+  it("PO-18, PO-19: in a tainted session, payouts and payee changes are held on every rail, whatever the privileged flag", () => {
+    const payoutInput = fc
+      .tuple(
+        evaluateInputArb(),
+        fc.constantFrom("payout.create", "paypal.payout", "payee.update"),
+        fc.boolean(),
+        fc.constantFrom<Rail | null>("stripe", "x402", "mock", "paypal", null),
+        fc.boolean(),
+      )
+      .map(([input, name, privileged, rail, otherwisePermissive]): EvaluateInput => {
+        const base: EvaluateInput = {
+          ...withoutApproval(input),
+          request: { ...input.request, tool: name },
+          tool: { name, privileged, rail },
+          session: { ...input.session, taintedAt: "2026-11-21T10:00:00.000Z", taintSourceUrl: "https://agentvault.example/vendor/docs/invoice" },
+        };
+        if (!otherwisePermissive) return base;
+        return {
+          ...base,
+          request: { ...base.request, vendorCategory: "suppliers" },
+          envelope: { ...base.envelope, limits: {}, vendorLimits: {}, toolLimits: {}, allowedVendors: "*", allowedTools: "*" },
+          window: { ...base.window, callsLastMinute: 0 },
+          session: { ...base.session, agentFrozen: false, sessionSpentMicros: micros(0n) },
+          scope: { ...base.scope, allowedVendorCategories: ["suppliers"], allowedTools: [name], budgetMicros: MAX_MICROS },
+        };
+      });
+    fc.assert(
+      fc.property(payoutInput, (input) => {
+        const decision = evaluate(input);
+        expect(decision.decision).not.toBe("allow");
+        expect(decision.reasons.map((r) => r.code)).toContain("HELD_TAINTED");
       }),
       RUNS,
     );

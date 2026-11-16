@@ -6,7 +6,7 @@ import type { ToolDef } from "./types";
  * They count as high-privilege even if a registry entry forgets the flag,
  * so a mislabeled tool can only be held more, never less.
  */
-export const HIGH_PRIVILEGE_TOOLS: readonly string[] = ["stripe.refund", "wire_transfer", "payout.create", "payee.update"];
+export const HIGH_PRIVILEGE_TOOLS: readonly string[] = ["stripe.refund", "wire_transfer", "payout.create", "payee.update", "paypal.payout"];
 
 export function isHighPrivilege(tool: ToolDef): boolean {
   return tool.privileged || HIGH_PRIVILEGE_TOOLS.includes(tool.name);

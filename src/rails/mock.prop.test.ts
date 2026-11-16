@@ -15,7 +15,7 @@ const amountArb: fc.Arbitrary<Micros> = fc
 
 const RUNS = { numRuns: 1000 };
 const keyArb = fc.constantFrom("k1", "k2", "k3", "k4", "k5");
-const railArb = fc.constantFrom<[Rail, bigint]>(["stripe", 50n], ["x402", 1n], ["x402", 10_000n], ["mock", 1n]);
+const railArb = fc.constantFrom<[Rail, bigint]>(["stripe", 50n], ["x402", 1n], ["x402", 10_000n], ["mock", 1n], ["paypal", 1n]);
 
 const request = (key: string, amount: Micros) => ({ vendorUrl: "https://vendor.example/api", approvedMicros: amount, idempotencyKey: key });
 
