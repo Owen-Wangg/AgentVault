@@ -10,6 +10,24 @@
 export const THEMES = ["default", "kiroween"] as const;
 export type Theme = (typeof THEMES)[number];
 
+export const DEFAULT_THEME: Theme = "default";
+
+/**
+ * The browser keeps the choice in this cookie (UI-17), so the server
+ * renders `data-theme` and the copy for it on the first paint. Only the
+ * dashboard's rendering reads it. Nothing under src/core, src/server,
+ * src/rails, src/agents, src/mcp, app/api, or app/vendor may (UI-18).
+ */
+export const THEME_COOKIE = "av-theme";
+
+/** One year, in seconds. */
+export const THEME_COOKIE_MAX_AGE = 31_536_000;
+
+/** A cookie value is untrusted: anything but a known theme name is the default. */
+export function parseTheme(value: unknown): Theme {
+  return typeof value === "string" && (THEMES as readonly string[]).includes(value) ? (value as Theme) : DEFAULT_THEME;
+}
+
 export const TOKEN_NAMES = [
   "bg",
   "surface",

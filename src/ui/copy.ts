@@ -163,7 +163,14 @@ type UiKey =
   | "audit.why.head"
   | "error.generic"
   | "error.rateLimited"
-  | "error.unauthorized";
+  | "error.unauthorized"
+  | "nav.settings"
+  | "settings.title"
+  | "settings.appearance"
+  | "settings.kiroween"
+  | "settings.kiroweenHint"
+  | "settings.on"
+  | "settings.off";
 
 type CopyTable = Record<ReasonCode | UiKey, string>;
 
@@ -336,6 +343,14 @@ const defaultCopy: CopyTable = {
   "error.generic": "That didn't work. Try again.",
   "error.rateLimited": "Too many actions from your address. Wait a minute and try again.",
   "error.unauthorized": "Sign in to do that.",
+  "nav.settings": "Settings",
+  "settings.title": "Settings",
+  "settings.appearance": "Appearance",
+  "settings.kiroween": "Kiroween mode",
+  "settings.kiroweenHint":
+    "A Halloween look for demos: dark colors, a spooky heading font, and themed wording. It changes only how the dashboard looks and reads. Limits, decisions, and the audit log are the same in both modes. The choice is saved in this browser.",
+  "settings.on": "Kiroween mode is on.",
+  "settings.off": "Kiroween mode is off.",
 };
 
 const kiroweenCopy: CopyTable = {
@@ -352,16 +367,32 @@ const kiroweenCopy: CopyTable = {
 
 export const copy = { default: defaultCopy, kiroween: kiroweenCopy } satisfies Record<Theme, CopyTable>;
 
-/** The theme the UI renders until the Kiroween toggle (telemetry-dashboard task 8) chooses one. */
-export const DEFAULT_THEME: Theme = "default";
-
-export function t(key: ReasonCode | UiKey, theme: Theme = DEFAULT_THEME): string {
+/**
+ * The theme argument is required, so a component can't fall back to the
+ * default copy by accident. Components get these through `useCopy()`
+ * (client) or `getCopy()` (server), bound to the visitor's theme.
+ */
+export function t(key: ReasonCode | UiKey, theme: Theme): string {
   return copy[theme][key];
 }
 
 /** The plain-language sentence for a reason code, or the code itself if it's unknown. */
-export function reasonText(code: string, theme: Theme = DEFAULT_THEME): string {
+export function reasonText(code: string, theme: Theme): string {
   return Object.hasOwn(copy[theme], code) ? copy[theme][code as ReasonCode] : code;
 }
+
+/** The copy functions bound to one theme. */
+export interface Copy {
+  theme: Theme;
+  t: (key: ReasonCode | UiKey) => string;
+  reasonText: (code: string) => string;
+}
+
+const BOUND: Record<Theme, Copy> = {
+  default: { theme: "default", t: (key) => t(key, "default"), reasonText: (code) => reasonText(code, "default") },
+  kiroween: { theme: "kiroween", t: (key) => t(key, "kiroween"), reasonText: (code) => reasonText(code, "kiroween") },
+};
+
+export const copyFor = (theme: Theme): Copy => BOUND[theme];
 
 export type { UiKey };

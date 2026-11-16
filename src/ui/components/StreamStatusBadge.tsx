@@ -1,10 +1,13 @@
+"use client";
+
 import { Radio, WifiOff } from "lucide-react";
-import { t } from "@/ui/copy";
+import { useCopy } from "@/ui/ThemeProvider";
 import type { StreamStatus } from "@/ui/events/use-event-stream";
 import { Badge } from "./primitives";
 
 /** "Live" while the event stream is connected, "Reconnecting…" while it's down (design, "Error handling"). */
 export function StreamStatusBadge({ status }: { status: StreamStatus }) {
+  const { t } = useCopy();
   const live = status === "live";
   return (
     <span role="status" aria-live="polite">

@@ -6,7 +6,8 @@ import { Amount } from "@/ui/components/Amount";
 import { DataState, type DataStatus } from "@/ui/components/DataState";
 import { StreamStatusBadge } from "@/ui/components/StreamStatusBadge";
 import { Badge, Button, Card, PageTitle } from "@/ui/components/primitives";
-import { reasonText, t } from "@/ui/copy";
+import type { Copy } from "@/ui/copy";
+import { useCopy } from "@/ui/ThemeProvider";
 import { type EventStreamOptions, useEventStream } from "@/ui/events/use-event-stream";
 import { agentLabel } from "@/ui/feed/agent-label";
 import { type InboxApproval, parseApprovals, timeLeft } from "./approval-view";
@@ -30,7 +31,7 @@ const APPROVAL_EVENTS = new Set(["approval_created", "approval_decided", "approv
 type Outcome = { id: string; tone: "allow" | "hold" | "deny"; text: string };
 
 /** What happened after approve or deny, in plain language (HITL-2 to HITL-6). */
-function outcomeOf(id: string, status: number, body: unknown): Outcome {
+function outcomeOf(id: string, status: number, body: unknown, { t, reasonText }: Copy): Outcome {
   const b = (body ?? {}) as { status?: unknown; error?: unknown; reasons?: unknown };
   if (status === 200 && b.status === "executed") return { id, tone: "allow", text: t("approvals.executed") };
   if (status === 200 && b.status === "denied") return { id, tone: "deny", text: t("approvals.denied") };
@@ -78,6 +79,8 @@ export function ApprovalsInbox({
   now?: () => number;
   stream?: EventStreamOptions;
 }) {
+  const copy = useCopy();
+  const { t } = copy;
   const [approvals, setApprovals] = useState<InboxApproval[]>([]);
   const [status, setStatus] = useState<DataStatus>("loading");
   const [busy, setBusy] = useState<string | null>(null);
@@ -110,7 +113,7 @@ export function ApprovalsInbox({
     setBusy(approval.id);
     try {
       const r = await api.act(approval.id, action);
-      setOutcome(outcomeOf(approval.id, r.status, r.body));
+      setOutcome(outcomeOf(approval.id, r.status, r.body, copy));
     } catch {
       setOutcome({ id: approval.id, tone: "deny", text: t("error.generic") });
     } finally {
@@ -158,6 +161,7 @@ function ApprovalCard({
   busy: boolean;
   onAct: (action: "approve" | "deny") => void;
 }) {
+  const { t, reasonText } = useCopy();
   const left = timeLeft(a.expiresAt, now);
   const titleId = `approval-${a.id}`;
   return (

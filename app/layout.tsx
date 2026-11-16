@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import type { ReactNode } from "react";
-import { DEFAULT_THEME } from "@/ui/copy";
+import { getTheme } from "@/ui/server-copy";
+import { ThemeProvider } from "@/ui/ThemeProvider";
 import "./globals.css";
 
 // Both fonts are under the SIL Open Font License (UI-20).
@@ -15,10 +16,14 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  // The theme comes from a cookie, so the server renders it and there's no flash of the other one (UI-17).
+  const theme = await getTheme();
   return (
-    <html lang="en" data-theme={DEFAULT_THEME} className={`${inter.variable} ${mono.variable}`}>
-      <body className="min-h-screen bg-bg font-sans text-text antialiased">{children}</body>
+    <html lang="en" data-theme={theme} className={`${inter.variable} ${mono.variable}`}>
+      <body className="min-h-screen bg-bg font-sans text-text antialiased">
+        <ThemeProvider initial={theme}>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }

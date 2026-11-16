@@ -1,5 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
-import { t } from "@/ui/copy";
+import { useCopy } from "@/ui/ThemeProvider";
 import { Button, cn } from "./primitives";
 
 export type DataStatus = "loading" | "error" | "empty" | "ready";
@@ -25,6 +27,7 @@ export function DataState({
   children?: ReactNode;
   className?: string;
 }) {
+  const { t } = useCopy();
   if (status === "ready") return <>{children}</>;
   const box = cn("rounded-card border border-dashed border-border bg-surface p-6 text-center text-sm text-text-muted", className);
   if (status === "loading") {

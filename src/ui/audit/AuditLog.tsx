@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { DataState } from "@/ui/components/DataState";
 import { Badge, Button, Card, PageTitle } from "@/ui/components/primitives";
-import { type UiKey, t } from "@/ui/copy";
+import type { UiKey } from "@/ui/copy";
+import { useCopy } from "@/ui/ThemeProvider";
 import type { AuditEventMessage } from "@/ui/events/summarize";
 import { agentLabel } from "@/ui/feed/agent-label";
 
@@ -25,20 +26,23 @@ export const httpVerifyApi: VerifyApi = {
 };
 
 type Why = "hash" | "link" | "gap" | "head";
-type Outcome = { kind: "ok"; count: number; headSeq: number | null } | { kind: "broken"; seq: number; why: Why; headSeq: number | null } | { kind: "error"; text: string };
+type Outcome = { kind: "ok"; count: number; headSeq: number | null } | { kind: "broken"; seq: number; why: Why; headSeq: number | null } | { kind: "error"; message: UiKey };
 
 const WHYS: readonly Why[] = ["hash", "link", "gap", "head"];
 const isInt = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v);
 
-/** The verify response in plain language (AUD-4, AUD-8). Anything unexpected is an error, never "verified". */
+/**
+ * The verify response, as copy keys the page renders in the visitor's theme (AUD-4, AUD-8).
+ * Anything unexpected is an error, never "verified".
+ */
 export function outcomeOf(status: number, body: unknown): Outcome {
-  if (status === 429) return { kind: "error", text: t("error.rateLimited") };
-  if (status === 401) return { kind: "error", text: t("error.unauthorized") };
+  if (status === 429) return { kind: "error", message: "error.rateLimited" };
+  if (status === 401) return { kind: "error", message: "error.unauthorized" };
   const b = (body ?? {}) as Record<string, unknown>;
   const headSeq = isInt(b.head_seq) ? b.head_seq : null;
   if (status === 200 && b.ok === true && isInt(b.count)) return { kind: "ok", count: b.count, headSeq };
   if (status === 200 && b.ok === false && isInt(b.broken_at_seq) && WHYS.includes(b.why as Why)) return { kind: "broken", seq: b.broken_at_seq, why: b.why as Why, headSeq };
-  return { kind: "error", text: t("error.generic") };
+  return { kind: "error", message: "error.generic" };
 }
 
 const short = (hash: string) => `${hash.slice(0, 12)}…`;
@@ -68,6 +72,7 @@ export function AuditLog({
   agentNames: Record<string, string>;
   api?: VerifyApi;
 }) {
+  const { t } = useCopy();
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
 
@@ -77,7 +82,7 @@ export function AuditLog({
       const r = await api.verify(workspaceId);
       setOutcome(outcomeOf(r.status, r.body));
     } catch {
-      setOutcome({ kind: "error", text: t("error.generic") });
+      setOutcome({ kind: "error", message: "error.generic" });
     } finally {
       setBusy(false);
     }
@@ -117,7 +122,7 @@ export function AuditLog({
             </p>
           </Card>
         ) : null}
-        {outcome?.kind === "error" ? <Badge tone="deny">{outcome.text}</Badge> : null}
+        {outcome?.kind === "error" ? <Badge tone="deny">{t(outcome.message)}</Badge> : null}
       </div>
 
       <DataState status={events.length === 0 ? "empty" : "ready"} empty={t("audit.empty")}>

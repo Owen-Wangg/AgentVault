@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DataState } from "@/ui/components/DataState";
 import { Badge, Button } from "@/ui/components/primitives";
-import { t } from "@/ui/copy";
+import type { UiKey } from "@/ui/copy";
+import { useCopy } from "@/ui/ThemeProvider";
 
 /** What the agents page shows per agent. Matches the server's AgentSummary. */
 export interface AgentRow {
@@ -23,11 +24,12 @@ export type Unfreeze = (agentId: string) => Promise<number>;
 export const postUnfreeze: Unfreeze = async (agentId) =>
   (await fetch(`/api/v1/agents/${encodeURIComponent(agentId)}/unfreeze`, { method: "POST" })).status;
 
-const ERRORS: Record<number, string> = { 401: t("error.unauthorized"), 429: t("error.rateLimited") };
+const ERRORS: Record<number, UiKey> = { 401: "error.unauthorized", 429: "error.rateLimited" };
 
 /** The agents list (UI-7): frozen and tainted status, a link to each envelope, and unfreeze. */
 export function AgentsTable({ agents, canUnfreeze, unfreeze = postUnfreeze, onChanged }: { agents: AgentRow[]; canUnfreeze: boolean; unfreeze?: Unfreeze; onChanged?: () => void }) {
   const router = useRouter();
+  const { t } = useCopy();
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState("");
 
@@ -38,7 +40,7 @@ export function AgentsTable({ agents, canUnfreeze, unfreeze = postUnfreeze, onCh
       const status = await unfreeze(agent.id);
       // 409 means it was already unfrozen, which is the state the user wanted.
       if (status === 200 || status === 409) (onChanged ?? router.refresh)();
-      else setMessage(ERRORS[status] ?? t("error.generic"));
+      else setMessage(t(ERRORS[status] ?? "error.generic"));
     } catch {
       setMessage(t("error.generic"));
     } finally {

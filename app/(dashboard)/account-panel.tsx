@@ -2,13 +2,14 @@ import { LogIn, LogOut } from "lucide-react";
 import { signIn, signOut } from "@/server/auth/auth";
 import type { DashboardContext } from "@/server/dashboard/context";
 import { Button } from "@/ui/components/primitives";
-import { t } from "@/ui/copy";
+import { getCopy } from "@/ui/server-copy";
 
 /**
  * Sign in with GitHub or sign out (UI-2). Server actions: Next.js checks
  * that their Origin matches the host, so another site can't submit them.
  */
-export function AccountPanel({ context }: { context: DashboardContext }) {
+export async function AccountPanel({ context }: { context: DashboardContext }) {
+  const { t } = await getCopy();
   if (context.user) {
     return (
       <form

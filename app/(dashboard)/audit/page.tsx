@@ -3,7 +3,7 @@ import { listAuditEvents } from "@/server/dashboard/audit";
 import { defaultDashboardDeps, withDashboardDb } from "@/server/dashboard/context";
 import { AuditLog } from "@/ui/audit/AuditLog";
 import { DataState } from "@/ui/components/DataState";
-import { t } from "@/ui/copy";
+import { getCopy } from "@/ui/server-copy";
 import { getAgentNames } from "../agent-names";
 import { getDashboardContext } from "../dashboard-context";
 
@@ -17,7 +17,7 @@ function cursor(value: string | string[] | undefined): number | undefined {
 
 export default async function AuditPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { workspace } = await getDashboardContext();
-  if (!workspace) return <DataState status="empty" empty={t("workspace.none")} />;
+  if (!workspace) return <DataState status="empty" empty={(await getCopy()).t("workspace.none")} />;
   const before = cursor((await searchParams).before);
   const page = await withDashboardDb(defaultDashboardDeps(), "audit list", (db) => listAuditEvents(db, workspace.id, before === undefined ? {} : { before }));
   return <AuditLog workspaceId={workspace.id} events={page.events} older={page.older} isFirstPage={before === undefined} agentNames={await getAgentNames(workspace.id)} />;

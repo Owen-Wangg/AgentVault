@@ -6,7 +6,7 @@ import { getAgentEnvelope } from "@/server/agents/manage";
 import { defaultDashboardDeps, withDashboardDb } from "@/server/dashboard/context";
 import { EnvelopeEditorForAgent } from "@/ui/agents/EnvelopeEditorForAgent";
 import { PageTitle } from "@/ui/components/primitives";
-import { t } from "@/ui/copy";
+import { getCopy } from "@/ui/server-copy";
 import { getDashboardContext } from "../../dashboard-context";
 
 export const metadata: Metadata = { title: "Envelope" };
@@ -18,6 +18,7 @@ export default async function AgentEnvelopePage({ params }: { params: Promise<{ 
   // Only agents in the workspace this reader sees; anything else is a 404, not a 403, so IDs don't leak.
   const agent = await withDashboardDb(defaultDashboardDeps(), "agent envelope", (db) => getAgentEnvelope(db, workspace.id, id));
   if (!agent) notFound();
+  const { t } = await getCopy();
   return (
     <>
       <Link href="/agents" className="text-sm text-accent underline-offset-2 hover:underline">

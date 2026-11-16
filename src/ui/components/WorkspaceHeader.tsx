@@ -1,6 +1,8 @@
+"use client";
+
 import { FlaskConical } from "lucide-react";
 import type { ReactNode } from "react";
-import { t } from "@/ui/copy";
+import { useCopy } from "@/ui/ThemeProvider";
 import { Badge } from "./primitives";
 
 /**
@@ -8,6 +10,7 @@ import { Badge } from "./primitives";
  * note when it's the public sandbox (UI-1, UI-21).
  */
 export function WorkspaceHeader({ workspace, account }: { workspace: { name: string; isSandbox: boolean } | null; account?: ReactNode }) {
+  const { t } = useCopy();
   return (
     <header className="mb-6 flex flex-col gap-3 border-b border-border pb-4">
       <div className="flex flex-wrap items-center justify-between gap-3">

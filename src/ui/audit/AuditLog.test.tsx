@@ -80,6 +80,6 @@ describe("outcomeOf", () => {
     ] as const) {
       expect(outcomeOf(status, body).kind).toBe("error");
     }
-    expect(outcomeOf(429, null)).toEqual({ kind: "error", text: expect.stringContaining("Too many") });
+    expect(outcomeOf(429, null)).toEqual({ kind: "error", message: "error.rateLimited" });
   });
 });

@@ -2,7 +2,7 @@
 
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { type Micros, micros, toDisplay } from "@/core/money";
-import { t } from "@/ui/copy";
+import { useCopy } from "@/ui/ThemeProvider";
 import type { DecisionKind, Overview, Range } from "@/ui/events/summarize";
 
 /**
@@ -23,6 +23,7 @@ const TIME_FORMAT: Record<Range, Intl.DateTimeFormatOptions> = {
 };
 
 export function SpendChart({ series, range }: { series: Overview["spendSeries"]; range: Range }) {
+  const { t } = useCopy();
   const data = series.map((b) => ({ start: b.start, value: plotValue(b.spendMicros), label: toDisplay(b.spendMicros) }));
   const total = series.reduce((n, b) => n + (b.spendMicros > 0n ? 1 : 0), 0);
   const format = new Intl.DateTimeFormat(undefined, TIME_FORMAT[range]);
@@ -48,6 +49,7 @@ export function SpendChart({ series, range }: { series: Overview["spendSeries"];
 const DECISION_COLOR: Record<DecisionKind, string> = { allow: "var(--allow)", hold: "var(--hold)", deny: "var(--deny)" };
 
 export function DecisionsChart({ decisions }: { decisions: Overview["decisions"] }) {
+  const { t } = useCopy();
   const data = (["allow", "hold", "deny"] as const).map((d) => ({ name: t(`decision.${d}`), count: decisions[d], fill: DECISION_COLOR[d] }));
   const label = data.map((d) => `${d.name} ${d.count}`).join(", ");
   return (

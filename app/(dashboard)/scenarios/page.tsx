@@ -3,7 +3,7 @@ import { SCENARIO_NAMES } from "@/agents/scripted/scenarios";
 import { defaultDashboardDeps, withDashboardDb } from "@/server/dashboard/context";
 import { currentSandbox } from "@/server/sandbox/sandbox";
 import { DataState } from "@/ui/components/DataState";
-import { t } from "@/ui/copy";
+import { getCopy } from "@/ui/server-copy";
 import { ScenarioRunner } from "@/ui/scenarios/ScenarioRunner";
 
 export const metadata: Metadata = { title: "Scenarios" };
@@ -15,6 +15,6 @@ export const metadata: Metadata = { title: "Scenarios" };
  */
 export default async function ScenariosPage() {
   const sandbox = await withDashboardDb(defaultDashboardDeps(), "scenarios sandbox", (db) => currentSandbox(db));
-  if (!sandbox) return <DataState status="empty" empty={t("workspace.none")} />;
+  if (!sandbox) return <DataState status="empty" empty={(await getCopy()).t("workspace.none")} />;
   return <ScenarioRunner workspaceId={sandbox.id} scenarios={SCENARIO_NAMES} />;
 }

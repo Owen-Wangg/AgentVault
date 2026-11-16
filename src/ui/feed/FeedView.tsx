@@ -6,7 +6,7 @@ import { Amount } from "@/ui/components/Amount";
 import { DataState } from "@/ui/components/DataState";
 import { StreamStatusBadge } from "@/ui/components/StreamStatusBadge";
 import { Badge, PageTitle } from "@/ui/components/primitives";
-import { t, reasonText } from "@/ui/copy";
+import { useCopy } from "@/ui/ThemeProvider";
 import { type DecisionKind, type FeedFilter, type FeedRow, feedRows, filterRows } from "@/ui/events/summarize";
 import { type EventStreamOptions, useEventStream } from "@/ui/events/use-event-stream";
 import { agentLabel } from "./agent-label";
@@ -18,6 +18,7 @@ const DECISION_TONE: Record<DecisionKind, "allow" | "hold" | "deny"> = { allow: 
 
 /** The live feed (UI-6): each decision with time, agent, vendor, amount, decision, and reasons in plain language. */
 export function FeedView({ workspaceId, agentNames, stream }: { workspaceId: string; agentNames: Record<string, string>; stream?: EventStreamOptions }) {
+  const { t } = useCopy();
   const { events, status, ready } = useEventStream(workspaceId, stream);
   const [filter, setFilter] = useState<FeedFilter>({});
   const rows = useMemo(() => feedRows(events), [events]);
@@ -86,6 +87,7 @@ export function FeedView({ workspaceId, agentNames, stream }: { workspaceId: str
 }
 
 function FilterSelect({ label, value, onChange, children }: { label: string; value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; children: React.ReactNode }) {
+  const { t } = useCopy();
   return (
     <label className="flex flex-col gap-1 text-sm">
       <span className="text-text-muted">{label}</span>
@@ -98,6 +100,7 @@ function FilterSelect({ label, value, onChange, children }: { label: string; val
 }
 
 function Row({ row, agentNames }: { row: FeedRow; agentNames: Record<string, string> }) {
+  const { t, reasonText } = useCopy();
   return (
     <tr className="align-top">
       <td className="whitespace-nowrap px-3 py-2">

@@ -7,7 +7,8 @@ import type { ScenarioName } from "@/agents/scripted/scenarios";
 import { Amount } from "@/ui/components/Amount";
 import { StreamStatusBadge } from "@/ui/components/StreamStatusBadge";
 import { Badge, Button, Card, CardTitle, PageTitle } from "@/ui/components/primitives";
-import { type UiKey, reasonText, t } from "@/ui/copy";
+import type { UiKey } from "@/ui/copy";
+import { useCopy } from "@/ui/ThemeProvider";
 import { type EventStreamOptions, useEventStream } from "@/ui/events/use-event-stream";
 import { type RunResult, type RunStep, parseRunResult, runAgentId, runSteps } from "./run-view";
 
@@ -29,18 +30,18 @@ export const httpScenariosApi: ScenariosApi = {
 type Run =
   | { name: ScenarioName; runId: string; phase: "running" }
   | { name: ScenarioName; runId: string; phase: "done"; result: RunResult }
-  | { name: ScenarioName; runId: string; phase: "failed"; message: string };
+  | { name: ScenarioName; runId: string; phase: "failed"; message: UiKey };
 
-const title = (name: ScenarioName) => t(`scenario.${name}.title` as UiKey);
-const description = (name: ScenarioName) => t(`scenario.${name}.description` as UiKey);
+const titleKey = (name: ScenarioName) => `scenario.${name}.title` as UiKey;
+const descriptionKey = (name: ScenarioName) => `scenario.${name}.description` as UiKey;
 
 const DECISION_TONE = { allow: "allow", hold: "hold", deny: "deny" } as const;
 
-/** Why a run didn't start or didn't return, in plain language. */
-function failureOf(status: number): string {
-  if (status === 409) return t("scenarios.busy");
-  if (status === 429) return t("error.rateLimited");
-  return t("error.generic");
+/** Why a run didn't start or didn't return, as a copy key. */
+function failureOf(status: number): UiKey {
+  if (status === 409) return "scenarios.busy";
+  if (status === 429) return "error.rateLimited";
+  return "error.generic";
 }
 
 /**
@@ -62,6 +63,9 @@ export function ScenarioRunner({
   stream?: EventStreamOptions;
   newRunId?: () => string;
 }) {
+  const { t } = useCopy();
+  const title = (name: ScenarioName) => t(titleKey(name));
+  const description = (name: ScenarioName) => t(descriptionKey(name));
   const [run, setRun] = useState<Run | null>(null);
   const { events, status } = useEventStream(workspaceId, stream);
   const running = run?.phase === "running";
@@ -78,7 +82,7 @@ export function ScenarioRunner({
       const result = r.status === 200 ? parseRunResult(r.body) : null;
       setRun(result ? { name, runId, phase: "done", result } : { name, runId, phase: "failed", message: failureOf(r.status) });
     } catch {
-      setRun({ name, runId, phase: "failed", message: t("error.generic") });
+      setRun({ name, runId, phase: "failed", message: "error.generic" });
     }
   }
 
@@ -116,7 +120,7 @@ export function ScenarioRunner({
           </h2>
           <p role="status" aria-live="polite" className="mb-3 text-sm">
             {run.phase === "running" ? t("scenarios.running") : null}
-            {run.phase === "failed" ? <Badge tone="deny">{run.message}</Badge> : null}
+            {run.phase === "failed" ? <Badge tone="deny">{t(run.message)}</Badge> : null}
             {run.phase === "done" && !run.result.completed ? <Badge tone="hold">{t("scenarios.stopped")}</Badge> : null}
           </p>
           <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
@@ -133,6 +137,7 @@ export function ScenarioRunner({
 }
 
 function StepList({ steps, running }: { steps: RunStep[]; running: boolean }) {
+  const { t, reasonText } = useCopy();
   if (steps.length === 0) return <p className="mt-3 text-sm text-text-muted">{running ? t("scenarios.starting") : t("feed.empty")}</p>;
   return (
     <ol role="log" aria-label={t("scenarios.steps")} className="mt-3 flex flex-col divide-y divide-border text-sm">
@@ -168,6 +173,7 @@ function StepList({ steps, running }: { steps: RunStep[]; running: boolean }) {
 }
 
 function SummaryPanel({ result }: { result: RunResult }) {
+  const { t, reasonText } = useCopy();
   const s = result.summary;
   return (
     <Card aria-labelledby="run-summary">

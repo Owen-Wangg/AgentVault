@@ -6,7 +6,8 @@ import { useId, useState } from "react";
 import { type FieldError, type UseFormRegister, useFieldArray, useForm, useWatch } from "react-hook-form";
 import type { EnvelopeWire } from "@/core/policy";
 import { Button, Card, CardTitle, cn } from "@/ui/components/primitives";
-import { type UiKey, t } from "@/ui/copy";
+import type { UiKey } from "@/ui/copy";
+import { useCopy } from "@/ui/ThemeProvider";
 import { EMPTY_LIMITS, type EnvelopeForm, EnvelopeFormSchema, formToWire, wireToForm } from "./envelope-form";
 
 /**
@@ -50,6 +51,7 @@ export function EnvelopeEditor({
   readOnly: boolean;
   save: SaveEnvelope;
 }) {
+  const { t } = useCopy();
   const [version, setVersion] = useState(initialVersion);
   const [state, setState] = useState<SaveState>({ kind: "idle" });
   const form = useForm<EnvelopeForm>({ resolver: zodResolver(EnvelopeFormSchema), defaultValues: wireToForm(initial), mode: "onBlur" });
@@ -161,6 +163,7 @@ export function EnvelopeEditor({
 type LimitsErrors = Partial<Record<keyof EnvelopeForm["limits"], FieldError>> | undefined;
 
 function LimitsFields({ register, prefix, errors }: { register: UseFormRegister<EnvelopeForm>; prefix: "limits" | `vendorLimits.${number}.limits` | `toolLimits.${number}.limits`; errors: LimitsErrors }) {
+  const { t } = useCopy();
   return (
     <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {LIMIT_FIELDS.map((f) => (
@@ -210,6 +213,7 @@ function AllowList({
   textarea: ReturnType<UseFormRegister<EnvelopeForm>>;
   error: FieldError | undefined;
 }) {
+  const { t } = useCopy();
   const id = useId();
   return (
     <div className="flex flex-col gap-2 text-sm">

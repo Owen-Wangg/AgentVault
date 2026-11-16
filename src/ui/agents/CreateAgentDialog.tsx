@@ -4,7 +4,7 @@ import { Check, Copy, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 import { Button } from "@/ui/components/primitives";
-import { t } from "@/ui/copy";
+import { useCopy } from "@/ui/ThemeProvider";
 
 export type CreateAgent = (name: string) => Promise<{ status: number; body: unknown }>;
 
@@ -21,6 +21,7 @@ export const postCreateAgent: CreateAgent = async (name) => {
  */
 export function CreateAgentDialog({ create = postCreateAgent, copy = (text: string) => navigator.clipboard.writeText(text) }: { create?: CreateAgent; copy?: (text: string) => Promise<void> }) {
   const router = useRouter();
+  const { t } = useCopy();
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const nameId = useId();

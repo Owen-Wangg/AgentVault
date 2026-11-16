@@ -4,7 +4,8 @@ import { Activity, Bot, FlaskConical, Inbox, LayoutDashboard, type LucideIcon, S
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { type UiKey, t } from "@/ui/copy";
+import type { UiKey } from "@/ui/copy";
+import { useCopy } from "@/ui/ThemeProvider";
 import { cn } from "./primitives";
 
 export const NAV_ITEMS: readonly { href: string; label: UiKey; icon: LucideIcon }[] = [
@@ -26,6 +27,7 @@ export const isActive = (pathname: string, href: string): boolean => (href === "
  */
 export function Sidebar({ footer }: { footer?: ReactNode }) {
   const pathname = usePathname();
+  const { t } = useCopy();
   return (
     <>
       <nav aria-label={t("nav.label")} className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface p-4 md:flex">

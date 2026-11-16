@@ -3,14 +3,14 @@ import { AgentsTable } from "@/ui/agents/AgentsTable";
 import { CreateAgentDialog } from "@/ui/agents/CreateAgentDialog";
 import { DataState } from "@/ui/components/DataState";
 import { PageTitle } from "@/ui/components/primitives";
-import { t } from "@/ui/copy";
+import { getCopy } from "@/ui/server-copy";
 import { getAgents } from "../agent-names";
 import { getDashboardContext } from "../dashboard-context";
 
 export const metadata: Metadata = { title: "Agents" };
 
 export default async function AgentsPage() {
-  const { workspace, user } = await getDashboardContext();
+  const [{ workspace, user }, { t }] = await Promise.all([getDashboardContext(), getCopy()]);
   if (!workspace) return <DataState status="empty" empty={t("workspace.none")} />;
   // A signed-in user's context is always their own workspace; the sandbox is open to unfreeze (HITL-11)
   // but read-only for creating agents (see src/server/agents/handlers.ts).

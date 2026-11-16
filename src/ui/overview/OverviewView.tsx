@@ -6,7 +6,7 @@ import { Amount } from "@/ui/components/Amount";
 import { DataState } from "@/ui/components/DataState";
 import { StreamStatusBadge } from "@/ui/components/StreamStatusBadge";
 import { Card, CardTitle, PageTitle } from "@/ui/components/primitives";
-import { t, reasonText } from "@/ui/copy";
+import { useCopy } from "@/ui/ThemeProvider";
 import { type Alert, RANGES, type Range, isCapped, summarize } from "@/ui/events/summarize";
 import { type EventStreamOptions, useEventStream } from "@/ui/events/use-event-stream";
 import { agentLabel } from "@/ui/feed/agent-label";
@@ -24,6 +24,7 @@ export function OverviewView({
   now?: () => number;
   stream?: EventStreamOptions;
 }) {
+  const { t } = useCopy();
   const { events, status, ready } = useEventStream(workspaceId, stream);
   const [range, setRange] = useState<Range>("day");
   // Recomputed when events arrive or the range changes; `now` is read then.
@@ -104,6 +105,7 @@ function Kpi({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 function AlertItem({ alert, agentNames }: { alert: Alert; agentNames: Record<string, string> }) {
+  const { t, reasonText } = useCopy();
   const when = new Date(alert.at).toLocaleTimeString();
   if (alert.kind === "frozen") {
     return (
