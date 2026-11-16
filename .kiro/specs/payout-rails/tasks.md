@@ -10,11 +10,11 @@ Plan (`docs/PLAN.md`): **Phase 20** = tasks 1–4. **Phase 21** = tasks 5–6. *
   - Property 2 and property 4
   - _Requirements: PO-3, PO-17, PO-18, PO-19_
 
-- [ ] 2. Set up the accounts and measure both rails (step by step in `docs/SETUP.md`)
+- [x] 2. Set up the accounts and measure both rails (step by step in `docs/SETUP.md`)
   - `pnpm connect:setup`: two Accounts v2 recipient accounts (the supplier and the attacker) and test funds in the platform balance; prints only `acct_` IDs
   - Create the PayPal developer sandbox app, a business (sender) account, and two personal (receiver) accounts; explain what each is
   - `pnpm connect:probe` and `pnpm paypal:probe`: USD transfers from the Canadian sandbox, minimums, a repeated key or `sender_batch_id`, and a read-only lookup by the reservation ID alone. Record results in `docs/KIRO_LOG.md` and change this spec if a finding contradicts it
-  - Connect and PayPal sections in `pnpm env:check`
+  - A PayPal section in `pnpm env:check`, and the recipient accounts in `pnpm connect:check` (read-only)
   - _Requirements: PO-21, PO-22_
 
 - [ ] 3. Add `payout` and `checkDestination` to the rail interface, the mock rail, and the registry

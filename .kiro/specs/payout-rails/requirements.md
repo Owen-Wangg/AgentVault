@@ -60,7 +60,7 @@ The public sandbox keeps using mock rails for all of these (rail-adapters RAIL-2
 **User story:** As the developer, I want each new rail set up step by step and measured before it's trusted, as x402 and Stripe MPP were.
 
 ### Acceptance criteria
-- **PO-21** `docs/SETUP.md` SHALL explain how to create the recipient accounts in the Stripe sandbox, fund the platform's test balance, create the PayPal sandbox app and accounts, and check the setup with `pnpm env:check`.
+- **PO-21** `docs/SETUP.md` SHALL explain how to create the recipient accounts in the Stripe sandbox, fund the platform's test balance, create the PayPal sandbox app and accounts, and check the setup with `pnpm env:check` (PayPal) and `pnpm connect:check` (the recipient accounts).
 - **PO-22** Before the adapters are built, a probe script per rail SHALL measure and record in `docs/KIRO_LOG.md`: that the Canadian sandbox can create recipient accounts and USD transfers (Stripe), each rail's minimum amount, whether a repeated idempotency key or `sender_batch_id` pays twice, and how each rail can be looked up by the reservation ID alone.
 
 ## Requirement 7: A payee-hijack demo
