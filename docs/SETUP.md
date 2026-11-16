@@ -463,7 +463,62 @@ The deployed app shows the live buttons only if `GEMINI_API_KEY` is set in **Pro
 
 In AI Studio, open **Get API key**, delete the key, and create a new one. A free-tier key can't run up a bill, but someone with it could use up your daily quota.
 
-## 9. Run it
+## 9. PayPal sandbox payouts
+
+The payout-rails spec (`.kiro/specs/payout-rails`) sends `paypal.payout` through PayPal's **sandbox**, a copy of PayPal where every account and every dollar is fake. AgentVault only ever calls the sandbox host (`api-m.sandbox.paypal.com`) and refuses to run if `PAYPAL_ENV` is anything but `sandbox`. The public sandbox workspace never uses PayPal; it runs on mock rails.
+
+### What the accounts are
+
+| Account | Where | Role |
+|---|---|---|
+| Your PayPal login | developer.paypal.com | Opens the Developer Dashboard. Personal or business, it doesn't matter; no real money is involved. |
+| Sandbox **Business** account, United States | Testing Tools > Sandbox Accounts | The **sender**. Your app belongs to it, and payouts come out of its fake USD balance. |
+| Two sandbox **Personal** accounts, United States | Testing Tools > Sandbox Accounts | The **receivers**: the supplier, who gets paid normally, and the attacker, whose account the Payee hijack demo tries to redirect money to. |
+
+Use United States accounts. PayPal's REST guide says a developer account can test US integrations, and testing outside the US needs a real PayPal Business account.
+
+### Step 1: Create the sandbox accounts
+
+1. Log in at <https://developer.paypal.com> and open **Testing Tools > Sandbox Accounts**.
+2. Check the **Country** of the account labeled Default with a `@business.example.com` address. If it isn't the United States, select **Create account**, choose **Business** and **United States**, and create one.
+3. Open the business account's menu (⋮) > **View/Edit account** and check that it has a USD balance above zero.
+4. Create two **Personal** accounts with country **United States**. Note their `sb-…@personal.example.com` addresses. They aren't secret.
+
+### Step 2: Check the app
+
+1. Open **Apps & Credentials** with the toggle set to **Sandbox**.
+2. Open **Default Application** (or select **Create App**, type **Merchant**, and pick the US business account).
+3. Check that **Sandbox account** is the US business account, and that **Payouts** is checked in the app's features.
+
+### Step 3: Set the variables
+
+Add to `.env.local`:
+```
+PAYPAL_ENV=sandbox
+PAYPAL_CLIENT_ID=<the app's Client ID>
+PAYPAL_CLIENT_SECRET=<the app's Secret>
+PAYPAL_SUPPLIER_RECEIVER=<the first personal account's address>
+PAYPAL_ATTACKER_RECEIVER=<the second personal account's address>
+```
+The receivers must end in `@personal.example.com` or `@business.example.com`, so a payout can never reach a real person's PayPal account, and they must be different accounts.
+
+### Step 4: Check it
+
+```powershell
+pnpm env:check   # the PayPal section shows pass or fail for each variable; values are never printed
+```
+
+To see a payout arrive, log in at <https://www.sandbox.paypal.com/signin> with a receiver's sandbox address and password (shown in **View/Edit account**).
+
+### Vercel
+
+Leave the PayPal variables off Vercel. The hosted site runs mock rails only.
+
+### If the secret leaks
+
+In **Apps & Credentials**, open the app and generate a new secret (or delete the app and create another). A sandbox secret can't move real money, but someone with it could use up or confuse your sandbox accounts.
+
+## 10. Run it
 | Command | What it does |
 |---|---|
 | `pnpm dev` | Starts the app at <http://localhost:3000>. It keeps running; stop it with Ctrl+C. |
@@ -492,7 +547,7 @@ In AI Studio, open **Get API key**, delete the key, and create a new one. A free
 | `pnpm reconcile` | Asks the rails what happened to payments with an unknown outcome, deletes idempotency records older than 24 hours, and lists payments still unknown after 24 hours. It only looks payments up and never pays. On the mock rail it can't resolve anything a different process paid, so those stay listed. |
 | `pnpm demo:policy` | Prints a table of policy decisions for a sample request sequence. |
 
-## 10. Kiro hooks
+## 11. Kiro hooks
 The hooks in `.kiro/hooks/` run automatically in Kiro:
 | Hook | When it runs | What it does |
 |---|---|---|
