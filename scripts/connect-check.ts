@@ -1,14 +1,16 @@
 // `pnpm connect:check`: read-only checks that the Stripe sandbox behind
 // STRIPE_SECRET_KEY can run payout-rails' Stripe Connect payouts (PO-22).
 // It prints the account's country, its default currency, which currencies
-// its balance holds, and whether Connect answers. It never creates or
-// changes anything, and never prints the key.
+// its balance holds, whether Connect answers, and whether the supplier and
+// attacker recipient accounts exist and can receive transfers. It never
+// creates or changes anything, and never prints the key.
 import { z } from "zod";
 import { checkStripeEnv } from "@/rails/config";
 import { StripeApi, StripeApiError } from "@/rails/stripe-mpp/stripe-api";
+import { CONNECT_API_VERSION, ROLES, type Role, findRecipients, readRecipient, transferStatus } from "./connect-setup";
 import { loadLocalEnv } from "./lib/load-env";
 
-const API_VERSION = "2026-10-28.endive";
+const API_VERSION = CONNECT_API_VERSION;
 const Account = z.object({ country: z.string(), default_currency: z.string(), livemode: z.boolean().optional() });
 const Balance = z.object({
   livemode: z.boolean(),
@@ -50,6 +52,23 @@ async function main() {
     console.log(`Connect: on. The sandbox has ${accounts.data.length === 0 ? "no connected accounts" : "connected accounts already"}.`);
   } catch (error) {
     console.log(`Connect: not available yet (${describe(error)}). Turn it on in the Dashboard: Connect > Get started.`);
+    return;
+  }
+
+  // The payout-rails recipient accounts (PO-21), read-only: found by metadata, never created here.
+  try {
+    const found = await findRecipients(api);
+    for (const role of Object.keys(ROLES) as Role[]) {
+      const account = found[role];
+      if (!account) {
+        console.log(`${role} recipient account: not created yet. Run pnpm connect:setup (docs/SETUP.md, section 7, step 8).`);
+        continue;
+      }
+      const status = transferStatus(await readRecipient(api, account.id));
+      console.log(`${role} recipient account: ${account.id}, stripe_transfers ${status}${status === "active" ? "" : ". Finish onboarding: pnpm connect:setup prints a link."}`);
+    }
+  } catch (error) {
+    console.log(`Couldn't read the recipient accounts: ${describe(error)}`);
   }
 }
 void main();
