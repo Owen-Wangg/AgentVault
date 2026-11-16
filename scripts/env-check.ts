@@ -2,7 +2,7 @@
 // unset for each variable. Values are never printed (RAIL-9), so it is
 // safe to run where output is shared, such as the /validate-mpp steering
 // command. Exits 1 if anything fails.
-import { checkRailEnv, checkStripeEnv, checkX402Env } from "@/rails/config";
+import { checkPayPalEnv, checkRailEnv, checkStripeEnv, checkX402Env } from "@/rails/config";
 import { env, isPlaceholder, resetEnvCache } from "@/server/env";
 import { loadLocalEnv } from "./lib/load-env";
 
@@ -98,6 +98,13 @@ function main() {
   console.log("Stripe test mode (checked as if RAIL_MODE=real):");
   print(stripe);
   console.log(stripe.every((l) => l.status === "pass") ? "Stripe ready." : "Stripe not ready. See docs/SETUP.md, section 7.");
+  // Informational, like x402 and Stripe: mock mode doesn't need PayPal. A PAYPAL_ENV other than
+  // sandbox already fails the main section above.
+  const paypal = checkPayPalEnv();
+  console.log("");
+  console.log("PayPal sandbox payouts (payout-rails):");
+  print(paypal);
+  console.log(paypal.every((l) => l.status === "pass") ? "PayPal ready." : "PayPal not ready. See docs/SETUP.md, section 9.");
   const gemini = checkGeminiEnv();
   console.log("");
   console.log("Live Gemini agent (optional, format only; pnpm gemini:probe calls Gemini):");

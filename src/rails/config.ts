@@ -88,6 +88,12 @@ const CHECKS: readonly Check[] = [
     requiredWhenReal: true,
     real: regexCheck(/^0x[0-9a-fA-F]{64}$/, "must be a 0x-prefixed 32-byte hex key"),
   },
+  {
+    // payout-rails PO-17: any other value is refused in every mode, like a live Stripe key.
+    name: "PAYPAL_ENV",
+    requiredWhenReal: false,
+    always: (v) => (v === "sandbox" ? null : "must be sandbox; AgentVault never calls PayPal's live API"),
+  },
 ];
 
 const ZERO_ADDRESS = /^0x0{40}$/;
@@ -241,6 +247,81 @@ export function loadStripeConfig(env: Env = process.env): StripeConfig {
   if (failures.length > 0) throw new RailConfigError(failures);
   const key = env.STRIPE_SECRET_KEY ?? "";
   return { secretKey: () => key, profileId: env.STRIPE_PROFILE_ID ?? "" };
+}
+
+/** The only PayPal API host AgentVault talks to (payout-rails PO-17). There is no setting for another one. */
+export const PAYPAL_SANDBOX_API = "https://api-m.sandbox.paypal.com";
+
+/** The PayPal variables, in the order `pnpm env:check` lists them. */
+export const PAYPAL_VARIABLES = ["PAYPAL_ENV", "PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET", "PAYPAL_SUPPLIER_RECEIVER", "PAYPAL_ATTACKER_RECEIVER"] as const;
+
+/**
+ * Sandbox personal and business accounts get addresses at these domains
+ * (PayPal's sandbox accounts guide), so a receiver at any other domain
+ * could be a real person. Refusing it keeps payouts inside the sandbox.
+ */
+const SANDBOX_RECEIVER = /^[A-Za-z0-9._%+-]{1,64}@(personal|business)\.example\.com$/;
+
+/**
+ * The PayPal sandbox variables (payout-rails PO-17, PO-21), all required
+ * for PayPal payouts, whatever RAIL_MODE says. Messages name variables,
+ * never values. The two receivers must be different sandbox accounts,
+ * or the payee-hijack demo would redirect money to the same place.
+ */
+export function checkPayPalEnv(env: Env = process.env): VariableCheck[] {
+  const presence = (name: string, value: string | undefined): VariableCheck | null => {
+    if (value === undefined || value === "") return { name, status: "fail", problem: "is required for PayPal" };
+    if (/replace/i.test(value)) return { name, status: "fail", problem: "is still the .env.example placeholder" };
+    return null;
+  };
+  const receiver = (name: string): VariableCheck => {
+    const value = env[name];
+    const missing = presence(name, value);
+    if (missing) return missing;
+    return SANDBOX_RECEIVER.test(value ?? "")
+      ? { name, status: "pass" }
+      : { name, status: "fail", problem: "must be a sandbox account address ending in @personal.example.com or @business.example.com" };
+  };
+  const mode = env.PAYPAL_ENV;
+  const checks: VariableCheck[] = [
+    mode === undefined || mode === ""
+      ? { name: "PAYPAL_ENV", status: "fail", problem: "is required for PayPal and must be sandbox" }
+      : mode === "sandbox"
+        ? { name: "PAYPAL_ENV", status: "pass" }
+        : { name: "PAYPAL_ENV", status: "fail", problem: "must be sandbox; AgentVault never calls PayPal's live API" },
+    presence("PAYPAL_CLIENT_ID", env.PAYPAL_CLIENT_ID) ?? { name: "PAYPAL_CLIENT_ID", status: "pass" },
+    presence("PAYPAL_CLIENT_SECRET", env.PAYPAL_CLIENT_SECRET) ?? { name: "PAYPAL_CLIENT_SECRET", status: "pass" },
+    receiver("PAYPAL_SUPPLIER_RECEIVER"),
+    receiver("PAYPAL_ATTACKER_RECEIVER"),
+  ];
+  const [, , , supplier, attacker] = checks;
+  if (supplier?.status === "pass" && attacker?.status === "pass" && env.PAYPAL_SUPPLIER_RECEIVER?.toLowerCase() === env.PAYPAL_ATTACKER_RECEIVER?.toLowerCase()) {
+    Object.assign(attacker, { status: "fail", problem: "is the same account as PAYPAL_SUPPLIER_RECEIVER; the demo needs two" });
+  }
+  return checks;
+}
+
+export interface PayPalConfig {
+  apiOrigin: typeof PAYPAL_SANDBOX_API;
+  clientId: string;
+  /** A function, like StripeConfig.secretKey, so a logged config shows `[Function]`. */
+  clientSecret: () => string;
+  supplierReceiver: string;
+  attackerReceiver: string;
+}
+
+/** Configuration for the PayPal sandbox. Throws RailConfigError, naming variables only. */
+export function loadPayPalConfig(env: Env = process.env): PayPalConfig {
+  const failures = checkPayPalEnv(env).filter((c) => c.status === "fail");
+  if (failures.length > 0) throw new RailConfigError(failures);
+  const secret = env.PAYPAL_CLIENT_SECRET ?? "";
+  return {
+    apiOrigin: PAYPAL_SANDBOX_API,
+    clientId: env.PAYPAL_CLIENT_ID ?? "",
+    clientSecret: () => secret,
+    supplierReceiver: env.PAYPAL_SUPPLIER_RECEIVER ?? "",
+    attackerReceiver: env.PAYPAL_ATTACKER_RECEIVER ?? "",
+  };
 }
 
 const MinUnits = z.string().regex(/^[1-9]\d{0,17}$/).transform(BigInt);

@@ -3,10 +3,13 @@ import { inspect } from "node:util";
 import { getAddress } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
+  PAYPAL_SANDBOX_API,
   RailConfigError,
+  checkPayPalEnv,
   checkRailEnv,
   checkStripeEnv,
   checkX402Env,
+  loadPayPalConfig,
   loadRailConfig,
   loadStripeConfig,
   loadX402PayerConfig,
@@ -220,5 +223,76 @@ describe("rail configuration", () => {
       expect(String(error)).not.toContain(secret);
       expect(String(error)).not.toContain("supersecret");
     }
+  });
+});
+
+const paypalEnv = {
+  PAYPAL_ENV: "sandbox",
+  PAYPAL_CLIENT_ID: "AbCdEf123_client-id",
+  PAYPAL_CLIENT_SECRET: "EfGh456_client-secret",
+  PAYPAL_SUPPLIER_RECEIVER: "sb-supplier1@personal.example.com",
+  PAYPAL_ATTACKER_RECEIVER: "sb-attacker2@personal.example.com",
+};
+const statusOf = (env: Record<string, string | undefined>, name: string) => checkPayPalEnv(env).find((c) => c.name === name);
+
+describe("PayPal sandbox variables", () => {
+  it("PO-21: a complete sandbox setup passes and loads with the fixed sandbox host", () => {
+    expect(checkPayPalEnv(paypalEnv).map((c) => c.status)).toEqual(["pass", "pass", "pass", "pass", "pass"]);
+    const config = loadPayPalConfig(paypalEnv);
+    expect(config).toMatchObject({ apiOrigin: PAYPAL_SANDBOX_API, clientId: paypalEnv.PAYPAL_CLIENT_ID, supplierReceiver: paypalEnv.PAYPAL_SUPPLIER_RECEIVER });
+    expect(PAYPAL_SANDBOX_API).toBe("https://api-m.sandbox.paypal.com");
+  });
+
+  it.each(["live", "production", "Sandbox", ""])("PO-17: PAYPAL_ENV=%j is refused, so no PayPal call can run", (value) => {
+    expect(statusOf({ ...paypalEnv, PAYPAL_ENV: value }, "PAYPAL_ENV")?.status).toBe("fail");
+    expect(() => loadPayPalConfig({ ...paypalEnv, PAYPAL_ENV: value })).toThrow(RailConfigError);
+  });
+
+  it("PO-17: a PAYPAL_ENV other than sandbox fails the general rail check too, even in mock mode", () => {
+    const check = checkRailEnv({ ...exampleEnv, PAYPAL_ENV: "live" }).find((c) => c.name === "PAYPAL_ENV");
+    expect(check?.status).toBe("fail");
+    expect(() => loadRailConfig({ ...exampleEnv, PAYPAL_ENV: "live" })).toThrow(RailConfigError);
+    expect(checkRailEnv(exampleEnv).find((c) => c.name === "PAYPAL_ENV")?.status).toBe("unset");
+  });
+
+  it.each(["supplier@gmail.com", "sb-x@personal.example.com.evil.test", "sb-x@example.com", "not an email"])(
+    "PO-21: receiver %j isn't a sandbox account, so it's refused",
+    (value) => {
+      expect(statusOf({ ...paypalEnv, PAYPAL_SUPPLIER_RECEIVER: value }, "PAYPAL_SUPPLIER_RECEIVER")?.status).toBe("fail");
+    },
+  );
+
+  it("PO-21: the .env.example placeholders and missing values fail, naming the variable", () => {
+    const placeholders = {
+      PAYPAL_ENV: "sandbox",
+      PAYPAL_CLIENT_ID: "replace-me",
+      PAYPAL_CLIENT_SECRET: "replace-me",
+      PAYPAL_SUPPLIER_RECEIVER: "sb-replace-me@personal.example.com",
+      PAYPAL_ATTACKER_RECEIVER: "sb-replace-me-too@personal.example.com",
+    };
+    expect(checkPayPalEnv(placeholders).filter((c) => c.status === "fail").map((c) => c.name)).toEqual([
+      "PAYPAL_CLIENT_ID",
+      "PAYPAL_CLIENT_SECRET",
+      "PAYPAL_SUPPLIER_RECEIVER",
+      "PAYPAL_ATTACKER_RECEIVER",
+    ]);
+    expect(checkPayPalEnv({}).every((c) => c.status === "fail")).toBe(true);
+  });
+
+  it("PO-23: the supplier and the attacker must be different sandbox accounts", () => {
+    const same = { ...paypalEnv, PAYPAL_ATTACKER_RECEIVER: paypalEnv.PAYPAL_SUPPLIER_RECEIVER.toUpperCase() };
+    expect(statusOf(same, "PAYPAL_ATTACKER_RECEIVER")).toMatchObject({ status: "fail" });
+  });
+
+  it("RAIL-9: results, errors, and the loaded config never show the client secret", () => {
+    const env = { ...paypalEnv, PAYPAL_ENV: "live" };
+    expect(JSON.stringify(checkPayPalEnv(env))).not.toContain(paypalEnv.PAYPAL_CLIENT_SECRET);
+    expect(() => loadPayPalConfig(env)).toThrow(RailConfigError);
+    try {
+      loadPayPalConfig(env);
+    } catch (error) {
+      expect(String(error)).not.toContain(paypalEnv.PAYPAL_CLIENT_SECRET);
+    }
+    expect(inspect(loadPayPalConfig(paypalEnv))).not.toContain(paypalEnv.PAYPAL_CLIENT_SECRET);
   });
 });
