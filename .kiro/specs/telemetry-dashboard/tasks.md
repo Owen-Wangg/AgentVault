@@ -35,7 +35,7 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
   - Playwright: sandbox → prompt-injection scenario → approve refund → see result
   - _Requirements: UI-10, AUD-6_
 
-- [ ] 8. Build Kiroween mode
+- [x] 8. Build Kiroween mode
   - Settings toggle, `data-theme`, no-flash script, Kiroween palette and copy, reduced-motion handling
   - Property 2 (theme neutrality) across the scenario suite
   - _Requirements: UI-16, UI-17, UI-18, UI-19, UI-20_

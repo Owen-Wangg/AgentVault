@@ -41,7 +41,7 @@ flowchart LR
 
 Navigation: left sidebar on desktop, and a navigation bar fixed to the bottom of the screen below the `md` breakpoint (one tap to every page at 375 px). Components follow the shadcn/ui style (`Card`, `Badge`, `Button`) but are written in `src/ui/components/primitives.tsx`, so there's no Radix dependency. Dialogs use the native `<dialog>` element, which handles focus, Escape, and the inert background. Status messages use `role="status"` live regions instead of toasts.
 
-Built in Phase 10: `/`, `/feed`, `/agents`, `/agents/[id]`, `/approvals`. Phase 11 added `/scenarios`, which always streams the current sandbox. Phase 12 added `/audit`: 50 events a page, newest first, paged by `?before=<seq>` on the server, and "Verify chain", which calls `POST /api/v1/audit/verify`. The rest arrive with their tasks.
+Built in Phase 10: `/`, `/feed`, `/agents`, `/agents/[id]`, `/approvals`. Phase 11 added `/scenarios`, which always streams the current sandbox. Phase 15 added `/settings` with the Kiroween switch only; workspace info and trusted origins aren't built. Phase 12 added `/audit`: 50 events a page, newest first, paged by `?before=<seq>` on the server, and "Verify chain", which calls `POST /api/v1/audit/verify`. The rest arrive with their tasks.
 
 `POST /api/v1/audit/verify` takes `{ workspace_id? }` and has the event stream's read access: any sandbox is public, other workspaces need their owner. It's human-only (403 for any `Authorization` header or a cross-site POST, before the database opens), and sandbox calls are limited to 30 per IP per minute because each reads the whole chain. It returns `{ ok: true, count, head_seq }` or `{ ok: false, broken_at_seq, why, head_seq }`. The approvals count badge in the sidebar isn't built; it would open a second event stream on every page.
 
@@ -57,10 +57,13 @@ The `satisfies` check makes a missing string a compile error.
 
 ## Theme system
 - `<html data-theme="default|kiroween">`. CSS variables for colors, radius, and fonts in `app/globals.css`.
-- A tiny inline script in `<head>` reads `localStorage` before paint to avoid a flash (UI-17).
-- Fonts through `next/font/google` (all under the SIL Open Font License): Inter and JetBrains Mono by default; Creepster for Kiroween headings only, with Inter for body text to keep it readable.
-- Kiroween palette: near-black background, pumpkin orange accent, ghost-white text, toxic green for "allowed." Check every pair for AA contrast.
-- Decorative touches (subtle fog gradient, bat icon on frozen agents) are CSS only and disabled under `prefers-reduced-motion`.
+- **The choice is an `av-theme` cookie** (one year, `Path=/`, `SameSite=Lax`, `Secure` on https), not `localStorage` (UI-17). The root layout reads it with `getTheme()` and renders `data-theme` and the copy for it, so the first paint is already right and no pre-paint script is needed. A `localStorage` script could fix the colors before paint but not the server-rendered copy, which would flash. Any value other than a theme name is the default.
+- Copy: `t()` and `reasonText()` take a required theme. Client components get them from `useCopy()` (the `ThemeProvider` context, seeded from the cookie); server components from `getCopy()`. Outcome messages are kept as copy keys and translated when rendered, so they follow a theme change.
+- The `/settings` switch writes the cookie, sets `data-theme`, re-renders client components from the context, and calls `router.refresh()` for server components. The Settings link sits with the account controls (sidebar footer, mobile header), so the mobile bar keeps six items.
+- UI-18: only layouts, pages, and `src/ui` read the theme. A test checks that nothing under `src/core`, `src/server`, `src/rails`, `src/agents`, `src/mcp`, `app/api`, or `app/vendor` names the cookie or imports `src/ui`, and property 2 runs the scenarios with each cookie value.
+- Fonts through `next/font/google` (all under the SIL Open Font License): Inter and JetBrains Mono by default; Creepster for Kiroween `h1` and the app name only (not preloaded), with Inter for body text to keep it readable.
+- Kiroween palette: near-black background, pumpkin orange accent, ghost-white text, toxic green for "allowed", with `color-scheme: dark`. Every text and focus pair passes the AA contrast test.
+- Decorative touches are CSS only and stop under `prefers-reduced-motion` (UI-19): a faint fog gradient that drifts behind the page, and a skull on The Crypt and a ghost on Haunted badges, hidden from screen readers. Lucide has no bat icon, so frozen agents get the skull.
 
 ## Auth and access
 - Auth.js v5 with the GitHub provider and the Drizzle adapter. Sessions are JWTs (`session.strategy: "jwt"`), so reading one makes no database query; the adapter writes users and accounts on the OAuth callback only, over Neon's HTTP driver. Sign-in is on only when `AUTH_SECRET`, `AUTH_GITHUB_ID`, and `AUTH_GITHUB_SECRET` are set and aren't the `.env.example` placeholders; otherwise `/api/auth/*` is 404 and everyone is anonymous.
