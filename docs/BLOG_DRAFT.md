@@ -1,10 +1,14 @@
 # Blog post draft
 
-For dev.to or Medium. Check the Devpost rules for the Blog prize's required tags or links before posting. About 900 words.
+For dev.to, Medium, or another third-party blog platform. About 900 words.
+
+Bonus Blog Prize rules (Official Rules, section 4, read 2026-11-16): the post must be public, be about Kiro and the project build, be published during the Submission Period (until Dec 4, 2026, 2:00 PM PT), and **mention that it's written as part of the Kiroween 2026 hackathon**. The first line below does that; keep it. Put the post's URL in the submission form.
 
 ---
 
 # My AI agent fell for a prompt injection. The $480 refund still didn't run.
+
+*I wrote this as part of the Kiroween 2026 hackathon, where I built AgentVault with Kiro.*
 
 AI agents can now pay for things on their own. Stripe's Machine Payments Protocol (MPP) and the x402 protocol let an agent hit an API, get back `402 Payment Required`, and pay, often a tenth of a cent per call. Nobody clicks "confirm".
 

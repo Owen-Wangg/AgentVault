@@ -11,6 +11,8 @@ Recorded against <https://owen-agentvault.vercel.app> in the default theme until
 5. Have three tabs open: `/scenarios`, `/approvals`, `/audit`.
 6. If a run answers "Someone else is running this scenario right now", wait a few seconds and click again.
 
+Video rules (Official Rules, section 4): under 3 minutes, uploaded to YouTube as **public**, showing the project working on the device it was built for (a desktop browser). No copyrighted music, and no third-party trademarks or copyrighted material without permission, so use no music or a track licensed for reuse, and keep vendor logos (Stripe, Coinbase, GitHub) off screen. Kiro's own UI is the sponsor's product and is fine to show.
+
 ## Script
 
 | Time | Screen | Voice-over |
@@ -24,7 +26,7 @@ Recorded against <https://owen-agentvault.vercel.app> in the default theme until
 | 1:35–1:50 | Audit: click **Verify chain** | "Every decision is in a hash-chained, append-only log with a signed head. Verify chain recomputes it; an edited, deleted, or reordered row would break it." |
 | 1:50–2:25 | Kiro chat calling the MCP tools (see below), then the Live feed | "AgentVault is also an MCP server, so Kiro itself can be the agent. Kiro pays for a forecast, allowed. It reads the poisoned page, and the result comes back labeled untrusted. It asks for the refund, and it's held for a person, the same as the scripted agent. There's no approve tool, so Kiro can't approve its own refund." |
 | 2:25–2:38 | Settings: turn on **Kiroween mode**, then the Overview and Agents | "And for Kiroween, a theme toggle. Frozen agents are sealed in The Crypt and tainted sessions are Haunted. It changes only styling and copy; a property test checks that every decision is identical in both themes." |
-| 2:38–2:50 | Overview in Kiroween mode, then the GitHub repo | "Built with Kiro: seven specs, steering, hooks, and property-based tests. Testnets and test mode only. Try the sandbox, no login." |
+| 2:38–2:50 | Overview in Kiroween mode, with the live URL and repo URL as a text overlay | "Built with Kiro: seven specs, steering, hooks, and property-based tests. Testnets and test mode only. Try the sandbox, no login." |
 
 About 2:50 in total. If a take runs long, cut the intent drift scene first (13 s), then shorten the audit scene.
 

@@ -1,6 +1,31 @@
 # How Kiro was used (draft)
 
-Draft for the Devpost write-up. Every example below comes from `docs/KIRO_LOG.md`, which has the seeds, numbers, and dates.
+Draft for the Devpost write-up. Every example below comes from `docs/KIRO_LOG.md`, which has the seeds and numbers.
+
+The Official Rules (section 4) list eight questions the write-up should answer. Where each is answered:
+
+| Rules question | Section below |
+|---|---|
+| Kiro IDE, CLI, Web, Crew | Which Kiro apps |
+| Custom agents | Subagents and custom agents |
+| Agent hooks | Hooks |
+| Spec-driven development, and how it compared to vibe coding | Specs first, code second |
+| Steering docs, and the strategy that made the biggest difference | Steering |
+| MCP | MCP, both directions |
+| Property-based testing | Property-based tests that found real bugs |
+| Kiro powers | Powers and plugins |
+
+## Which Kiro apps
+
+All of the work was done in the Kiro IDE on Windows. <!-- Owen: add CLI, Web, or Crew if you tried any, and how they differed. --> The project's MCP server works with any MCP client, and `docs/MCP.md` also covers Claude Desktop.
+
+## Subagents and custom agents
+
+No custom agents were created for this project. Kiro's built-in introspect subagent checked Kiro's own docs: that a hook's `timeout` belongs on the hook and not the action, and how Kiro confirms and permits MCP tool calls. <!-- Owen: correct this if you made or used a custom agent. -->
+
+## Powers and plugins
+
+The Stripe and Neon plugins were installed but never authenticated, so their MCP tools weren't used. Stripe research used docs.stripe.com and the published `mppx` and `stripe` packages instead, and Neon work used the Neon console and `DATABASE_URL_TEST`. Vercel's official MCP server was connected and used read-only (see MCP below).
 
 ## Specs first, code second
 
@@ -14,6 +39,8 @@ Writing the specs caught design bugs before any code existed:
 - **An approval that could never run.** An approval re-run that reused the original idempotency key would replay the stored "held" response forever. Re-runs use `approval:<id>`.
 - **Platform limits.** Vercel Hobby only allows daily cron jobs, so the reconciler also runs after each request with Next.js `after()`.
 
+**Compared to vibe coding.** <!-- Owen: this paragraph is yours to write; some true points to draw on: --> Payment code fails quietly: a rounding direction or a missing lock produces a wrong number, not an error. Vibe coding would have produced working-looking code with those bugs in it. With specs, each rule had an ID, a planned property, and a task before any code, so Kiro implemented one task at a time against a fixed target, and the post-task hook ran the full suite after each one.
+
 Specs kept catching gaps during implementation. While writing `appendEvent`, the design turned out never to check the chain head's HMAC before extending it, so an attacker could delete the tail, roll the head back, and let the next normal append re-sign the forgery. While reading the mcp-server spec, nothing handed MCP clients a session, which led to `pnpm mcp:agent`.
 
 ## Steering
@@ -25,6 +52,8 @@ Steering files in `.kiro/steering/` held the rules that every change had to foll
 - `product.md`, `tech.md`, `structure.md`: the pitch and demo table, the stack and its pins (TypeScript 6.0 because `typescript-eslint` doesn't support 7, Vercel region `pdx1` next to Neon in us-west-2), and the layering rule that `src/core` does no I/O.
 - `git-commits.md`: the commit format (type, scope, imperative summary, a required body, one logical change per commit).
 - `validate-mpp.md`: a manual slash command that runs Stripe's `mppx validate` against the deployment. It found that mppx took the payment realm from the deployment's own hostname instead of the public one.
+
+**The strategy that made the biggest difference:** turning each steering rule into something a tool checks. "Floats never touch money" is in steering, and the no-float-money hook runs `pnpm check:money` on every save. "`src/core` does no I/O" is in steering, and an ESLint rule enforces it. "Kiroween mode changes styling and copy only" is in steering, and a property test runs two sandboxes in lockstep to prove it. Steering told Kiro the rule; the check caught the times it didn't follow it.
 
 The steering changed when the facts did. A measured x402 minimum on Base Sepolia ($0.001) replaced a guessed 0.01 USDC minimum that would have rejected the sandbox's $0.0015 payment.
 

@@ -6,6 +6,14 @@ Paste into the Devpost "About the project" fields. The Kiro section is in `docs/
 
 **Try it:** <https://owen-agentvault.vercel.app> (no login, mock rails)
 
+**Submission form checklist** (Official Rules, section 4, read 2026-11-16):
+- Category: **Frankenstein** (one category only). Bonus prizes to tick: Best Student Project (Frankenstein), Best Demo (automatic), Bonus Blog Prize, Social Blitz.
+- Best Student Project needs your LinkedIn profile, student email, year and degree, and school name. Proof of enrollment may be requested.
+- Public GitHub repo URL, live app URL, public YouTube video URL (under 3 minutes), the Kiro write-up, and the blog and social post URLs.
+- No login is needed for judging; say so in the credentials field. Sign-in with GitHub is optional and only gives a personal workspace.
+- The rules say the app must stay available, free and unrestricted, **until the Judging Period ends on January 29, 2027**.
+- Pre-existing code must be disclosed. Everything here was written during the Submission Period, using open-source libraries.
+
 ## Inspiration
 
 Stripe's Machine Payments Protocol and x402 let an AI agent answer an HTTP `402 Payment Required` and pay per call, sometimes a tenth of a cent. That's useful, and it removes the person who used to approve each purchase. Card limits and fraud checks assume a human at checkout. An agent that reads a poisoned web page, or loops on a retry bug, can spend a budget one small charge at a time, faster than anyone would notice.
