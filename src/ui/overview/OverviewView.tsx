@@ -41,7 +41,7 @@ export function OverviewView({
               <select
                 value={range}
                 onChange={(e) => setRange(e.target.value as Range)}
-                className="min-h-10 rounded-card border border-border bg-surface px-2 text-sm"
+                className="min-h-10 rounded-card border border-control-border bg-surface px-2 text-sm"
               >
                 {RANGES.map((r) => (
                   <option key={r} value={r}>

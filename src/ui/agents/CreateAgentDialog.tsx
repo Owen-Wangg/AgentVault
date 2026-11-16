@@ -113,7 +113,7 @@ export function CreateAgentDialog({ create = postCreateAgent, copy = (text: stri
               maxLength={60}
               autoComplete="off"
               aria-invalid={error ? true : undefined}
-              className="min-h-10 rounded-card border border-border bg-surface px-2"
+              className="min-h-10 rounded-card border border-control-border bg-surface px-2"
             />
             <p role="status" aria-live="polite" className="text-sm text-deny">
               {error}

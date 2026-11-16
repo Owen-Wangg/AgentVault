@@ -33,6 +33,7 @@ export const TOKEN_NAMES = [
   "surface",
   "surface-muted",
   "border",
+  "control-border",
   "text",
   "text-muted",
   "accent",
@@ -50,6 +51,7 @@ export const TOKENS = {
     surface: "#ffffff",
     "surface-muted": "#f1f5f9",
     border: "#cbd5e1",
+    "control-border": "#64748b",
     text: "#0f172a",
     "text-muted": "#475569",
     accent: "#4338ca",
@@ -65,6 +67,7 @@ export const TOKENS = {
     surface: "#17141f",
     "surface-muted": "#221d2d",
     border: "#4a4160",
+    "control-border": "#7d7194",
     text: "#f3efe6",
     "text-muted": "#b9b0c9",
     accent: "#ff8c1a",
@@ -77,13 +80,17 @@ export const TOKENS = {
 } satisfies Record<Theme, Record<TokenName, string>>;
 
 /**
- * Foreground and background pairs the UI draws text or focus rings with.
- * Text needs 4.5:1 and focus indicators 3:1 (WCAG 2.2 AA, 1.4.3 and 1.4.11).
+ * Foreground and background pairs the UI draws text, focus rings, or
+ * form-control outlines with. Text needs 4.5:1; focus indicators and the
+ * borders that show where an input, select, or textarea is need 3:1
+ * (WCAG 2.2 AA, 1.4.3 and 1.4.11). `border` is decorative only (cards,
+ * table rules), so it isn't checked; controls use `control-border`.
  */
 export const CONTRAST_PAIRS: readonly { fg: TokenName; bg: TokenName; min: number }[] = [
   ...(["bg", "surface", "surface-muted"] as const).flatMap((bg) =>
     (["text", "text-muted", "accent", "allow", "hold", "deny"] as const).map((fg) => ({ fg, bg, min: 4.5 })),
   ),
+  ...(["bg", "surface", "surface-muted"] as const).map((bg) => ({ fg: "control-border" as const, bg, min: 3 })),
   { fg: "accent-text", bg: "accent", min: 4.5 },
   { fg: "focus", bg: "bg", min: 3 },
   { fg: "focus", bg: "surface", min: 3 },

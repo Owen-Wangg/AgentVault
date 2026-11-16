@@ -188,7 +188,7 @@ function TextField({
         autoComplete="off"
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={cn("min-h-10 rounded-card border bg-surface px-2 font-mono", error ? "border-deny" : "border-border")}
+        className={cn("min-h-10 rounded-card border bg-surface px-2 font-mono", error ? "border-deny" : "border-control-border")}
         {...input}
       />
       {error ? (
@@ -234,7 +234,7 @@ function AllowList({
         aria-label={label}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
-        className={cn("rounded-card border bg-surface p-2 font-mono", error ? "border-deny" : "border-border", allowAll && "bg-surface-muted text-text-muted")}
+        className={cn("rounded-card border bg-surface p-2 font-mono", error ? "border-deny" : "border-control-border", allowAll && "bg-surface-muted text-text-muted")}
         {...textarea}
       />
       {error ? (

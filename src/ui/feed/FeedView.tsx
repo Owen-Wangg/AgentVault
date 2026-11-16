@@ -91,7 +91,7 @@ function FilterSelect({ label, value, onChange, children }: { label: string; val
   return (
     <label className="flex flex-col gap-1 text-sm">
       <span className="text-text-muted">{label}</span>
-      <select value={value} onChange={onChange} className="min-h-10 rounded-card border border-border bg-surface px-2">
+      <select value={value} onChange={onChange} className="min-h-10 rounded-card border border-control-border bg-surface px-2">
         <option value="">{t("feed.any")}</option>
         {children}
       </select>
