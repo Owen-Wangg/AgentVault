@@ -16,8 +16,8 @@ Plan (`docs/PLAN.md`): **Phase 16** = tasks 1–4. If behind schedule, ship task
   - Parity property test
   - _Requirements: MCP-6, MCP-7, MCP-8, MCP-9_
 
-- [ ] 4. Write connection docs and record the Kiro demo
-  - `docs/MCP.md` with Kiro and Claude Desktop configs (written; the Kiro connection and screenshot are still to do)
+- [x] 4. Write connection docs and record the Kiro demo
+  - `docs/MCP.md` with Kiro and Claude Desktop configs
   - `pnpm mcp:agent` to get a key and a session (added in Phase 16; nothing else hands out a session)
   - Connect from Kiro, call `agentvault_pay`, screenshot the dashboard event for the write-up
   - _Requirements: MCP-10_
