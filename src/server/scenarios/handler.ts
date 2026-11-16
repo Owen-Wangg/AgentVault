@@ -112,7 +112,15 @@ function stepToWire(step: StepResult) {
 /** The live agent's extra result fields, or none for a scripted run. */
 function liveToWire(run: ScriptedRun | LiveRun) {
   if (!("stop" in run)) return { agent: "scripted" };
-  return { agent: "gemini", stop: run.stop, tool_calls: run.toolCalls, rejected_calls: run.rejectedCalls, gemini_requests: run.geminiRequests };
+  const t = run.timings;
+  return {
+    agent: "gemini",
+    stop: run.stop,
+    tool_calls: run.toolCalls,
+    rejected_calls: run.rejectedCalls,
+    gemini_requests: run.geminiRequests,
+    timings_ms: { model: t.modelMs, score: t.scoreMs, api: t.apiMs, total: t.totalMs },
+  };
 }
 
 export function handleRunScenario(request: Request, name: string, deps: ScenarioRouteDeps = defaultScenarioRouteDeps()): Promise<Response> {
@@ -157,7 +165,10 @@ export function handleRunScenario(request: Request, name: string, deps: Scenario
     if (outcome.kind === "busy") return json(409, { error: "SCENARIO_BUSY" });
     const last = outcome.run.results.at(-1);
     // Codes only: never a prompt, a page, or the key.
-    if ("stop" in outcome.run && outcome.run.stop !== "finished") console.error(`live scenario ${name} stopped: ${outcome.run.stop}`);
+    if ("stop" in outcome.run && outcome.run.stop !== "finished") {
+      const t = outcome.run.timings;
+      console.error(`live scenario ${name} stopped: ${outcome.run.stop} (model ${t.modelMs} ms, score ${t.scoreMs} ms, api ${t.apiMs} ms, total ${t.totalMs} ms)`);
+    }
     if (!outcome.run.completed && last?.kind === "error") {
       console.error(`scenario ${name} stopped at a ${last.step} step: ${last.status} ${last.error}`);
     }

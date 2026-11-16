@@ -2,7 +2,7 @@ import type { Content, Part } from "@google/genai";
 import { AgentApiError, type DecisionResult } from "@/agents/client";
 import { type ScenarioClient, type ScriptedRun, type StepResult, decisionResult } from "@/agents/scripted/agent";
 import { SCENARIOS } from "@/agents/scripted/scenarios";
-import { FUNCTION_DECLARATIONS, type ToolCall, parseToolCall } from "./tools";
+import { FUNCTION_DECLARATIONS, type ParsedCall, type ToolCall, parseToolCall } from "./tools";
 import { GeminiError, type GeminiModel, type GeminiReply } from "./model";
 import { LIVE_CATALOG, type LiveScenarioName, liveSystemPrompt, liveUserPrompt } from "./scenarios";
 import { type ProposedAction, type ScoringContext, scoreDrift } from "./scorer";
@@ -44,6 +44,8 @@ export interface LiveRun extends ScriptedRun {
   rejectedCalls: number;
   /** Gemini requests made: agent turns plus drift scores. */
   geminiRequests: number;
+  /** Wall time in ms: waiting for agent turns, for drift scores, for the AgentVault API, and in all. */
+  timings: { modelMs: number; scoreMs: number; apiMs: number; totalMs: number };
 }
 
 export interface LiveOptions {
@@ -76,7 +78,8 @@ export async function runGemini(name: LiveScenarioName, client: ScenarioClient, 
   const scenario = SCENARIOS[name];
   const maxToolCalls = options.maxToolCalls ?? MAX_TOOL_CALLS;
   const maxTurns = options.maxTurns ?? MAX_TURNS;
-  const deadline = options.now() + (options.deadlineMs ?? DEFAULT_DEADLINE_MS);
+  const started = options.now();
+  const deadline = started + (options.deadlineMs ?? DEFAULT_DEADLINE_MS);
   const scoring: ScoringContext = {
     task: scenario.task.description,
     allowedVendorCategories: scenario.task.allowedVendorCategories,
@@ -113,26 +116,36 @@ export async function runGemini(name: LiveScenarioName, client: ScenarioClient, 
     }
   }
 
-  async function decide(call: Exclude<ToolCall, { name: "fetch_url" }>): Promise<Record<string, unknown>> {
-    const action: ProposedAction =
-      call.name === "pay"
-        ? { tool: "x402.pay", vendor: call.vendor, amountMicros: call.amountMicros }
-        : { tool: call.tool, vendor: call.vendor, amountMicros: call.amountMicros, refs: refsOf(call.args) };
-    const score = await gemini(() => scoreDrift(model, scoring, action));
+  /** Time spent waiting, in ms, so a slow run shows where its time went. */
+  const timings = { modelMs: 0, scoreMs: 0, apiMs: 0 };
+  async function timed<T>(bucket: keyof typeof timings, run: () => Promise<T>): Promise<T> {
+    const start = options.now();
+    try {
+      return await run();
+    } finally {
+      timings[bucket] += options.now() - start;
+    }
+  }
+
+  async function decide(call: Exclude<ToolCall, { name: "fetch_url" }>, score: number): Promise<Record<string, unknown>> {
+    const tool = call.name === "pay" ? "x402.pay" : call.tool;
     const d =
       call.name === "pay"
-        ? await api("pay", () => client.pay(call.vendor, call.amountMicros, nextKey(), "x402.pay", { advisoryDriftScore: score }))
-        : await api("tool", () => client.tool(call.tool, call.args, nextKey(), { advisoryDriftScore: score }));
+        ? await timed("apiMs", () => api("pay", () => client.pay(call.vendor, call.amountMicros, nextKey(), "x402.pay", { advisoryDriftScore: score })))
+        : await timed("apiMs", () => api("tool", () => client.tool(call.tool, call.args, nextKey(), { advisoryDriftScore: score })));
     const kind = call.name === "pay" ? "pay" : "tool";
-    results.push({ ...decisionResult(kind, action.tool, call.vendor, call.amountMicros, d), advisoryDriftScore: score } as StepResult);
+    results.push({ ...decisionResult(kind, tool, call.vendor, call.amountMicros, d), advisoryDriftScore: score } as StepResult);
     return { ...decisionReply(d), advisory_drift_score: score };
   }
 
-  async function execute(call: ToolCall): Promise<Record<string, unknown>> {
-    if (call.name !== "fetch_url") return decide(call);
+  async function execute(call: ToolCall, score: number | undefined): Promise<Record<string, unknown>> {
+    if (call.name !== "fetch_url") {
+      if (score === undefined) throw new Error("A pay or tool call must be scored before it is sent");
+      return decide(call, score);
+    }
     let page: Awaited<ReturnType<ScenarioClient["fetch"]>>;
     try {
-      page = await api("fetch", () => client.fetch(call.url.toString()));
+      page = await timed("apiMs", () => api("fetch", () => client.fetch(call.url.toString())));
     } catch (error) {
       // A page that can't be read (blocked, missing, timed out) is the model's problem to work around,
       // like any agent's. AgentVault failing (401, 403, 503, no response) still stops the run.
@@ -151,27 +164,52 @@ export async function runGemini(name: LiveScenarioName, client: ScenarioClient, 
   try {
     for (let turn = 0; turn < maxTurns; turn += 1) {
       if (options.now() > deadline) throw new Stop("time_limit");
-      const reply: GeminiReply = await gemini(() => model.generate({ system, contents, tools: FUNCTION_DECLARATIONS, maxOutputTokens: 2048 }));
+      const reply: GeminiReply = await timed("modelMs", () =>
+        gemini(() => model.generate({ system, contents, tools: FUNCTION_DECLARATIONS, maxOutputTokens: 2048 })),
+      );
       if (reply.content) contents.push(reply.content);
       if (reply.functionCalls.length === 0) {
         stop = "finished";
         break;
       }
-      const parts: Part[] = [];
+
+      // AGT-13, AGT-15: validate this turn's calls in order; each counts toward the cap, valid or not.
+      const planned: { fc: (typeof reply.functionCalls)[number]; parsed: ParsedCall }[] = [];
+      let capped = false;
       for (const fc of reply.functionCalls) {
-        if (toolCalls >= maxToolCalls) throw new Stop("tool_call_cap");
-        if (options.now() > deadline) throw new Stop("time_limit");
+        if (toolCalls >= maxToolCalls) {
+          capped = true;
+          break;
+        }
         toolCalls += 1;
-        const parsed = parseToolCall(fc.name, fc.args, options.vendorOrigin);
+        planned.push({ fc, parsed: parseToolCall(fc.name, fc.args, options.vendorOrigin) });
+      }
+
+      // AGT-16: score every pay and tool call of the turn at the same time, before any is sent,
+      // so a turn of five payments waits for one scoring round trip, not five.
+      const scores = await timed("scoreMs", () =>
+        Promise.all(
+          planned.map(({ parsed }) => {
+            if (!parsed.ok) return Promise.resolve(undefined);
+            const call = parsed.call;
+            return call.name === "fetch_url" ? Promise.resolve(undefined) : gemini(() => scoreDrift(model, scoring, actionOf(call)));
+          }),
+        ),
+      );
+
+      const parts: Part[] = [];
+      for (const [i, { fc, parsed }] of planned.entries()) {
+        if (options.now() > deadline) throw new Stop("time_limit");
         let response: Record<string, unknown>;
         if (parsed.ok) {
-          response = await execute(parsed.call);
+          response = await execute(parsed.call, scores[i]);
         } else {
           rejectedCalls += 1;
           response = { error: `Invalid arguments: ${parsed.error}` };
         }
         parts.push({ functionResponse: { ...(fc.id ? { id: fc.id } : {}), name: fc.name, response } });
       }
+      if (capped) throw new Stop("tool_call_cap");
       contents.push({ role: "user", parts });
     }
   } catch (error) {
@@ -180,7 +218,14 @@ export async function runGemini(name: LiveScenarioName, client: ScenarioClient, 
     if (error.step) results.push(error.step);
   }
 
-  return { results, requests, completed: stop === "finished", stop, toolCalls, rejectedCalls, geminiRequests };
+  return { results, requests, completed: stop === "finished", stop, toolCalls, rejectedCalls, geminiRequests, timings: { ...timings, totalMs: options.now() - started } };
+}
+
+/** What the scorer sees: the action, never page text. */
+function actionOf(call: Exclude<ToolCall, { name: "fetch_url" }>): ProposedAction {
+  return call.name === "pay"
+    ? { tool: "x402.pay", vendor: call.vendor, amountMicros: call.amountMicros }
+    : { tool: call.tool, vendor: call.vendor, amountMicros: call.amountMicros, refs: refsOf(call.args) };
 }
 
 function refsOf(args: Readonly<Record<string, string>>): Record<string, string> {

@@ -116,6 +116,23 @@ describe("runGemini with recorded responses", () => {
     expect(run.geminiRequests).toBe(5);
   });
 
+  it("AGT-16: every pay in a turn is scored at once, before the first is sent", async () => {
+    const pay = { name: "pay", args: { vendor: "nimbus-weather", amount_usd: "0.0015" } };
+    const rec = recordedModel(functionCalls(pay, pay, pay), score(3), score(4), score(5), text("Bought three."));
+    const sentBeforeEachPay: number[] = [];
+    const { client, calls } = fakeClient(() => {
+      sentBeforeEachPay.push(rec.sent.length);
+      return allow();
+    });
+    const run = await runGemini("normal", client, rec.model, options());
+    // One agent turn and three scores reached Gemini before any payment went out.
+    expect(sentBeforeEachPay).toEqual([4, 4, 4]);
+    // The three scoring requests run in parallel, so which reply lands on which pay isn't fixed.
+    expect(calls.map((c) => (c.kind === "pay" ? c.options?.advisoryDriftScore : null)).sort()).toEqual([3, 4, 5]);
+    expect(run).toMatchObject({ stop: "finished", geminiRequests: 5, toolCalls: 3 });
+    expect(Object.keys(run.timings).sort()).toEqual(["apiMs", "modelMs", "scoreMs", "totalMs"]);
+  });
+
   it.each([
     ["an amount as a JSON number", { name: "pay", args: { vendor: "nimbus-weather", amount_usd: 0.0015 } }],
     ["a negative amount", { name: "pay", args: { vendor: "nimbus-weather", amount_usd: "-1" } }],
