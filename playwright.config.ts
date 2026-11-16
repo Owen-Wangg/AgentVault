@@ -30,7 +30,8 @@ export default defineConfig({
     // Set in the process, so they win over .env.local, which Next.js also loads.
     // NEXT_DIST_DIR: a build folder of its own (next.config.ts).
     env: { DATABASE_URL: databaseUrl, AUDIT_HEAD_KEY: auditHeadKey, APP_ORIGIN: origin, NEXT_TELEMETRY_DISABLED: "1", NEXT_DIST_DIR: ".next-e2e" },
-    stdout: "ignore",
+    // Piped, so a server-rendering error behind a reload loop shows up in the run's output.
+    stdout: "pipe",
     stderr: "pipe",
   },
 });
