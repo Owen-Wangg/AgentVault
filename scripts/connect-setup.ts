@@ -53,7 +53,14 @@ export type RecipientAccount = z.infer<typeof RecipientAccount>;
 const AccountList = z.object({ data: z.array(RecipientAccount), next_page_url: z.string().nullish() });
 const AccountLink = z.object({ url: z.string().url(), expires_at: z.string() });
 const Balance = z.object({ livemode: z.boolean(), available: z.array(z.object({ amount: z.number().int(), currency: z.string() })) });
-const PaymentIntent = z.object({ id: z.string(), status: z.string(), livemode: z.boolean() });
+const PaymentIntent = z.object({
+  id: z.string(),
+  status: z.string(),
+  livemode: z.boolean(),
+  latest_charge: z
+    .object({ balance_transaction: z.object({ amount: z.number().int(), currency: z.string(), status: z.string() }).nullish() })
+    .nullish(),
+});
 
 export const transferStatus = (a: RecipientAccount) => a.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status ?? "not requested";
 
@@ -129,7 +136,8 @@ async function main() {
               account: account.id,
               use_case: {
                 type: "account_onboarding",
-                account_onboarding: { configurations: ["recipient"], return_url: "http://localhost:3000/settings", refresh_url: "http://localhost:3000/settings" },
+                // The GA version takes no `configurations` here (400 invalid_fields); it onboards the account's own.
+                account_onboarding: { return_url: "http://localhost:3000/settings", refresh_url: "http://localhost:3000/settings" },
               },
             },
             { apiVersion: CONNECT_API_VERSION },
@@ -157,10 +165,13 @@ async function main() {
           "automatic_payment_methods[allow_redirects]": "never",
           description: "AgentVault demo: test funds for Connect payouts",
           "metadata[agentvault_seed]": "connect-funds",
+          "expand[]": "latest_charge.balance_transaction",
         }),
       );
       if (pi.livemode) throw new Error("Stripe returned a live-mode payment; only test mode is allowed");
-      console.log(`fund ${toDisplay(amount)} USD: ${pi.id} ${pi.status}`);
+      const bt = pi.latest_charge?.balance_transaction;
+      // Shows whether the charge stayed in USD or was converted to the platform's default currency.
+      console.log(`fund ${toDisplay(amount)} USD: ${pi.id} ${pi.status}${bt ? `, settled as ${bt.amount} ${bt.currency.toUpperCase()} minor units (${bt.status})` : ""}`);
     } catch (error) {
       console.log(`fund: ${describeError(error)}`);
       process.exitCode = 1;
