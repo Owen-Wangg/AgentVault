@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LIVE_STOPS, type LiveStop } from "@/agents/gemini/scenarios";
 import { type Micros, MicrosSchema } from "@/core/money";
 import { type AuditEventMessage, type FeedRow, decisionRow } from "@/ui/events/summarize";
 
@@ -48,9 +49,8 @@ export interface RunSummaryView {
   reasons: { code: string; count: number }[];
 }
 
-/** Why a live run stopped (demo-agents AGT-14, AGT-15). Scripted runs have none. */
-export const LIVE_STOPS = ["finished", "tool_call_cap", "turn_cap", "time_limit", "gemini_rate_limited", "gemini_failed", "api_error"] as const;
-export type LiveStop = (typeof LIVE_STOPS)[number];
+/** Why a live run stopped (demo-agents AGT-14, AGT-15), shared with the agent. Scripted runs have none. */
+export { LIVE_STOPS, type LiveStop };
 
 export interface RunResult {
   agentId: string;

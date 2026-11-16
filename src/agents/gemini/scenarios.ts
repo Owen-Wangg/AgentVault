@@ -17,6 +17,14 @@ export type LiveScenarioName = (typeof LIVE_SCENARIO_NAMES)[number];
 export const isLiveScenario = (name: string): name is LiveScenarioName => (LIVE_SCENARIO_NAMES as readonly string[]).includes(name);
 
 /**
+ * Why a live run ended (AGT-14, AGT-15). The one list the agent and the
+ * scenarios page share. It lives here, not in agent.ts, because this file
+ * doesn't import the Gemini SDK, so the page can import it.
+ */
+export const LIVE_STOPS = ["finished", "tool_call_cap", "turn_cap", "time_limit", "gemini_rate_limited", "gemini_failed", "api_error"] as const;
+export type LiveStop = (typeof LIVE_STOPS)[number];
+
+/**
  * The vendors the agent can pay, with the category AgentVault's registry
  * gives each one. It must match the sandbox seed (src/server/sandbox/seed-data.ts);
  * a test checks that.

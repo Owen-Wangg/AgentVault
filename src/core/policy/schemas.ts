@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ADVISORY_SCORE_MAX, ADVISORY_SCORE_MIN } from "@/core/intent/advisory";
+import { AdvisoryScoreSchema } from "@/core/intent/advisory";
 import { MAX_MICROS, type Micros } from "@/core/money";
 import { HOLD_REASONS } from "./reasons";
 
@@ -116,7 +116,7 @@ export const EvaluateInputSchema = z
     // Hold codes only: a deny code here is a wiring mistake and fails closed (HITL-3).
     approvedHoldReasons: z.array(z.enum(HOLD_REASONS)).readonly().optional(),
     // INT-7: an integer from 0 to 100. Anything else fails closed with INVALID_REQUEST.
-    advisoryDriftScore: z.number().int().min(ADVISORY_SCORE_MIN).max(ADVISORY_SCORE_MAX).optional(),
+    advisoryDriftScore: AdvisoryScoreSchema.optional(),
   })
   .superRefine((input, ctx) => {
     // Pieces loaded for a different agent or session must never be combined.

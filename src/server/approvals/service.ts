@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gt, isNotNull, lte } from "drizzle-orm";
 import { z } from "zod";
 import { canonicalJson } from "@/core/audit";
-import { ADVISORY_SCORE_MAX, ADVISORY_SCORE_MIN } from "@/core/intent";
+import { AdvisoryScoreSchema } from "@/core/intent";
 import { MicrosSchema } from "@/core/money";
 import { type HoldReason, type ReasonDetail, isHoldReason } from "@/core/policy";
 import { appendEvent } from "@/server/audit/append";
@@ -146,7 +146,7 @@ const StoredRequestSchema = z.strictObject({
   idempotency_key: z.string(),
   args: StringMap.optional(),
   // INT-7: the re-run reuses the held request's score, so the LLM is never asked again.
-  advisory_drift_score: z.number().int().min(ADVISORY_SCORE_MIN).max(ADVISORY_SCORE_MAX).optional(),
+  advisory_drift_score: AdvisoryScoreSchema.optional(),
 });
 
 const StoredReasonsSchema = z.array(z.looseObject({ code: z.string() }));

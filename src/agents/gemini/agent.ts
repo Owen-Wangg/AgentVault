@@ -4,7 +4,7 @@ import { type ScenarioClient, type ScriptedRun, type StepResult, decisionResult 
 import { SCENARIOS } from "@/agents/scripted/scenarios";
 import { FUNCTION_DECLARATIONS, type ParsedCall, type ToolCall, parseToolCall } from "./tools";
 import { GeminiError, type GeminiModel, type GeminiReply } from "./model";
-import { LIVE_CATALOG, type LiveScenarioName, liveSystemPrompt, liveUserPrompt } from "./scenarios";
+import { LIVE_CATALOG, type LiveScenarioName, type LiveStop, liveSystemPrompt, liveUserPrompt } from "./scenarios";
 import { type ProposedAction, type ScoringContext, scoreDrift } from "./scorer";
 
 /**
@@ -34,7 +34,7 @@ export const MAX_PAGE_CHARS = 20_000;
 /** /api/v1/fetch statuses that mean the page couldn't be read (taint-and-intent design, "Error handling"). */
 const PAGE_ERRORS: ReadonlySet<number> = new Set([400, 502, 504]);
 
-export type LiveStop = "finished" | "tool_call_cap" | "turn_cap" | "time_limit" | "gemini_rate_limited" | "gemini_failed" | "api_error";
+export type { LiveStop } from "./scenarios";
 
 export interface LiveRun extends ScriptedRun {
   stop: LiveStop;

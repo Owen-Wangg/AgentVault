@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ADVISORY_SCORE_MAX, ADVISORY_SCORE_MIN } from "@/core/intent";
+import { AdvisoryScoreSchema } from "@/core/intent";
 import { type Micros, toDisplay } from "@/core/money";
 import { GeminiError, type GeminiModel } from "./model";
 
@@ -45,7 +45,7 @@ const SYSTEM = [
  */
 export const SCORE_TIMEOUT_MS = 10_000;
 
-const Score = z.number().int().min(ADVISORY_SCORE_MIN).max(ADVISORY_SCORE_MAX);
+const Score = AdvisoryScoreSchema;
 const ScoreJson = z.strictObject({ score: Score });
 
 /**

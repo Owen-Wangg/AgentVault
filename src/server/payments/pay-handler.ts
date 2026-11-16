@@ -1,6 +1,6 @@
 import { after } from "next/server";
 import { z } from "zod";
-import { ADVISORY_SCORE_MAX, ADVISORY_SCORE_MIN } from "@/core/intent";
+import { AdvisoryScoreSchema } from "@/core/intent";
 import { MicrosSchema, type Rail } from "@/core/money";
 import { railOptions } from "@/rails/real";
 import { railFor } from "@/rails/select";
@@ -74,7 +74,7 @@ export function defaultPayDeps(): PayDeps {
  * ADVISORY_DRIFT hold, so an agent that sends a low score or none gains
  * nothing. A rating, not money.
  */
-export const AdvisoryDriftScoreSchema = z.number().int().min(ADVISORY_SCORE_MIN).max(ADVISORY_SCORE_MAX);
+export const AdvisoryDriftScoreSchema = AdvisoryScoreSchema;
 
 export const PayBodySchema = z.strictObject({
   vendor: z.string().min(1).max(200),

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { ReasonDetail } from "@/core/policy/types";
 
 /**
@@ -19,6 +20,13 @@ export const ADVISORY_SCORE_MIN = 0;
 export const ADVISORY_SCORE_MAX = 100;
 
 const inRange = (n: number): boolean => Number.isInteger(n) && n >= ADVISORY_SCORE_MIN && n <= ADVISORY_SCORE_MAX;
+
+/**
+ * INT-7: a valid score, an integer from 0 to 100. The one schema every
+ * boundary uses: the evaluate() input, the pay and tool routes, a stored
+ * approval, and the scorer's reply.
+ */
+export const AdvisoryScoreSchema = z.number().int().min(ADVISORY_SCORE_MIN).max(ADVISORY_SCORE_MAX);
 
 /**
  * INT-8: ADVISORY_DRIFT when `score` is at or above `threshold`. No score
