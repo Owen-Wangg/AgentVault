@@ -51,3 +51,9 @@ Plan (`docs/PLAN.md`): **Phase 6** = tasks 1–2. **Phase 13** = tasks 3–5. **
   - `lookup()` for payments and refunds by `metadata.idempotency_key`. Confirmed: the MPP flow carries it to the PaymentIntent through the credential's `externalId`. Absence can't be proven, so it stays `unknown`
   - Contract tests with fixtures (`pnpm stripe:probe --record`); `@live` tests
   - _Requirements: RAIL-15, RAIL-16, RAIL-17, RAIL-21, RAIL-22_
+
+- [x] 9. Send guarded payments to the vendor's payment URL
+  - `vendors.x402_url` and `vendors.mpp_url` (migration 0003), a check constraint keeping each under the vendor's origin, and the sandbox seed's URLs for `nimbus-weather` (seed version 2)
+  - The guarded flow passes the URL for the tool's rail (`paymentUrl()`); both real adapters refuse a missing or non-http URL as `RAIL_REJECTED` before contacting anyone, so the reservation is released
+  - The `@live` x402 test's guarded payment now goes to the scene vendor's `x402_url` and settles on Base Sepolia. A real payment over HTTP needs a workspace outside the sandbox with vendors, which doesn't exist yet
+  - _Requirements: RAIL-23, RAIL-24, RAIL-25_

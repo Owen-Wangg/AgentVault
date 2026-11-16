@@ -48,6 +48,14 @@ This spec covers the adapters that turn an allowed decision into a real payment,
 - **RAIL-17** WHEN an allowed or approved `stripe.refund` runs, THE SYSTEM SHALL create a test-mode refund through the Refunds API and record the Refund ID.
 - **RAIL-18** THE SYSTEM SHALL pass the MPP validator (`npx mppx@latest validate`) for `/vendor/api/report`.
 
+## Requirement 6: Payment URLs for guarded payments
+**User story:** As a developer, I want an agent's allowed payment to reach the vendor's paid endpoint, so that real x402 and MPP payments run through AgentVault, not only through the adapters directly.
+
+### Acceptance criteria
+- **RAIL-23** WHEN an allowed `x402.pay` or `mpp.pay` runs, THE SYSTEM SHALL send it to the vendor's registered payment URL for that rail (`x402_url` or `mpp_url`), never to a URL from the agent's request.
+- **RAIL-24** IF the vendor has no payment URL for the tool's rail, THEN THE SYSTEM SHALL fail closed with `RAIL_REJECTED` without contacting any vendor, and release the reservation.
+- **RAIL-25** THE SYSTEM SHALL store a payment URL only if it is on the vendor's own registered origin (the database refuses any other value).
+
 ## Requirement 5: Mock rails
 **User story:** As a judge, I want the sandbox to work without any accounts, so that I can test the app right away.
 
