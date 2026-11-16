@@ -69,6 +69,23 @@ export default defineConfig([
     },
   },
   {
+    // The stdio MCP server runs on a developer's machine with only an agent key, so it reaches
+    // AgentVault through the HTTP API (mcp-server design). Not "**/server/**", which would also
+    // match the SDK's own "@modelcontextprotocol/sdk/server/..." paths.
+    files: ["src/mcp/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            { group: ["@/server", "@/server/*", "../server", "../server/*"], message: "src/mcp must not import src/server. Use the HTTP API through AgentClient." },
+            { group: ["@/rails", "@/rails/*", "../rails", "../rails/*"], message: "src/mcp must not import src/rails." },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["src/rails/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": [

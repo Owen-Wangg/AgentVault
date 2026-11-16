@@ -182,7 +182,11 @@ describe("theme boundary", () => {
     const files = dirs.flatMap((d) => sources(join(root, d)));
     expect(files.length).toBeGreaterThan(50);
     // Any quoted module path into src/ui catches `from`, bare side-effect imports, import(), and require().
-    const offenders = files.filter((file) => /["'][^"'\n]*(@\/ui\/|\/ui\/)|av-theme|THEME_COOKIE|data-theme|kiroween/i.test(readFileSync(file, "utf8")));
+    // The one exception: MCP tool results take their wording from src/ui/copy, always in the default theme.
+    const allowed = (file: string, source: string) => (relative(root, file).replace(/\\/g, "/").startsWith("src/mcp/") ? source.replaceAll('"@/ui/copy"', "") : source);
+    const offenders = files.filter((file) =>
+      /["'][^"'\n]*(@\/ui\/|\/ui\/)|av-theme|THEME_COOKIE|data-theme|kiroween/i.test(allowed(file, readFileSync(file, "utf8"))),
+    );
     expect(offenders.map((f) => relative(root, f))).toEqual([]);
   });
 });

@@ -34,12 +34,14 @@
     "stripe:profile": "tsx scripts/stripe-profile.ts",
     "stripe:seed": "tsx scripts/stripe-seed.ts",
     "mpp:validate": "tsx scripts/mpp-validate.ts",
-    "stripe:probe": "tsx scripts/stripe-probe.ts"
+    "stripe:probe": "tsx scripts/stripe-probe.ts",
+    "mcp": "tsx src/mcp/stdio.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "1.11.3",
     "@coinbase/cdp-sdk": "1.62.0",
     "@hookform/resolvers": "7.0.6",
+    "@modelcontextprotocol/sdk": "1.32.2",
     "@neondatabase/serverless": "1.2.0",
     "@noble/hashes": "2.4.0",
     "@tailwindcss/postcss": "4.3.5",
