@@ -158,7 +158,10 @@ describe("theme neutrality", () => {
         expect(normalize(b.transcript)).toBe(normalize(a.transcript));
         expect(normalize(b.events)).toBe(normalize(a.events));
       }),
-      { numRuns: 8 },
+      // The first of the 8 runs is a fixed case that runs every scenario in order, so the
+      // coverage check below can't fail by chance; 8 random cases of up to 4 steps sometimes
+      // never picked one of the scenarios.
+      { numRuns: 8, examples: [[SCENARIO_NAMES.map((scenario) => ({ scenario, gapMs: 1_000, approve: true, unfreeze: true }))]] },
     );
     expect([...seen].sort()).toEqual([...SCENARIO_NAMES].sort());
   }, 600_000);
