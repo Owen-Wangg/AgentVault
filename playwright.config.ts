@@ -28,7 +28,8 @@ export default defineConfig({
     timeout: 180_000,
     reuseExistingServer: false,
     // Set in the process, so they win over .env.local, which Next.js also loads.
-    env: { DATABASE_URL: databaseUrl, AUDIT_HEAD_KEY: auditHeadKey, APP_ORIGIN: origin, NEXT_TELEMETRY_DISABLED: "1" },
+    // NEXT_DIST_DIR: a build folder of its own (next.config.ts).
+    env: { DATABASE_URL: databaseUrl, AUDIT_HEAD_KEY: auditHeadKey, APP_ORIGIN: origin, NEXT_TELEMETRY_DISABLED: "1", NEXT_DIST_DIR: ".next-e2e" },
     stdout: "ignore",
     stderr: "pipe",
   },

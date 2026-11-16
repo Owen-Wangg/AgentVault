@@ -8,7 +8,7 @@ const ioModules = ["fs", "net", "http", "https", "child_process", "dgram", "dns"
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
-  globalIgnores([".next/**", "node_modules/**", "coverage/**", "next-env.d.ts"]),
+  globalIgnores([".next/**", ".next-e2e/**", "node_modules/**", "coverage/**", "next-env.d.ts"]),
   {
     files: ["src/core/**/*.{ts,tsx}"],
     rules: {

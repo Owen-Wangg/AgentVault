@@ -90,7 +90,7 @@ export function scanSource(text: string, file: string): Finding[] {
 }
 
 const ROOTS = ["src", "app", "scripts"];
-const SKIP_DIRS = new Set(["node_modules", ".next", "__fixtures__", "coverage"]);
+const SKIP_DIRS = new Set(["node_modules", ".next", ".next-e2e", "__fixtures__", "coverage"]);
 // This checker and its tests contain the banned patterns on purpose.
 const SKIP_FILES = new Set(["scripts/check-money.ts", "scripts/check-money.test.ts"]);
 
