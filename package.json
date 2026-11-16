@@ -37,6 +37,7 @@
     "stripe:probe": "tsx scripts/stripe-probe.ts",
     "connect:check": "tsx scripts/connect-check.ts",
     "connect:setup": "tsx scripts/connect-setup.ts",
+    "connect:probe": "tsx scripts/connect-probe.ts",
     "paypal:probe": "tsx scripts/paypal-probe.ts",
     "gemini:probe": "tsx scripts/gemini-probe.ts",
     "mcp": "tsx src/mcp/stdio.ts",

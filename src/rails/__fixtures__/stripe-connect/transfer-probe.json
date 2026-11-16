@@ -1,0 +1,846 @@
+{
+  "recorded_at": "2026-11-16T23:01:20.536Z",
+  "api_version": "2026-10-28.endive",
+  "exchanges": [
+    {
+      "step": "read accounts",
+      "request": {
+        "method": "GET",
+        "path": "/v2/core/accounts",
+        "params": {
+          "applied_configurations": "recipient",
+          "limit": "20"
+        },
+        "idempotency_key": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "data": [
+            {
+              "id": "acct_1UcYiz3i6fHPdh3m",
+              "object": "v2.core.account",
+              "applied_configurations": [
+                "recipient"
+              ],
+              "closed": false,
+              "configuration": null,
+              "contact_email": "attacker-payee@example.com",
+              "contact_phone": null,
+              "created": "2026-11-16T22:50:12.000Z",
+              "dashboard": "express",
+              "identity": null,
+              "defaults": {
+                "currency": "cad",
+                "locales": [],
+                "payout_methods": null,
+                "profile": {
+                  "business_url": "www.twoexample.com",
+                  "doing_business_as": null,
+                  "product_description": "Test account 2"
+                },
+                "responsibilities": {
+                  "fees_collector": "application",
+                  "losses_collector": "application",
+                  "requirements_collector": "stripe"
+                }
+              },
+              "display_name": "Attacker payee (AgentVault demo)",
+              "future_requirements": null,
+              "metadata": {
+                "agentvault_role": "attacker"
+              },
+              "requirements": null,
+              "livemode": false
+            },
+            {
+              "id": "acct_1UcYiv3i6f4dGjiE",
+              "object": "v2.core.account",
+              "applied_configurations": [
+                "recipient"
+              ],
+              "closed": false,
+              "configuration": null,
+              "contact_email": "acme-supplies@example.com",
+              "contact_phone": null,
+              "created": "2026-11-16T22:50:08.000Z",
+              "dashboard": "express",
+              "identity": null,
+              "defaults": {
+                "currency": "cad",
+                "locales": [],
+                "payout_methods": null,
+                "profile": {
+                  "business_url": "www.oneexample.com",
+                  "doing_business_as": null,
+                  "product_description": "Test account 1"
+                },
+                "responsibilities": {
+                  "fees_collector": "application",
+                  "losses_collector": "application",
+                  "requirements_collector": "stripe"
+                }
+              },
+              "display_name": "Acme Supplies (AgentVault demo)",
+              "future_requirements": null,
+              "metadata": {
+                "agentvault_role": "supplier"
+              },
+              "requirements": null,
+              "livemode": false
+            }
+          ],
+          "next_page_url": null,
+          "previous_page_url": null
+        }
+      }
+    },
+    {
+      "step": "read accounts",
+      "request": {
+        "method": "GET",
+        "path": "/v2/core/accounts/acct_1UcYiv3i6f4dGjiE",
+        "params": {
+          "include": "requirements"
+        },
+        "idempotency_key": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "id": "acct_1UcYiv3i6f4dGjiE",
+          "object": "v2.core.account",
+          "applied_configurations": [
+            "recipient"
+          ],
+          "closed": false,
+          "configuration": {
+            "customer": null,
+            "merchant": null,
+            "recipient": {
+              "applied": true,
+              "capabilities": {
+                "bank_accounts": {
+                  "ach": null,
+                  "fedwire": null,
+                  "fps": null,
+                  "local": null,
+                  "rtp": null,
+                  "sepa": null,
+                  "swift": null
+                },
+                "cards": null,
+                "stripe_balance": {
+                  "payouts": {
+                    "status": "restricted",
+                    "status_details": [
+                      {
+                        "code": "requirements_past_due",
+                        "resolution": "provide_info"
+                      }
+                    ]
+                  },
+                  "stripe_transfers": {
+                    "status": "active",
+                    "status_details": []
+                  }
+                }
+              }
+            }
+          },
+          "contact_email": "acme-supplies@example.com",
+          "contact_phone": null,
+          "created": "2026-11-16T22:50:08.000Z",
+          "dashboard": "express",
+          "identity": null,
+          "defaults": null,
+          "display_name": "Acme Supplies (AgentVault demo)",
+          "future_requirements": null,
+          "metadata": {
+            "agentvault_role": "supplier"
+          },
+          "requirements": {
+            "alternatives": [
+              {
+                "options": [
+                  {
+                    "entries": [
+                      {
+                        "awaiting_action_from": "user",
+                        "description": "identity.individual.documents.primary_verification",
+                        "errors": [
+                          {
+                            "code": "verification_failed_keyed_identity",
+                            "description": "The person's keyed-in identity information could not be verified. Correct any errors or upload a document that matches the identity fields (e.g., name and date of birth) entered."
+                          }
+                        ],
+                        "reference": null
+                      },
+                      {
+                        "awaiting_action_from": "user",
+                        "description": "identity.individual.documents.secondary_verification",
+                        "errors": [
+                          {
+                            "code": "verification_failed_keyed_identity",
+                            "description": "The address on the account could not be verified. Correct any errors in the address field, or upload a document that includes your name and address."
+                          }
+                        ],
+                        "reference": null
+                      }
+                    ]
+                  }
+                ],
+                "original_entries": [
+                  {
+                    "description": "identity.individual.verification.proof_of_liveness",
+                    "reference": null
+                  }
+                ]
+              }
+            ],
+            "entries": [
+              {
+                "awaiting_action_from": "user",
+                "description": "identity.individual.verification.proof_of_liveness",
+                "errors": [],
+                "impact": {
+                  "restricts_capabilities": [
+                    {
+                      "capability": "stripe_balance.payouts",
+                      "configuration": "recipient",
+                      "deadline": {
+                        "status": "past_due"
+                      }
+                    },
+                    {
+                      "capability": "stripe_balance.stripe_transfers",
+                      "configuration": "recipient",
+                      "deadline": {
+                        "status": "currently_due"
+                      }
+                    }
+                  ]
+                },
+                "minimum_deadline": {
+                  "status": "past_due"
+                },
+                "reference": null,
+                "requested_reasons": [
+                  {
+                    "code": "routine_onboarding"
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "minimum_deadline": {
+                "status": "past_due",
+                "time": null
+              }
+            }
+          },
+          "livemode": false
+        }
+      }
+    },
+    {
+      "step": "read accounts",
+      "request": {
+        "method": "GET",
+        "path": "/v2/core/accounts/acct_1UcYiz3i6fHPdh3m",
+        "params": {
+          "include": "requirements"
+        },
+        "idempotency_key": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "id": "acct_1UcYiz3i6fHPdh3m",
+          "object": "v2.core.account",
+          "applied_configurations": [
+            "recipient"
+          ],
+          "closed": false,
+          "configuration": {
+            "customer": null,
+            "merchant": null,
+            "recipient": {
+              "applied": true,
+              "capabilities": {
+                "bank_accounts": {
+                  "ach": null,
+                  "fedwire": null,
+                  "fps": null,
+                  "local": null,
+                  "rtp": null,
+                  "sepa": null,
+                  "swift": null
+                },
+                "cards": null,
+                "stripe_balance": {
+                  "payouts": {
+                    "status": "restricted",
+                    "status_details": [
+                      {
+                        "code": "requirements_past_due",
+                        "resolution": "provide_info"
+                      }
+                    ]
+                  },
+                  "stripe_transfers": {
+                    "status": "active",
+                    "status_details": []
+                  }
+                }
+              }
+            }
+          },
+          "contact_email": "attacker-payee@example.com",
+          "contact_phone": null,
+          "created": "2026-11-16T22:50:12.000Z",
+          "dashboard": "express",
+          "identity": null,
+          "defaults": null,
+          "display_name": "Attacker payee (AgentVault demo)",
+          "future_requirements": null,
+          "metadata": {
+            "agentvault_role": "attacker"
+          },
+          "requirements": {
+            "alternatives": [
+              {
+                "options": [
+                  {
+                    "entries": [
+                      {
+                        "awaiting_action_from": "user",
+                        "description": "identity.individual.documents.primary_verification",
+                        "errors": [
+                          {
+                            "code": "verification_failed_keyed_identity",
+                            "description": "The person's keyed-in identity information could not be verified. Correct any errors or upload a document that matches the identity fields (e.g., name and date of birth) entered."
+                          }
+                        ],
+                        "reference": null
+                      },
+                      {
+                        "awaiting_action_from": "user",
+                        "description": "identity.individual.documents.secondary_verification",
+                        "errors": [
+                          {
+                            "code": "verification_failed_keyed_identity",
+                            "description": "The address on the account could not be verified. Correct any errors in the address field, or upload a document that includes your name and address."
+                          }
+                        ],
+                        "reference": null
+                      }
+                    ]
+                  }
+                ],
+                "original_entries": [
+                  {
+                    "description": "identity.individual.verification.proof_of_liveness",
+                    "reference": null
+                  }
+                ]
+              }
+            ],
+            "entries": [
+              {
+                "awaiting_action_from": "user",
+                "description": "identity.individual.verification.proof_of_liveness",
+                "errors": [],
+                "impact": {
+                  "restricts_capabilities": [
+                    {
+                      "capability": "stripe_balance.payouts",
+                      "configuration": "recipient",
+                      "deadline": {
+                        "status": "past_due"
+                      }
+                    },
+                    {
+                      "capability": "stripe_balance.stripe_transfers",
+                      "configuration": "recipient",
+                      "deadline": {
+                        "status": "currently_due"
+                      }
+                    }
+                  ]
+                },
+                "minimum_deadline": {
+                  "status": "past_due"
+                },
+                "reference": null,
+                "requested_reasons": [
+                  {
+                    "code": "routine_onboarding"
+                  }
+                ]
+              }
+            ],
+            "summary": {
+              "minimum_deadline": {
+                "status": "past_due",
+                "time": null
+              }
+            }
+          },
+          "livemode": false
+        }
+      }
+    },
+    {
+      "step": "read accounts",
+      "request": {
+        "method": "GET",
+        "path": "/v1/balance",
+        "params": {},
+        "idempotency_key": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "object": "balance",
+          "available": [
+            {
+              "amount": 517,
+              "currency": "usd",
+              "source_types": {
+                "card": 517
+              }
+            },
+            {
+              "amount": 845,
+              "currency": "cad",
+              "source_types": {
+                "card": 845
+              }
+            }
+          ],
+          "connect_reserved": [
+            {
+              "amount": 0,
+              "currency": "usd"
+            },
+            {
+              "amount": 0,
+              "currency": "cad"
+            }
+          ],
+          "livemode": false,
+          "pending": [
+            {
+              "amount": 0,
+              "currency": "usd",
+              "source_types": {
+                "card": 0
+              }
+            },
+            {
+              "amount": 67256,
+              "currency": "cad",
+              "source_types": {
+                "card": 67256
+              }
+            }
+          ],
+          "refund_and_dispute_prefunding": {
+            "available": [
+              {
+                "amount": 0,
+                "currency": "usd"
+              },
+              {
+                "amount": 0,
+                "currency": "cad"
+              }
+            ],
+            "pending": [
+              {
+                "amount": 0,
+                "currency": "usd"
+              },
+              {
+                "amount": 0,
+                "currency": "cad"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "step": "transfer $1.00",
+      "request": {
+        "method": "POST",
+        "path": "/v1/transfers",
+        "params": {
+          "amount": "100",
+          "currency": "usd",
+          "destination": "acct_1UcYiv3i6f4dGjiE",
+          "transfer_group": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd",
+          "metadata[idempotency_key]": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd",
+          "description": "AgentVault payout-rails probe"
+        },
+        "idempotency_key": "agentvault-transfer-v1:probe-6626ac14-e248-44f9-8ad6-e900ccec52bd"
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "id": "tr_1UcYtm3i6fxzvKeTC1Ag3yrx",
+          "object": "transfer",
+          "amount": 100,
+          "amount_reversed": 0,
+          "balance_transaction": "txn_1UcYtm3i6fxzvKeTlUoUMXgP",
+          "created": 1794870078,
+          "currency": "usd",
+          "description": "AgentVault payout-rails probe",
+          "destination": "acct_1UcYiv3i6f4dGjiE",
+          "destination_payment": "py_1UcYtm3i6f4dGjiE5xLNCkQ7",
+          "livemode": false,
+          "metadata": {
+            "idempotency_key": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd"
+          },
+          "reversals": {
+            "object": "list",
+            "data": [],
+            "has_more": false,
+            "total_count": 0,
+            "url": "/v1/transfers/tr_1UcYtm3i6fxzvKeTC1Ag3yrx/reversals"
+          },
+          "reversed": false,
+          "source_transaction": null,
+          "source_type": "card",
+          "transfer_group": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd"
+        }
+      }
+    },
+    {
+      "step": "same key again",
+      "request": {
+        "method": "POST",
+        "path": "/v1/transfers",
+        "params": {
+          "amount": "100",
+          "currency": "usd",
+          "destination": "acct_1UcYiv3i6f4dGjiE",
+          "transfer_group": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd",
+          "metadata[idempotency_key]": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd",
+          "description": "AgentVault payout-rails probe"
+        },
+        "idempotency_key": "agentvault-transfer-v1:probe-6626ac14-e248-44f9-8ad6-e900ccec52bd"
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "id": "tr_1UcYtm3i6fxzvKeTC1Ag3yrx",
+          "object": "transfer",
+          "amount": 100,
+          "amount_reversed": 0,
+          "balance_transaction": "txn_1UcYtm3i6fxzvKeTlUoUMXgP",
+          "created": 1794870078,
+          "currency": "usd",
+          "description": "AgentVault payout-rails probe",
+          "destination": "acct_1UcYiv3i6f4dGjiE",
+          "destination_payment": "py_1UcYtm3i6f4dGjiE5xLNCkQ7",
+          "livemode": false,
+          "metadata": {
+            "idempotency_key": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd"
+          },
+          "reversals": {
+            "object": "list",
+            "data": [],
+            "has_more": false,
+            "total_count": 0,
+            "url": "/v1/transfers/tr_1UcYtm3i6fxzvKeTC1Ag3yrx/reversals"
+          },
+          "reversed": false,
+          "source_transaction": null,
+          "source_type": "card",
+          "transfer_group": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd"
+        }
+      }
+    },
+    {
+      "step": "same key, $1.01",
+      "request": {
+        "method": "POST",
+        "path": "/v1/transfers",
+        "params": {
+          "amount": "101",
+          "currency": "usd",
+          "destination": "acct_1UcYiv3i6f4dGjiE",
+          "transfer_group": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd",
+          "metadata[idempotency_key]": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd",
+          "description": "AgentVault payout-rails probe"
+        },
+        "idempotency_key": "agentvault-transfer-v1:probe-6626ac14-e248-44f9-8ad6-e900ccec52bd"
+      },
+      "response": {
+        "status": 400,
+        "json": {
+          "error": {
+            "message": "Keys for idempotent requests can only be used with the same parameters they were first used with. Try using a key other than 'agentvault-transfer-v1:probe-6626ac14-e248-44f9-8ad6-e900ccec52bd' if you meant to execute a different request.",
+            "request_log_url": "https://dashboard.stripe.com/acct_1UbKwU3i6fxzvKeT/test/workbench/logs?object=req_rZBCaTcGNBCc3P",
+            "type": "idempotency_error"
+          }
+        }
+      }
+    },
+    {
+      "step": "lookup by transfer_group",
+      "request": {
+        "method": "GET",
+        "path": "/v1/transfers",
+        "params": {
+          "transfer_group": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd",
+          "limit": "10"
+        },
+        "idempotency_key": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "object": "list",
+          "data": [
+            {
+              "id": "tr_1UcYtm3i6fxzvKeTC1Ag3yrx",
+              "object": "transfer",
+              "amount": 100,
+              "amount_reversed": 0,
+              "balance_transaction": "txn_1UcYtm3i6fxzvKeTlUoUMXgP",
+              "created": 1794870078,
+              "currency": "usd",
+              "description": "AgentVault payout-rails probe",
+              "destination": "acct_1UcYiv3i6f4dGjiE",
+              "destination_payment": "py_1UcYtm3i6f4dGjiE5xLNCkQ7",
+              "livemode": false,
+              "metadata": {
+                "idempotency_key": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd"
+              },
+              "reversals": {
+                "object": "list",
+                "data": [],
+                "has_more": false,
+                "total_count": 0,
+                "url": "/v1/transfers/tr_1UcYtm3i6fxzvKeTC1Ag3yrx/reversals"
+              },
+              "reversed": false,
+              "source_transaction": null,
+              "source_type": "card",
+              "transfer_group": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd"
+            }
+          ],
+          "has_more": false,
+          "url": "/v1/transfers"
+        }
+      }
+    },
+    {
+      "step": "lookup unknown transfer_group",
+      "request": {
+        "method": "GET",
+        "path": "/v1/transfers",
+        "params": {
+          "transfer_group": "probe-65807757-e991-41f3-a7b2-094315e75ea9",
+          "limit": "10"
+        },
+        "idempotency_key": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "object": "list",
+          "data": [],
+          "has_more": false,
+          "url": "/v1/transfers"
+        }
+      }
+    },
+    {
+      "step": "transfer $0.01",
+      "request": {
+        "method": "POST",
+        "path": "/v1/transfers",
+        "params": {
+          "amount": "1",
+          "currency": "usd",
+          "destination": "acct_1UcYiv3i6f4dGjiE",
+          "transfer_group": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd",
+          "metadata[idempotency_key]": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd",
+          "description": "AgentVault payout-rails probe"
+        },
+        "idempotency_key": "agentvault-transfer-v1:probe-d8e92ff8-7d41-494a-bd24-af365464aa90"
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "id": "tr_1UcYtn3i6fxzvKeTwYNPmGwo",
+          "object": "transfer",
+          "amount": 1,
+          "amount_reversed": 0,
+          "balance_transaction": "txn_1UcYtn3i6fxzvKeTi2M7t706",
+          "created": 1794870079,
+          "currency": "usd",
+          "description": "AgentVault payout-rails probe",
+          "destination": "acct_1UcYiv3i6f4dGjiE",
+          "destination_payment": "py_1UcYtn3i6f4dGjiE3PiiDXvs",
+          "livemode": false,
+          "metadata": {
+            "idempotency_key": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd"
+          },
+          "reversals": {
+            "object": "list",
+            "data": [],
+            "has_more": false,
+            "total_count": 0,
+            "url": "/v1/transfers/tr_1UcYtn3i6fxzvKeTwYNPmGwo/reversals"
+          },
+          "reversed": false,
+          "source_transaction": null,
+          "source_type": "card",
+          "transfer_group": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd"
+        }
+      }
+    },
+    {
+      "step": "transfer $0.00",
+      "request": {
+        "method": "POST",
+        "path": "/v1/transfers",
+        "params": {
+          "amount": "0",
+          "currency": "usd",
+          "destination": "acct_1UcYiv3i6f4dGjiE",
+          "transfer_group": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd",
+          "metadata[idempotency_key]": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd",
+          "description": "AgentVault payout-rails probe"
+        },
+        "idempotency_key": "agentvault-transfer-v1:probe-b021267d-6316-4079-8975-20650ce0759e"
+      },
+      "response": {
+        "status": 400,
+        "json": {
+          "error": {
+            "code": "parameter_invalid_integer",
+            "doc_url": "https://stripe.com/docs/error-codes/parameter-invalid-integer",
+            "message": "This value must be greater than or equal to 1.",
+            "param": "amount",
+            "request_log_url": "https://dashboard.stripe.com/acct_1UbKwU3i6fxzvKeT/test/workbench/logs?object=req_XWDakClHCgAwGG",
+            "type": "invalid_request_error"
+          }
+        }
+      }
+    },
+    {
+      "step": "transfer $10,000 (over the balance)",
+      "request": {
+        "method": "POST",
+        "path": "/v1/transfers",
+        "params": {
+          "amount": "1000000",
+          "currency": "usd",
+          "destination": "acct_1UcYiv3i6f4dGjiE",
+          "transfer_group": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd",
+          "metadata[idempotency_key]": "probe-6626ac14-e248-44f9-8ad6-e900ccec52bd",
+          "description": "AgentVault payout-rails probe"
+        },
+        "idempotency_key": "agentvault-transfer-v1:probe-0fdcdcf2-4b0e-4487-b48e-6f1db801a2a8"
+      },
+      "response": {
+        "status": 400,
+        "json": {
+          "error": {
+            "code": "balance_insufficient",
+            "doc_url": "https://stripe.com/docs/error-codes/balance-insufficient",
+            "message": "You have insufficient available funds in your Stripe account. Try adding funds directly to your available balance by creating Charges using the 4000000000000077 test card. See: https://stripe.com/docs/testing#available-balance",
+            "request_log_url": "https://dashboard.stripe.com/acct_1UbKwU3i6fxzvKeT/test/workbench/logs?object=req_6gdumZZI2xrA2f",
+            "type": "invalid_request_error"
+          }
+        }
+      }
+    },
+    {
+      "step": "balance after",
+      "request": {
+        "method": "GET",
+        "path": "/v1/balance",
+        "params": {},
+        "idempotency_key": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "object": "balance",
+          "available": [
+            {
+              "amount": 416,
+              "currency": "usd",
+              "source_types": {
+                "card": 416
+              }
+            },
+            {
+              "amount": 845,
+              "currency": "cad",
+              "source_types": {
+                "card": 845
+              }
+            }
+          ],
+          "connect_reserved": [
+            {
+              "amount": 0,
+              "currency": "usd"
+            },
+            {
+              "amount": 0,
+              "currency": "cad"
+            }
+          ],
+          "livemode": false,
+          "pending": [
+            {
+              "amount": 0,
+              "currency": "usd",
+              "source_types": {
+                "card": 0
+              }
+            },
+            {
+              "amount": 67256,
+              "currency": "cad",
+              "source_types": {
+                "card": 67256
+              }
+            }
+          ],
+          "refund_and_dispute_prefunding": {
+            "available": [
+              {
+                "amount": 0,
+                "currency": "usd"
+              },
+              {
+                "amount": 0,
+                "currency": "cad"
+              }
+            ],
+            "pending": [
+              {
+                "amount": 0,
+                "currency": "usd"
+              },
+              {
+                "amount": 0,
+                "currency": "cad"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
