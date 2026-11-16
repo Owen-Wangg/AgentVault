@@ -23,9 +23,14 @@ export type StepResult =
       eventSeq: number;
       approvalId?: string;
       railStatus?: DecisionResult["railStatus"];
+      /** The live agent's advisory drift score sent with the request (AGT-16). Scripted runs send none. */
+      advisoryDriftScore?: number;
     }
-  /** The run stopped here. `status` is 0 when no response came back. */
-  | { kind: "error"; step: Step["kind"]; status: number; error: string };
+  /**
+   * The run stopped here. `status` is 0 when no response came back. The
+   * live agent also stops on a `model` step when Gemini fails (AGT-14).
+   */
+  | { kind: "error"; step: Step["kind"] | "pay" | "tool" | "model"; status: number; error: string };
 
 export interface ScriptedRun {
   results: StepResult[];
@@ -109,7 +114,7 @@ export async function runScripted(scenario: Scenario, client: ScenarioClient, op
   return { results, requests, completed: true };
 }
 
-function decisionResult(kind: "pay" | "tool", tool: string, vendor: string, amountMicros: Micros, d: DecisionResult): StepResult {
+export function decisionResult(kind: "pay" | "tool", tool: string, vendor: string, amountMicros: Micros, d: DecisionResult): StepResult {
   return {
     kind,
     tool,

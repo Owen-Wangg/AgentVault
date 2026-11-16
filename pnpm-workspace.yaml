@@ -1,2 +1,4 @@
 allowBuilds:
   esbuild: true
+  # @google/genai depends on it. Its postinstall only checks CLI versions, so it stays off.
+  protobufjs: false
