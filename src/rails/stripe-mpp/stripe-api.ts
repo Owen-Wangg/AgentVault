@@ -74,12 +74,23 @@ export class StripeApi {
     return this.send("POST", path, new URLSearchParams(params).toString(), options);
   }
 
-  private async send(method: "GET" | "POST", path: string, body: string | undefined, options: StripeRequestOptions): Promise<unknown> {
+  /** A JSON post, for API v2 endpoints such as `/v2/core/accounts`, which don't take form bodies. */
+  postJson(path: string, body: Readonly<Record<string, unknown>>, options: StripeRequestOptions = {}): Promise<unknown> {
+    return this.send("POST", path, JSON.stringify(body), options, "application/json");
+  }
+
+  private async send(
+    method: "GET" | "POST",
+    path: string,
+    body: string | undefined,
+    options: StripeRequestOptions,
+    contentType = "application/x-www-form-urlencoded",
+  ): Promise<unknown> {
     const headers: Record<string, string> = {
       authorization: `Bearer ${this.#secretKey}`,
       "stripe-version": options.apiVersion ?? this.apiVersion,
     };
-    if (body !== undefined) headers["content-type"] = "application/x-www-form-urlencoded";
+    if (body !== undefined) headers["content-type"] = contentType;
     if (options.idempotencyKey) headers["idempotency-key"] = options.idempotencyKey;
     const response = await this.fetchFn(`${STRIPE_API_ORIGIN}${path}`, {
       method,

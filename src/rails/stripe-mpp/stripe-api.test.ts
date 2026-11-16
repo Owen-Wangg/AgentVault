@@ -30,6 +30,23 @@ describe("StripeApi", () => {
     });
   });
 
+  it("PO-22: sends API v2 posts as JSON with the version and idempotency key", async () => {
+    const { fetch, calls } = recordingFetch(() => Response.json({ id: "acct_1" }));
+    const api = new StripeApi({ secretKey: KEY, fetch });
+    const body = { configuration: { recipient: { capabilities: { stripe_balance: { stripe_transfers: { requested: true } } } } } };
+    await expect(api.postJson("/v2/core/accounts", body, { idempotencyKey: "k2", apiVersion: "2026-10-28.endive" })).resolves.toEqual({ id: "acct_1" });
+    const [call] = calls;
+    expect(call?.url).toBe("https://api.stripe.com/v2/core/accounts");
+    expect(call?.init.method).toBe("POST");
+    expect(JSON.parse(String(call?.init.body))).toEqual(body);
+    expect(call?.init.headers).toMatchObject({
+      authorization: `Bearer ${KEY}`,
+      "stripe-version": "2026-10-28.endive",
+      "idempotency-key": "k2",
+      "content-type": "application/json",
+    });
+  });
+
   it("puts GET parameters in the query string", async () => {
     const { fetch, calls } = recordingFetch(() => Response.json({ data: [] }));
     await new StripeApi({ secretKey: KEY, fetch }).get("/v1/refunds", { "created[gte]": "1", limit: "100" });
