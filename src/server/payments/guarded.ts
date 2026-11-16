@@ -10,7 +10,7 @@ import type { AuthenticatedAgent } from "@/server/auth/agent-keys";
 import { type Db, type Tx, queryRows } from "@/server/db/client";
 import { decodeEnvelope } from "@/server/db/envelope-json";
 import { agents, approvals, envelopes, idempotency, sessions, spendReservations, tasks, vendors, workspaces } from "@/server/db/schema";
-import { PAY_TOOLS, findTool, policyTool } from "@/server/tools/registry";
+import { PAY_TOOLS, type ToolDef, findTool, policyTool } from "@/server/tools/registry";
 import { type RailOutcome, classifyRailResult } from "./outcome";
 
 /**
@@ -202,7 +202,11 @@ export interface Pending {
     counted: Micros;
     vendorUrl: string;
     railName: Rail;
-    /** Set for credit tools (stripe.refund): the payment being refunded. */
+    /** The registered tool's operation: which rail method runs (payout-rails PO-2). */
+    operation: "pay" | "refund" | "payout";
+    /** The vendor the request names, for a payout's destination (PO-4). */
+    vendor: string;
+    /** Set for refunds (stripe.refund): the payment being refunded. */
     refundOf?: string;
   };
 }
@@ -271,7 +275,7 @@ export async function decideGuarded(tx: Tx, req: GuardedRequest, deps: GuardedDe
   let decision: Decision;
   if (!tool) {
     decision = { decision: "deny", reasons: [{ code: "TOOL_NOT_ALLOWED", detail: { tool: body.tool, reason: "not in the tool registry" } }] };
-  } else if (tool.direction === "credit" && !body.args?.payment_ref) {
+  } else if (tool.operation === "refund" && !body.args?.payment_ref) {
     // A refund must name the payment it refunds. The tool route checks this too.
     decision = invalid("args.payment_ref");
   } else if (!sessionRow || !taskRow) {
@@ -434,10 +438,28 @@ export async function decideGuarded(tx: Tx, req: GuardedRequest, deps: GuardedDe
         counted,
         vendorUrl: paymentUrl(tool, vendorRow),
         railName: tool.rail,
-        ...(tool.direction === "credit" && body.args?.payment_ref ? { refundOf: body.args.payment_ref } : {}),
+        operation: railOperation(tool.operation),
+        vendor: body.vendor,
+        ...(tool.operation === "refund" && body.args?.payment_ref ? { refundOf: body.args.payment_ref } : {}),
       },
     },
   };
+}
+
+/** A tool with a rail moves money, so it pays, refunds, or pays out. `payee` tools have no rail. */
+function railOperation(operation: ToolDef["operation"]): "pay" | "refund" | "payout" {
+  if (operation === "payee") throw new Error("A payee tool has no rail operation");
+  return operation;
+}
+
+/**
+ * Where a payout goes (payout-rails PO-4). The payee's registered
+ * destination is added in payout-rails task 4 (migration 0004); until
+ * then no payee has one, so every payout fails closed without contacting
+ * the rail.
+ */
+async function payoutDestination(_deps: GuardedDeps, _workspaceId: string, _vendor: string, _rail: Rail): Promise<string | null> {
+  return null;
 }
 
 /**
@@ -529,15 +551,26 @@ export async function executeGuarded(req: GuardedRequest, deps: GuardedDeps, dec
   let result: RailResult | { thrown: true } = { ok: true, ref: "", settledMicros: micros(0n) };
   if (pending.rail) {
     // Step 8: the rail call happens after commit, never while holding the lock.
-    const { adapter, reservationId, reservedAt, counted, vendorUrl, refundOf } = pending.rail;
+    const { adapter, reservationId, reservedAt, counted, vendorUrl, refundOf, operation, vendor, railName } = pending.rail;
     // reservedAt is the reservation row's created_at, which the reconciler passes to lookup() too.
     const ctx = { signal: AbortSignal.timeout(deps.railTimeoutMs ?? RAIL_TIMEOUT_MS), reservedAt };
+    // PO-4: a payout's destination is read when it runs, from the registry, never from the request.
+    const destination = operation === "payout" ? await payoutDestination(deps, pending.workspaceId, vendor, railName) : null;
     try {
-      // Credit tools refund an earlier payment; the rail rounds the amount down (MON-8).
-      result =
-        refundOf !== undefined
-          ? await adapter.refund({ paymentRef: refundOf, amountMicros: counted, idempotencyKey: reservationId }, ctx)
-          : await adapter.execute({ vendorUrl, approvedMicros: counted, idempotencyKey: reservationId }, ctx);
+      if (operation === "refund" && refundOf !== undefined) {
+        // A refund of an earlier payment; the rail rounds the amount down (MON-8).
+        result = await adapter.refund({ paymentRef: refundOf, amountMicros: counted, idempotencyKey: reservationId }, ctx);
+      } else if (operation === "payout") {
+        // PO-2: payouts call payout(), never execute() or refund(). Without a destination nothing is sent (PO-4).
+        result = destination
+          ? await adapter.payout({ destination, amountMicros: counted, idempotencyKey: reservationId }, ctx)
+          : { ok: false, code: "RAIL_REJECTED", detail: "the payee has no payout destination on this rail; nothing was sent" };
+      } else if (operation === "pay") {
+        result = await adapter.execute({ vendorUrl, approvedMicros: counted, idempotencyKey: reservationId }, ctx);
+      } else {
+        // A refund without its payment reference was denied before reserving; reaching here is a bug. Nothing is sent.
+        result = { ok: false, code: "RAIL_REJECTED", detail: "the refund names no payment; nothing was sent" };
+      }
     } catch {
       // The request may have reached the rail, so this proves nothing (RES-5).
       result = { thrown: true };

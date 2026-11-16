@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { type Micros, MicrosSchema, micros } from "@/core/money";
+import { PAYOUT_RAILS, isDestinationFor } from "@/rails/destination";
 import { idempotencyKeyOf, invalidIdempotencyKey, json, parseBody, withAgent } from "@/server/http/agent-route";
 import { type GuardedBody, runGuardedRequest } from "@/server/payments/guarded";
 import { AdvisoryDriftScoreSchema, type PayDeps, defaultPayDeps, scheduleReconcile } from "@/server/payments/pay-handler";
@@ -32,10 +33,16 @@ const TOOL_ARGS = {
     .transform((a) => ({ vendor: a.vendor, amountMicros: a.amount_micros, args: { payment_ref: a.payment_ref } })),
   wire_transfer: z.strictObject(Money).transform((a) => ({ vendor: a.vendor, amountMicros: a.amount_micros })),
   "payout.create": z.strictObject(Money).transform((a) => ({ vendor: a.vendor, amountMicros: a.amount_micros })),
-  // Moves no money, so it has no amount.
+  // payout-rails PO-14: the same arguments as payout.create.
+  "paypal.payout": z.strictObject(Money).transform((a) => ({ vendor: a.vendor, amountMicros: a.amount_micros })),
+  // Moves no money, so it has no amount. PO-10: payee_ref must fit the rail, which defaults to stripe.
   "payee.update": z
-    .strictObject({ vendor: Vendor, payee_ref: Ref })
-    .transform((a) => ({ vendor: a.vendor, amountMicros: micros(0n), args: { payee_ref: a.payee_ref } })),
+    .strictObject({ vendor: Vendor, payee_ref: z.string().max(254), rail: z.enum(PAYOUT_RAILS).default("stripe") })
+    .refine((a) => isDestinationFor(a.rail, a.payee_ref), {
+      path: ["payee_ref"],
+      message: "must be a Stripe account ID (acct_ followed by letters and digits) or, with rail paypal, an email address",
+    })
+    .transform((a) => ({ vendor: a.vendor, amountMicros: micros(0n), args: { payee_ref: a.payee_ref, rail: a.rail } })),
 } satisfies Record<string, z.ZodType<{ vendor: string; amountMicros: Micros; args?: Record<string, string> }>>;
 
 /** For a tool the registry doesn't know: enough to audit the request, which is then denied. */

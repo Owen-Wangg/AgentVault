@@ -146,7 +146,7 @@ async function resolve(deps: ReconcileDeps, c: Candidate, found: Resolved): Prom
     const request = (decision?.payload as { request?: { idempotency_key?: unknown; args?: { payment_ref?: unknown } } } | undefined)?.request;
     const clientKey = typeof request?.idempotency_key === "string" ? request.idempotency_key : null;
     const paymentRef = typeof request?.args?.payment_ref === "string" ? request.args.payment_ref : undefined;
-    const refundOf = findTool(reservation.tool)?.direction === "credit" ? paymentRef : undefined;
+    const refundOf = findTool(reservation.tool)?.operation === "refund" ? paymentRef : undefined;
 
     const outcome = found.status === "settled" ? "settled" : "failed";
     await appendEvent(

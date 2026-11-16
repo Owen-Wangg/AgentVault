@@ -33,7 +33,7 @@ afterAll(async () => {
 });
 
 const db = () => database.db;
-const ALL_TOOLS = ["x402.pay", "stripe.refund", "wire_transfer", "payout.create", "payee.update"];
+const ALL_TOOLS = ["x402.pay", "stripe.refund", "wire_transfer", "payout.create", "paypal.payout", "payee.update"];
 const SOURCE = "https://agentvault.example/vendor/docs/integration";
 
 function toolDeps(options: { mocks?: MockRails; clock?: FakeClock } = {}) {
@@ -102,14 +102,27 @@ describe("TAINT-7: privileged tools in an untainted session", () => {
     expect(mocks.stripe.calls).toBe(0);
   });
 
-  it("TAINT-7: wire_transfer and payout.create pay on their rail", async () => {
+  it("TAINT-7: wire_transfer pays on the mock rail", async () => {
     const scene = await billingScene();
     const { tool, mocks } = toolDeps();
-    for (const name of ["wire_transfer", "payout.create"]) {
+    const r = await read(await handleTool(request(scene, { tool: "wire_transfer", args: { vendor: "nimbus-weather", amount_micros: "2500000" } }), tool));
+    expect(r).toMatchObject({ status: 200, body: { decision: "allow", rail_status: "settled" } });
+    expect(mocks.mock.recorded().map((x) => x.kind)).toEqual(["payment"]);
+  });
+
+  it("PO-2, PO-4: an allowed payout to a payee with no destination fails closed without calling the rail, and the reservation is released", async () => {
+    const scene = await billingScene();
+    const { tool, mocks } = toolDeps();
+    for (const name of ["payout.create", "paypal.payout"]) {
       const r = await read(await handleTool(request(scene, { tool: name, args: { vendor: "nimbus-weather", amount_micros: "2500000" } }), tool));
-      expect(r).toMatchObject({ status: 200, body: { decision: "allow", rail_status: "settled" } });
+      expect(r).toMatchObject({ status: 502, body: { decision: "allow", rail_status: "failed", error: "RAIL_REJECTED" } });
     }
-    expect(mocks.mock.recorded().map((x) => x.kind)).toEqual(["payment", "payment"]);
+    expect(mocks.stripe.calls + mocks.paypal.calls + mocks.mock.calls).toBe(0);
+    const reservations = await reservationsOf(scene.agent.id);
+    expect(reservations.map((x) => [x.tool, x.rail, x.status])).toEqual([
+      ["payout.create", "stripe", "released"],
+      ["paypal.payout", "paypal", "released"],
+    ]);
   });
 
   it("TAINT-7: payee.update moves no money: no reservation and no rail call", async () => {
@@ -121,6 +134,37 @@ describe("TAINT-7: privileged tools in an untainted session", () => {
     expect(mocks.mock.calls + mocks.stripe.calls).toBe(0);
     const events = await eventsOf(db(), scene.workspaceId);
     expect(events[1]?.payload).toMatchObject({ status: "settled", rail: null });
+    // PO-10: the rail defaults to stripe and is kept with the request, so an approval shows it.
+    expect(events[0]?.payload).toMatchObject({ request: { args: { payee_ref: "acct_9X", rail: "stripe" } } });
+  });
+
+  it("PO-10: payee.update takes a PayPal receiver with rail paypal", async () => {
+    const scene = await billingScene();
+    const { tool } = toolDeps();
+    const r = await read(await handleTool(request(scene, { tool: "payee.update", args: { vendor: "nimbus-weather", payee_ref: "supplier@personal.example.com", rail: "paypal" } }), tool));
+    expect(r).toMatchObject({ status: 200, body: { decision: "allow" } });
+  });
+
+  it.each([
+    ["an email on the stripe rail", { payee_ref: "supplier@personal.example.com" }, "args.payee_ref"],
+    ["a Stripe account on the paypal rail", { payee_ref: "acct_9X", rail: "paypal" }, "args.payee_ref"],
+    ["a malformed Stripe account", { payee_ref: "acct_9-X" }, "args.payee_ref"],
+    ["a rail that can't pay out", { payee_ref: "acct_9X", rail: "x402" }, "args.rail"],
+  ])("PO-10: payee.update refuses %s with 400, before any decision", async (_name, args, path) => {
+    const scene = await billingScene();
+    const { tool } = toolDeps();
+    const r = await read(await handleTool(request(scene, { tool: "payee.update", args: { vendor: "nimbus-weather", ...args } }), tool));
+    expect(r.status).toBe(400);
+    expect((r.body.issues as { path: string }[]).map((i) => i.path)).toContain(path);
+    expect(await eventsOf(db(), scene.workspaceId)).toEqual([]);
+  });
+
+  it("PO-14: paypal.payout takes the same arguments as payout.create and refuses others", async () => {
+    const scene = await billingScene();
+    const { tool } = toolDeps();
+    const r = await read(await handleTool(request(scene, { tool: "paypal.payout", args: { vendor: "nimbus-weather", amount_micros: "1", receiver: "attacker@personal.example.com" } }), tool));
+    expect(r.status).toBe(400);
+    expect((r.body.issues as { path: string }[]).map((i) => i.path)).toContain("args");
   });
 });
 
@@ -145,14 +189,16 @@ describe("TAINT-6: privileged tools in a tainted session", () => {
   it.each([
     ["wire_transfer", { vendor: "nimbus-weather", amount_micros: "1000000" }],
     ["payout.create", { vendor: "nimbus-weather", amount_micros: "1000000" }],
+    ["paypal.payout", { vendor: "nimbus-weather", amount_micros: "1000000" }],
     ["payee.update", { vendor: "nimbus-weather", payee_ref: "acct_9X" }],
-  ])("TAINT-6: %s is held in a tainted session", async (name, args) => {
+    ["payee.update", { vendor: "nimbus-weather", payee_ref: "attacker@personal.example.com", rail: "paypal" }],
+  ])("TAINT-6, PO-19: %s is held in a tainted session", async (name, args) => {
     const scene = await billingScene();
     await taintSession(db(), scene.sessionId);
     const { tool, mocks } = toolDeps();
     const r = await read(await handleTool(request(scene, { tool: name, args }), tool));
     expect(r).toMatchObject({ status: 202, body: { decision: "hold", reasons: [{ code: "HELD_TAINTED" }] } });
-    expect(mocks.mock.calls).toBe(0);
+    expect(mocks.mock.calls + mocks.stripe.calls + mocks.paypal.calls).toBe(0);
   });
 
   it("TAINT-6: a deny reason still wins over HELD_TAINTED", async () => {

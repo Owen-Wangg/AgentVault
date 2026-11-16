@@ -9,8 +9,14 @@ import type { ToolDef as PolicyToolDef } from "@/core/taint";
  * taint-and-intent task 5.
  */
 export interface ToolDef extends PolicyToolDef {
-  /** debit: the agent spends. credit: the agent refunds or pays out. */
+  /** debit: the agent spends. credit: the agent refunds or pays out (money-arithmetic). */
   direction: Direction;
+  /**
+   * Which rail method an allowed request calls (payout-rails design, "Tool
+   * registry"), so the flow never infers it from the direction: refunds and
+   * payouts are both credits. `payee` moves no money.
+   */
+  operation: "pay" | "refund" | "payout" | "payee";
 }
 
 /** The fields `evaluate()` takes. Its schema is strict, so `direction` must not be passed. */
@@ -19,12 +25,16 @@ export function policyTool(tool: ToolDef): PolicyToolDef {
 }
 
 const TOOLS: readonly ToolDef[] = [
-  { name: "x402.pay", privileged: false, rail: "x402", direction: "debit" },
-  { name: "mpp.pay", privileged: false, rail: "stripe", direction: "debit" },
-  { name: "stripe.refund", privileged: true, rail: "stripe", direction: "credit" },
-  { name: "wire_transfer", privileged: true, rail: "mock", direction: "debit" },
-  { name: "payout.create", privileged: true, rail: "mock", direction: "debit" },
-  { name: "payee.update", privileged: true, rail: null, direction: "debit" },
+  { name: "x402.pay", privileged: false, rail: "x402", direction: "debit", operation: "pay" },
+  { name: "mpp.pay", privileged: false, rail: "stripe", direction: "debit", operation: "pay" },
+  { name: "stripe.refund", privileged: true, rail: "stripe", direction: "credit", operation: "refund" },
+  { name: "wire_transfer", privileged: true, rail: "mock", direction: "debit", operation: "pay" },
+  // payout-rails PO-2, PO-3: money the platform sends, so a credit, on Stripe Connect.
+  { name: "payout.create", privileged: true, rail: "stripe", direction: "credit", operation: "payout" },
+  // PO-14: the same arguments as payout.create, on the PayPal sandbox.
+  { name: "paypal.payout", privileged: true, rail: "paypal", direction: "credit", operation: "payout" },
+  // Moves no money, so it has no registered rail; the rail it checks comes from args.rail (PO-10).
+  { name: "payee.update", privileged: true, rail: null, direction: "credit", operation: "payee" },
 ];
 
 const BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));
