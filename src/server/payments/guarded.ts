@@ -432,12 +432,29 @@ export async function decideGuarded(tx: Tx, req: GuardedRequest, deps: GuardedDe
         reservationId,
         reservedAt: now,
         counted,
-        vendorUrl: vendorRow?.origin ?? "",
+        vendorUrl: paymentUrl(tool, vendorRow),
         railName: tool.rail,
         ...(tool.direction === "credit" && body.args?.payment_ref ? { refundOf: body.args.payment_ref } : {}),
       },
     },
   };
+}
+
+/**
+ * Where a payment goes: the vendor's registered paid endpoint for the tool's
+ * rail, never a URL from the request (rail-adapters RAIL-23). Without one
+ * the URL is empty, which both real adapters refuse before signing or
+ * creating anything, as RAIL_REJECTED (RAIL-24). The mock rail ignores it,
+ * and refunds go by payment reference instead.
+ */
+export function paymentUrl(
+  tool: { rail: Rail | null; direction: "debit" | "credit" },
+  vendor: { x402Url: string | null; mppUrl: string | null } | undefined,
+): string {
+  if (tool.direction !== "debit" || !vendor) return "";
+  if (tool.rail === "x402") return vendor.x402Url ?? "";
+  if (tool.rail === "stripe") return vendor.mppUrl ?? "";
+  return "";
 }
 
 /** Record the rail outcome, resolve the reservation, and store the response (PXY-6, RES-3 to RES-5). */

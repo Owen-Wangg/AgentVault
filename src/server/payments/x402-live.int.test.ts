@@ -12,7 +12,7 @@ import { createTestDb } from "@/server/db/test-db";
 import { cdpFacilitator } from "@/server/vendor/cdp-facilitator";
 import { createWeatherHandler } from "@/server/vendor/weather";
 import { runGuardedRequest } from "./guarded";
-import { createScene, eventsOf, testDeps } from "./test-fixtures";
+import { SCENE_X402_URL, createScene, eventsOf, testDeps } from "./test-fixtures";
 
 /**
  * x402 on Base Sepolia for real (rail-adapters task 5, `@live`). The
@@ -34,9 +34,13 @@ function live(price = 1500n) {
     price: fromRailUnits(price, "x402"),
     facilitator: cdpFacilitator({ apiKeyId: vendor.cdpApiKeyId, apiKeySecret: vendor.cdpApiKeySecret }),
   });
-  const fetchFn = (async (url: string, init?: RequestInit) => handler(new NextRequest(url, init as ConstructorParameters<typeof NextRequest>[1]))) as typeof fetch;
+  const urls: string[] = [];
+  const fetchFn = (async (url: string, init?: RequestInit) => {
+    urls.push(url);
+    return handler(new NextRequest(url, init as ConstructorParameters<typeof NextRequest>[1]));
+  }) as typeof fetch;
   const chain = new BaseSepoliaReader();
-  return { vendor, payer, handler, chain, rail: (minUnits = 1000n) => new X402Rail({ account: payer.account, minUnits, fetch: fetchFn, chain }) };
+  return { vendor, payer, handler, chain, urls, rail: (minUnits = 1000n) => new X402Rail({ account: payer.account, minUnits, fetch: fetchFn, chain }) };
 }
 
 let database: Awaited<ReturnType<typeof createTestDb>> | undefined;
@@ -83,17 +87,18 @@ describe("@live x402 on Base Sepolia", () => {
   );
 
   it(
-    "@live RAIL-11, RAIL-12, RAIL-21: a guarded $0.0015 payment settles on Base Sepolia, rail_result records the hash, and lookup() finds it on-chain",
+    "@live RAIL-11, RAIL-12, RAIL-21, RAIL-23: a guarded $0.0015 payment goes to the vendor's x402_url, settles on Base Sepolia, rail_result records the hash, and lookup() finds it on-chain",
     async () => {
       database = await createTestDb();
       const db = database.db;
-      const { rail } = live(1500n);
+      const { rail, urls } = live(1500n);
       const adapter = rail();
       const scene = await createScene(db);
       const { deps } = testDeps(db, { now: () => new Date() });
       const flow = { ...deps, railFor: (r: Parameters<typeof deps.railFor>[0], w: { isSandbox: boolean }) => (r === "x402" && !w.isSandbox ? adapter : deps.railFor(r, w)) };
       const response = await runGuardedRequest({ agent: scene.agent, idempotencyKey: `live-${randomUUID()}`, body: scene.body() }, flow);
       expect(response).toMatchObject({ status: 200, body: { rail_status: "settled" } });
+      expect(urls).toEqual([SCENE_X402_URL, SCENE_X402_URL]);
       const hash = response.body.rail_ref ?? "";
       expect(hash).toMatch(/^0x[0-9a-f]{64}$/);
       expect(response.body.explorer_url).toBe(`https://sepolia.basescan.org/tx/${hash}`);

@@ -27,6 +27,16 @@ describe("x402 adapter: execute", () => {
     expect(authorizationOf(vendor.requests[1]?.signature ?? null)).toMatchObject({ value: "1500", to: PAY_TO });
   });
 
+  it.each(["", "not a url", "ftp://agentvault.example/pay", "file:///etc/passwd"])(
+    "RAIL-24: with no usable payment URL (%j), returns RAIL_REJECTED without contacting anyone",
+    async (vendorUrl) => {
+      const vendor = fakeVendor(1500n);
+      const result = await rail(vendor.fetchFn).execute({ ...req(1500n), vendorUrl }, ctx);
+      expect(result).toMatchObject({ ok: false, code: "RAIL_REJECTED" });
+      expect(vendor.requests).toEqual([]);
+    },
+  );
+
   it("RAIL-4: below the minimum, returns BELOW_RAIL_MINIMUM without contacting the vendor", async () => {
     const vendor = fakeVendor(999n);
     expect(await rail(vendor.fetchFn).execute(req(999n), ctx)).toMatchObject({ ok: false, code: "BELOW_RAIL_MINIMUM" });

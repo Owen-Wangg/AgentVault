@@ -7,11 +7,11 @@ import { MockRail } from "@/rails/mock";
 import type { RailAdapter, RailContext } from "@/rails/types";
 import { X402Rail, authorizationDeadline } from "@/rails/x402/adapter";
 import { type FakeChainState, TX, fakeChain, fakeVendor } from "@/rails/x402/test-fixtures";
-import { spendReservations } from "@/server/db/schema";
+import { spendReservations, vendors } from "@/server/db/schema";
 import { createTestDb } from "@/server/db/test-db";
 import { type GuardedDeps, runGuardedRequest } from "./guarded";
 import { STALE_AFTER_MS, reconcile } from "./reconcile";
-import { FakeClock, createScene, eventsOf, expectAuditBeforeSpend, testDeps } from "./test-fixtures";
+import { FakeClock, SCENE_X402_URL, createScene, eventsOf, expectAuditBeforeSpend, testDeps } from "./test-fixtures";
 
 /**
  * The x402 adapter inside the pay flow (rail-adapters task 5): the vendor
@@ -56,6 +56,40 @@ describe("x402 in the pay flow", () => {
     const result = (await eventsOf(db(), scene.workspaceId)).find((e) => e.type === "rail_result");
     expect(result?.payload).toMatchObject({ status: "settled", rail: "x402", rail_ref: TX, explorer_url: `https://sepolia.basescan.org/tx/${TX}`, settled_micros: "1500" });
     expect((await reservationOf(scene.agent.id)).status).toBe("settled");
+  });
+
+  it("RAIL-23: an allowed x402.pay goes to the vendor's registered x402_url", async () => {
+    const scene = await createScene(db());
+    const { deps, clock } = testDeps(db());
+    const vendor = fakeVendor(1500n);
+    const urls: string[] = [];
+    const fetchFn = ((url: string, init?: RequestInit) => (urls.push(url), vendor.fetchFn(url, init))) as typeof fetch;
+    const rail = new X402Rail({ account, minUnits: 1000n, fetch: fetchFn, now: clock.now });
+    const response = await runGuardedRequest({ agent: scene.agent, idempotencyKey: nextKey(), body: scene.body() }, withX402(deps, rail));
+    expect(response).toMatchObject({ status: 200, body: { rail_status: "settled" } });
+    expect(urls).toEqual([SCENE_X402_URL, SCENE_X402_URL]);
+  });
+
+  it("RAIL-24: a vendor with no x402_url fails closed with RAIL_REJECTED, contacts no one, and releases the reservation", async () => {
+    const scene = await createScene(db());
+    await db().insert(vendors).values({ workspaceId: scene.workspaceId, name: "plain-weather", origin: "https://plain.example", category: "weather", trusted: false });
+    const { deps, clock } = testDeps(db());
+    const vendor = fakeVendor(1500n);
+    const rail = new X402Rail({ account, minUnits: 1000n, fetch: vendor.fetchFn, now: clock.now });
+    await runGuardedRequest({ agent: scene.agent, idempotencyKey: nextKey(), body: scene.body({ vendor: "plain-weather" }) }, withX402(deps, rail));
+    expect(vendor.requests).toEqual([]);
+    const result = (await eventsOf(db(), scene.workspaceId)).find((e) => e.type === "rail_result");
+    expect(result?.payload).toMatchObject({ status: "failed", rail: "x402", code: "RAIL_REJECTED" });
+    expect((await reservationOf(scene.agent.id)).status).toBe("released");
+  });
+
+  it("RAIL-25: the database refuses a payment URL outside the vendor's origin", async () => {
+    const scene = await createScene(db());
+    const row = { workspaceId: scene.workspaceId, origin: "https://pay.example", category: "weather", trusted: false };
+    await expect(db().insert(vendors).values({ ...row, name: "lookalike-host", x402Url: "https://pay.example.evil.test/pay" })).rejects.toThrow();
+    await expect(db().insert(vendors).values({ ...row, name: "other-origin", mppUrl: "https://elsewhere.example/pay" })).rejects.toThrow();
+    await expect(db().insert(vendors).values({ ...row, name: "bare-origin", x402Url: "https://pay.example" })).rejects.toThrow();
+    await db().insert(vendors).values({ ...row, name: "on-origin", x402Url: "https://pay.example/x402", mppUrl: "https://pay.example/mpp" });
   });
 
   it("RAIL-2: a sandbox workspace never reaches the x402 adapter", async () => {

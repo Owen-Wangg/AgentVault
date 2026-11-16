@@ -64,7 +64,11 @@ export async function taintSession(db: Db, sessionId: string, sourceUrl = "https
 
 export const OPEN_ENVELOPE: Omit<Envelope, "agentId"> = { limits: {}, vendorLimits: {}, toolLimits: {}, allowedVendors: "*", allowedTools: "*" };
 
-/** A workspace with one vendor, one task, one agent, and one session. */
+/** nimbus-weather's payment URLs in a scene (rail-adapters RAIL-23). gpu-cloud has none. */
+export const SCENE_X402_URL = "https://agentvault.example/vendor/api/weather";
+export const SCENE_MPP_URL = "https://agentvault.example/vendor/api/report";
+
+/** A workspace with two vendors, one task, one agent, and one session. */
 export async function createScene(
   db: Db,
   options: { envelope?: Omit<Envelope, "agentId">; isSandbox?: boolean; now?: Date; workspaceId?: string; task?: Partial<SceneTask> } = {},
@@ -74,7 +78,15 @@ export async function createScene(
     if (!workspaceId) {
       workspaceId = await createWorkspace(tx, { name: "pay test", isSandbox: options.isSandbox ?? false }, { key: TEST_HEAD_KEY });
       await tx.insert(vendors).values([
-        { workspaceId, name: "nimbus-weather", origin: "https://agentvault.example", category: "weather", trusted: false },
+        {
+          workspaceId,
+          name: "nimbus-weather",
+          origin: "https://agentvault.example",
+          category: "weather",
+          trusted: false,
+          x402Url: SCENE_X402_URL,
+          mppUrl: SCENE_MPP_URL,
+        },
         { workspaceId, name: "gpu-cloud", origin: "https://agentvault.example", category: "compute", trusted: false },
       ]);
     }

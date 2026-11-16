@@ -164,8 +164,18 @@ export const vendors = pgTable(
     origin: text("origin").notNull(),
     category: text("category").notNull(),
     trusted: boolean("trusted").notNull().default(false),
+    /** The paid endpoint for x402.pay, under `origin` (rail-adapters RAIL-23, RAIL-25). */
+    x402Url: text("x402_url"),
+    /** The paid endpoint for mpp.pay, under `origin` (rail-adapters RAIL-23, RAIL-25). */
+    mppUrl: text("mpp_url"),
   },
-  (t) => [uniqueIndex("vendors_workspace_name_idx").on(t.workspaceId, t.name)],
+  (t) => [
+    uniqueIndex("vendors_workspace_name_idx").on(t.workspaceId, t.name),
+    // RAIL-25: a payment URL must be the origin followed by a path, so "https://a.example"
+    // can't register "https://a.example.evil.test/pay".
+    check("vendors_x402_url_origin_check", sql`${t.x402Url} IS NULL OR left(${t.x402Url}, length(${t.origin}) + 1) = ${t.origin} || '/'`),
+    check("vendors_mpp_url_origin_check", sql`${t.mppUrl} IS NULL OR left(${t.mppUrl}, length(${t.origin}) + 1) = ${t.origin} || '/'`),
+  ],
 );
 
 // ---------------------------------------------------------------------------

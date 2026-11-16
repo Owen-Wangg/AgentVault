@@ -44,7 +44,18 @@ const unusableKeyHash = () => createHash("sha256").update(randomBytes(32)).diges
 
 async function seed(tx: Tx, workspaceId: string, appOrigin: string, now: Date): Promise<void> {
   await tx.insert(vendors).values(
-    SEED_VENDORS.map((v) => ({ workspaceId, name: v.name, origin: v.origin === "app" ? appOrigin : v.origin, category: v.category, trusted: v.trusted })),
+    SEED_VENDORS.map((v) => {
+      const origin = v.origin === "app" ? appOrigin : v.origin;
+      return {
+        workspaceId,
+        name: v.name,
+        origin,
+        category: v.category,
+        trusted: v.trusted,
+        x402Url: v.x402Path ? `${origin}${v.x402Path}` : null,
+        mppUrl: v.mppPath ? `${origin}${v.mppPath}` : null,
+      };
+    }),
   );
   await tx.insert(tasks).values(
     SEED_TASKS.map((t) => ({

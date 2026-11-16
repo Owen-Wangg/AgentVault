@@ -50,6 +50,17 @@ describe("Stripe MPP adapter: paying", () => {
     expect(account.payerCalls).toEqual([]);
   });
 
+  it.each(["", "not a url", "ftp://agentvault.example/pay"])(
+    "RAIL-24: with no usable payment URL (%j), returns RAIL_REJECTED without contacting anyone",
+    async (vendorUrl) => {
+      const { account, vendor, rail } = setup();
+      const result = await rail.execute({ vendorUrl, approvedMicros: fromDecimalString("0.50"), idempotencyKey: "res-1" }, { reservedAt: RESERVED_AT });
+      expect(result).toMatchObject({ ok: false, code: "RAIL_REJECTED" });
+      expect(vendor.requests).toEqual([]);
+      expect(account.payerCalls).toEqual([]);
+    },
+  );
+
   it("MON-8: a sub-cent approved amount rounds up to the next cent before the challenge check", async () => {
     const { rail } = setup({ cents: 51n });
     expect(await pay(rail, { amount: "0.500001" })).toMatchObject({ ok: true, settledMicros: 510_000n });

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { fromRailUnits, toRailUnits } from "@/core/money";
 import { BASE_SEPOLIA } from "../config";
 import type { RailAdapter, RailContext, RailLookup, RailQuote, RailRequest, RailResult } from "../types";
+import { NO_PAYMENT_URL, isPaymentUrl } from "../url";
 import { BaseSepoliaReader, type ChainBlock, usdcTransferredFrom } from "./chain";
 import { BASE_SEPOLIA_CHAIN_ID, MAX_LOG_BLOCKS, USDC_BASE_SEPOLIA, USDC_EIP712, explorerTxUrl } from "./constants";
 
@@ -122,6 +123,7 @@ export class X402Rail implements RailAdapter {
     if (units < this.minimumUnits) return { ok: false, code: "BELOW_RAIL_MINIMUM", detail: `minimum is ${this.minimumUnits} units` };
     // Without the reservation time, lookup() could never prove what happened. Nothing has been sent.
     if (!ctx.reservedAt) return { ok: false, code: "RAIL_REJECTED", detail: "no reservation time was given; nothing was signed" };
+    if (!isPaymentUrl(req.vendorUrl)) return NO_PAYMENT_URL;
     const init = ctx.signal ? { signal: ctx.signal } : {};
 
     // 1. The unpaid request. No payment exists yet, so a failure here can't have moved money.

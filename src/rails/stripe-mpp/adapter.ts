@@ -2,6 +2,7 @@ import { Challenge, Credential, Receipt } from "mppx";
 import { z } from "zod";
 import { fromRailUnits, toRailUnits } from "@/core/money";
 import type { RailAdapter, RailContext, RailLookup, RailQuote, RailRequest, RailResult, RefundRequest } from "../types";
+import { NO_PAYMENT_URL, isPaymentUrl } from "../url";
 import { STRIPE_SPT_MINIMUM_CENTS, stripeDashboardUrl } from "./constants";
 import { type StripeApi, StripeApiError, StripeResponseError } from "./stripe-api";
 
@@ -119,6 +120,7 @@ export class StripeMppRail implements RailAdapter {
     if (units < this.minimumUnits) return { ok: false, code: "BELOW_RAIL_MINIMUM", detail: `minimum is ${this.minimumUnits} cents` };
     // The SPT's expiry comes from the reservation time, so retries send identical parameters. Nothing has been sent.
     if (!ctx.reservedAt) return { ok: false, code: "RAIL_REJECTED", detail: "no reservation time was given; nothing was sent" };
+    if (!isPaymentUrl(req.vendorUrl)) return NO_PAYMENT_URL;
     const init = ctx.signal ? { signal: ctx.signal } : {};
 
     // 1. The unpaid request. No SPT exists yet, so a failure here can't have moved money.

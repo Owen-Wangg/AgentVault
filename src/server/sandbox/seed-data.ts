@@ -9,7 +9,8 @@ import type { Envelope } from "@/core/policy";
  * usable API key.
  */
 
-export const SEED_VERSION = 1;
+// 2: vendors carry payment URLs (rail-adapters RAIL-23).
+export const SEED_VERSION = 2;
 
 export interface SeedVendor {
   name: string;
@@ -17,11 +18,15 @@ export interface SeedVendor {
   origin: "app" | string;
   category: string;
   trusted: boolean;
+  /** Paid endpoints on the vendor's origin, by rail (rail-adapters RAIL-23). The mock rail ignores them. */
+  x402Path?: string;
+  mppPath?: string;
 }
 
 /** Every vendor the scenarios pay, with the category the intent rules read (INT-5). */
 export const SEED_VENDORS: readonly SeedVendor[] = [
-  { name: "nimbus-weather", origin: "app", category: "weather", trusted: false },
+  { name: "nimbus-weather", origin: "app", category: "weather", trusted: false, x402Path: "/vendor/api/weather", mppPath: "/vendor/api/report" },
+  // No payment URLs: the drift scenario's GPU payment is denied before any rail runs.
   { name: "gpu-cloud", origin: "app", category: "compute", trusted: false },
 ];
 

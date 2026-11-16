@@ -38,6 +38,11 @@ describe("AUD-9: sandbox workspaces", () => {
     expect(seededVendors.map((v) => [v.name, v.origin, v.category, v.trusted]).sort()).toEqual(
       SEED_VENDORS.map((v) => [v.name, "https://agentvault.example", v.category, v.trusted]).sort(),
     );
+    // RAIL-23: the weather vendor's paid endpoints are on the app's origin; the GPU vendor has none.
+    expect(seededVendors.map((v) => [v.name, v.x402Url, v.mppUrl]).sort()).toEqual([
+      ["gpu-cloud", null, null],
+      ["nimbus-weather", "https://agentvault.example/vendor/api/weather", "https://agentvault.example/vendor/api/report"],
+    ]);
     const seededTasks = await database.db.select().from(tasks).where(eq(tasks.workspaceId, workspaceId));
     expect(seededTasks.map((t) => t.budgetMicros).sort()).toEqual(SEED_TASKS.map((t) => t.budgetMicros).sort());
   });
