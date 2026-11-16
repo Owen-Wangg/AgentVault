@@ -28,6 +28,6 @@ This spec covers the agents that exercise AgentVault: a **scripted agent** that 
 - **AGT-11** WHERE `GEMINI_API_KEY` is set, THE scenarios page SHALL offer "Run with live AI agent" for each scenario except the runaway loop, which SHALL say it is scripted only; otherwise the option SHALL be hidden.
 - **AGT-12** THE live agent SHALL expose only `fetch_url`, `pay`, and `request_tool` as tools, each calling the AgentVault API.
 - **AGT-13** THE SYSTEM SHALL validate every LLM tool-call argument with Zod before calling the API.
-- **AGT-14** IF Gemini returns HTTP 429 or fails, THEN THE SYSTEM SHALL stop the run, show a clear message, and offer the scripted run.
+- **AGT-14** IF Gemini returns HTTP 429, or a request still fails after one retry of a timeout, dropped connection, or 5xx error, THEN THE SYSTEM SHALL stop the run, show a clear message, and offer the scripted run. A 429 SHALL never be retried.
 - **AGT-15** THE live agent SHALL stop after at most 15 tool calls per run.
 - **AGT-16** WHERE the live agent produces an advisory drift score, THE SYSTEM SHALL show it next to the decision and pass it to the policy as advisory only (INT-7 to INT-9).
