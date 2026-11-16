@@ -66,7 +66,7 @@ The public sandbox runs four scripted scenarios (normal purchase, runaway loop, 
 
 ## What's next for AgentVault
 
-- Connect the guarded flow to the real rails' payment URLs, so agents' x402 and MPP payments run for real through AgentVault. Today the live site uses mock rails, and in real mode an agent's payment fails closed.
+- Let outside agents make real testnet payments over the HTTP API. The guarded flow already sends each payment to the vendor's registered payment URL, and a real x402 payment through it settles on Base Sepolia in the `@live` tests, but the live site runs mock rails and no workspace outside the sandbox has vendors yet.
 - Self-serve sessions for outside agents, beyond the setup script.
 - Per-vendor call counts, alerts, and a badge for pending approvals.
 

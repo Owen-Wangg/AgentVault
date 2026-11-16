@@ -40,6 +40,6 @@ Kiro asks before each tool call; approve the three calls on camera or speed them
 
 ## Things not to say
 
-- Don't say the live site moves real money or uses real rails. It runs mock rails. The x402 and Stripe adapters were tested against Base Sepolia and Stripe test mode on their own, and an agent's real-rail payment through AgentVault currently fails closed.
+- Don't say the live site moves real money or uses real rails. It runs mock rails. Real x402 payments through the guarded flow settle on Base Sepolia only in the `@live` tests, and agents can't make real payments over the HTTP API yet.
 - Don't show the live AI injection run as the hold. The model reads the poisoned page but hasn't asked for the refund so far.
 - The runaway loop's freeze happens at the 31st call, not after hundreds.

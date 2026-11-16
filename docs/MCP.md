@@ -117,4 +117,4 @@ A missing or rejected key, an invalid amount, or a request the API refuses comes
 ## Limits
 
 - The setup script is the only way to get a session. Agents created on the Agents page don't get one.
-- In `RAIL_MODE=real`, x402 and MPP payments from agents fail closed with `RAIL_REJECTED` (rail-adapters design, open item). The sandbox, where `pnpm mcp:agent` puts agents, always uses mock rails.
+- `pnpm mcp:agent` puts agents in the public sandbox, which always uses mock rails, so MCP payments never move test funds. Real rails run only outside the sandbox (rail-adapters RAIL-2).

@@ -93,7 +93,7 @@ Checks:
 ## Limits
 
 - **Testnets and test mode only.** Rail settings are checked on every payment: an `sk_live_` Stripe key, or an x402 network other than Base Sepolia (`eip155:84532`), fails the check and nothing is paid, even in mock mode.
-- **The live site uses mock rails.** The x402 and Stripe MPP adapters were tested against Base Sepolia and Stripe test mode on their own. An agent's `x402.pay` or `mpp.pay` through AgentVault with `RAIL_MODE=real` currently fails closed with `RAIL_REJECTED`, because the guarded flow passes the vendor's registry origin rather than its payment URL.
+- **The live site uses mock rails.** With `RAIL_MODE=real`, an allowed payment goes to the vendor's registered payment URL, never one the agent sends. A $0.0015 x402 payment through the full guarded flow settles on Base Sepolia in the `@live` tests, and the Stripe MPP adapter is tested against Stripe test mode. Real rails run only outside the public sandbox, and no workspace outside it has vendors yet, so an agent can't make a real payment over the HTTP API yet.
 - The mock rail keeps its records in one process's memory.
 
 ## How it was built
