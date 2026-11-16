@@ -24,7 +24,13 @@ Deployment target: Vercel **Hobby**. Cron jobs run at most once per day (see `te
 | 16 | Dec 1 | mcp-server tasks 1–4 | Nov 15–16 |
 | 17 | Dec 1 (optional, cut first) | demo-agents tasks 5–6; taint-and-intent task 7 | Nov 16 |
 | 18 | Dec 2 | telemetry-dashboard task 9 (polish, nightly reset cron) | Nov 16 |
-| — | Dec 3 | Submission: demo video, Kiro write-up, final deploy check | In progress |
+| 19 | Nov 16–19 | Real rails through AgentVault: rail-adapters task 9 (payment URLs), then a testnet workspace where an agent's `x402.pay` and `mpp.pay` over the HTTP API settle for real | Task 9 done Nov 16 |
+| 20 | Nov 20–22 | Paid vendor responses back to the agent, labeled and tainting like any untrusted page | |
+| 21 | Nov 23–24 | Dashboard: a pending-approvals count in the navigation; `/llms.txt` for the MPP validator | |
+| 22 | Nov 25–27 | Reliability through judging (Jan 29): the theme-property coverage flake, the end-to-end reload loop, a cron and quota check | |
+| — | Nov 28–Dec 3 | Submission: demo video, Kiro write-up, blog and social posts, final deploy check | In progress |
+
+Phases 19 to 22 were added on Nov 16, after Phase 18 finished 17 days early. Each starts with its spec changes, as Phases 1 to 18 did. Decisions still open: whether the hosted site gets a real-rail testnet workspace (it would need the agent wallet key on Vercel), and who may use it.
 
 Deadline: Dec 4, 2:00 PM PT (22:00 UTC). British Columbia now stays on UTC−7 all year, so that is 3:00 PM in Vancouver; aim for 2:00 PM Vancouver time anyway.
 
