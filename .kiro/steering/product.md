@@ -45,7 +45,7 @@ AI agents now pay for APIs on their own. Stripe's Machine Payments Protocol (MPP
 
 ## Hackathon context (Kiroween 2026)
 - Category: **Frankenstein** (stitching together card rails, stablecoin rails, LLM security, and MCP). Also targeting Best Student Project: Frankenstein, Best Demo, Blog, and Social Blitz.
-- Deadline: Dec 4, 2026, 2:00 PM PT. Target submission: Dec 3.
+- Deadline: Dec 4, 2026, 2:00 PM PT (22:00 UTC; 3:00 PM in Vancouver, which stays on UTC−7 all year). Target submission: Dec 3.
 - Judging: Stage One pass/fail on theme fit and Kiro usage. Stage Two weighs five criteria equally (10 points each): Potential Impact, Technological Implementation (Kiro usage), Design, Innovation/Idea, Presentation.
 - Compliance: public GitHub repo `Owen-Wangg/AgentVault`, Apache-2.0 license visible in About, `/.kiro` at the root and **never gitignored**, working public URL, demo video under 3 minutes (public on YouTube, no copyrighted music or third-party trademarks), Kiro write-up answering the rules' eight questions.
 - The live app must stay available, free and without restriction, until the Judging Period ends (Jan 29, 2027, 1:00 PM PT). Don't let keys, free-tier quotas, or the database lapse before then.
