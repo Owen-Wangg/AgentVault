@@ -195,7 +195,7 @@ const defaultCopy: CopyTable = {
   TOOL_NOT_ALLOWED: "Denied: this tool isn't on the agent's allow-list.",
   DENY_INTENT_DRIFT: "Denied: this is outside the task the agent was given.",
   OVER_TASK_BUDGET: "Denied: this would go over the task's budget.",
-  NEEDS_APPROVAL: "Held: the amount is over the approval threshold, so a person must approve it.",
+  NEEDS_APPROVAL: "Held: the amount is at or above the approval threshold, so a person must approve it.",
   HELD_TAINTED: "Held: this session read untrusted content, so refunds and payouts need approval.",
   ADVISORY_DRIFT: "Held: the drift check thinks this may be off-task, so a person should look.",
   "app.name": "AgentVault",

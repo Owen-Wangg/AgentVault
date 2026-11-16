@@ -70,7 +70,7 @@ export const WEATHER_ENVELOPE: Omit<Envelope, "agentId"> = {
   allowedTools: ["x402.pay"],
 };
 
-/** Refunds allowed up to $1,000, approval over $100, and no window caps, so only the taint and approval rules fire on the $480 refund. */
+/** Refunds allowed up to $1,000, approval at $100 or more (ENV-8), and no window caps, so only the taint and approval rules fire on the $480 refund. */
 export const BILLING_ENVELOPE: Omit<Envelope, "agentId"> = {
   limits: { approvalThresholdMicros: fromDecimalString("100") },
   vendorLimits: {},

@@ -103,7 +103,7 @@ Decisions are results, not errors:
 {
   "decision": "hold",
   "reasons": ["HELD_TAINTED", "NEEDS_APPROVAL"],
-  "explanation": "Held: this session read untrusted content, so refunds and payouts need approval. Held: the amount is over the approval threshold, so a person must approve it. A person must approve this in the AgentVault dashboard before it runs. …",
+  "explanation": "Held: this session read untrusted content, so refunds and payouts need approval. Held: the amount is at or above the approval threshold, so a person must approve it. A person must approve this in the AgentVault dashboard before it runs. …",
   "idempotency_key": "mcp_…",
   "approval_id": "…",
   "approve_at": "https://owen-agentvault.vercel.app/approvals"

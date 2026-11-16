@@ -84,7 +84,7 @@ describe("<ApprovalsInbox>", () => {
     expect(card.textContent).toContain("$480.00");
     expect(card.textContent).toContain("pi_seed_500");
     expect(card.textContent).toContain("Held: this session read untrusted content");
-    expect(card.textContent).toContain("Held: the amount is over the approval threshold");
+    expect(card.textContent).toContain("Held: the amount is at or above the approval threshold");
     expect(card.textContent).toContain(`Untrusted content read from ${SOURCE}`);
     expect(card.textContent).toContain("14:05");
     // The untrusted page is shown as text, not a link.
