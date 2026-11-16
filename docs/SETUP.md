@@ -414,6 +414,8 @@ So the deployed `/vendor/api/report` can charge, add these under **Project → S
 
 The deployed app keeps `RAIL_MODE=mock`, so its agents still pay on mock rails. Only the demo vendor endpoint uses the key.
 
+`APP_ORIGIN` must be the production origin (`https://<your-app>.vercel.app`). The endpoint uses its hostname as the MPP challenge's realm. Otherwise mppx would use each deployment's own hostname, and the validator's "Realm matches server hostname" check fails. Check the deployment with `pnpm mpp:validate https://<your-app>.vercel.app`. It makes one $0.50 test payment.
+
 ### If the key leaks
 
 In the Dashboard, open **Developers → API keys**, click the **⋯** menu next to the secret key, and choose **Roll key**. Put the new key in `.env.local` (and in Vercel, if you added it there). A sandbox key can't move real money, but someone with it could fill your sandbox with test data.
