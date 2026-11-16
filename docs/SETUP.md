@@ -508,6 +508,13 @@ The receivers must end in `@personal.example.com` or `@business.example.com`, so
 pnpm env:check   # the PayPal section shows pass or fail for each variable; values are never printed
 ```
 
+### Step 5: Run the probe
+
+```powershell
+pnpm paypal:probe
+```
+It sends the supplier three sandbox payouts ($1.00, $0.01, and a $0.00 one that PayPal refuses), repeats the $1.00 request to show PayPal refuses a second batch with the same `sender_batch_id`, and reads each batch until it settles. Each payout that goes through costs the sender a $0.25 sandbox fee, so one run takes about $1.51 of fake money from the business account. It prints statuses and batch IDs, never the token or the receivers. `pnpm paypal:probe --record src/rails/__fixtures__/paypal` also saves the exchanges for the contract tests, with the token and receivers replaced.
+
 To see a payout arrive, log in at <https://www.sandbox.paypal.com/signin> with a receiver's sandbox address and password (shown in **View/Edit account**).
 
 ### Vercel
