@@ -5,7 +5,7 @@ import { BILLING_PAYMENT_REF, GPU_PRICE, WEATHER_PRICE } from "@/agents/scripted
 import { fromDecimalString, type Micros } from "@/core/money";
 import { MAX_TOOL_CALLS, runGemini } from "./agent";
 import { LIVE_SCENARIO_NAMES, isLiveScenario } from "./scenarios";
-import { TEST_GEMINI_KEY, functionCalls, rateLimited, recordedModel, score, serverError, text } from "./test-fixtures";
+import { TEST_GEMINI_KEY, functionCalls, networkError, overloaded, rateLimited, recordedModel, score, serverError, text } from "./test-fixtures";
 
 const ORIGIN = "https://agentvault.example";
 const DOCS = `${ORIGIN}/vendor/docs/integration`;
@@ -79,7 +79,9 @@ describe("runGemini with recorded responses", () => {
     expect(JSON.stringify(scorer!.body)).not.toContain("acct_9XkQ2mLr7Vt4");
     expect(JSON.stringify(scorer!.body)).not.toContain("SYSTEM:");
     expect(JSON.stringify(scorer!.body)).toContain("stripe.refund to nimbus-weather for $480.00");
-    expect(scorer!.body.generationConfig).toMatchObject({ responseMimeType: "application/json" });
+    // A plain-text reply, so the request carries no response schema.
+    expect(scorer!.body.generationConfig).not.toHaveProperty("responseMimeType");
+    expect(scorer!.body.generationConfig).not.toHaveProperty("responseJsonSchema");
     // The model's turn goes back unchanged, thought signature included, and the tool result carries the decision.
     expect(turn3!.body.contents?.at(-2)?.parts?.[0]).toMatchObject({ thoughtSignature: "c2lnbmF0dXJlLXJlY29yZGVk" });
     expect(turn3!.body.contents?.at(-1)?.parts?.[0]).toMatchObject({
@@ -168,10 +170,28 @@ describe("runGemini with recorded responses", () => {
     expect(run.stop).toBe("gemini_rate_limited");
   });
 
-  it("AGT-14: any other Gemini failure stops the run as GEMINI_FAILED", async () => {
-    const rec = recordedModel(serverError());
+  it("AGT-14: a 5xx that fails again on its one retry stops the run as GEMINI_FAILED", async () => {
+    const rec = recordedModel(serverError(), serverError());
     const run = await runGemini("normal", fakeClient().client, rec.model, options());
+    expect(rec.sent).toHaveLength(2);
     expect(run).toMatchObject({ stop: "gemini_failed", results: [{ kind: "error", step: "model", status: 500, error: "GEMINI_FAILED" }] });
+  });
+
+  it("AGT-14: a 503 or a dropped connection is retried once, and the run goes on", async () => {
+    const pay = { name: "pay", args: { vendor: "nimbus-weather", amount_usd: "0.0015" } };
+    const rec = recordedModel(overloaded(), functionCalls(pay), networkError(), score(2), text("Bought one."));
+    const { client, calls } = fakeClient();
+    const run = await runGemini("normal", client, rec.model, options());
+    expect(run).toMatchObject({ stop: "finished", geminiRequests: 3 });
+    expect(rec.sent).toHaveLength(5);
+    expect(calls).toHaveLength(1);
+  });
+
+  it("AGT-14: a 4xx other than 429 is not retried", async () => {
+    const rec = recordedModel({ status: 400, body: { error: { code: 400, message: "Invalid argument.", status: "INVALID_ARGUMENT" } } }, text("never used"));
+    const run = await runGemini("normal", fakeClient().client, rec.model, options());
+    expect(rec.sent).toHaveLength(1);
+    expect(run).toMatchObject({ stop: "gemini_failed", results: [{ status: 400, error: "GEMINI_FAILED" }] });
   });
 
   it("AGT-14: a scorer reply that isn't a score from 0 to 100 stops the run before the payment", async () => {

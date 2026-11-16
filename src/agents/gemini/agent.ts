@@ -101,7 +101,7 @@ export async function runGemini(name: LiveScenarioName, client: ScenarioClient, 
       return await call();
     } catch (error) {
       const e = error instanceof GeminiError ? error : new GeminiError("failed", 0);
-      const code = e.kind === "rate_limited" ? "GEMINI_RATE_LIMITED" : "GEMINI_FAILED";
+      const code = e.kind === "rate_limited" ? "GEMINI_RATE_LIMITED" : e.kind === "timeout" ? "GEMINI_TIMEOUT" : "GEMINI_FAILED";
       throw new Stop(e.kind === "rate_limited" ? "gemini_rate_limited" : "gemini_failed", { kind: "error", step: "model", status: e.status, error: code });
     }
   }

@@ -41,8 +41,8 @@ export const functionCalls = (...calls: { name: string; args: Record<string, unk
 /** A final text turn. */
 export const text = (t: string): Recorded => ({ status: 200, body: envelope([{ text: t }]) });
 
-/** The scorer's structured reply. */
-export const score = (n: number): Recorded => text(JSON.stringify({ score: n }));
+/** The scorer's reply: the bare integer it is asked for. */
+export const score = (n: number): Recorded => text(String(n));
 
 /** The free tier's rate limit, as the Gemini API reports it. */
 export const rateLimited = (): Recorded => ({
@@ -57,6 +57,13 @@ export const rateLimited = (): Recorded => ({
 });
 
 export const serverError = (): Recorded => ({ status: 500, body: { error: { code: 500, message: "Internal error encountered.", status: "INTERNAL" } } });
+
+/** Gemini's "model overloaded" answer. */
+export const overloaded = (): Recorded => ({ status: 503, body: { error: { code: 503, message: "The model is overloaded. Please try again later.", status: "UNAVAILABLE" } } });
+
+/** No response at all: the connection fails, as fetch reports it. */
+export const NETWORK_ERROR = 0;
+export const networkError = (): Recorded => ({ status: NETWORK_ERROR, body: null });
 
 export interface SentRequest {
   url: string;
@@ -73,6 +80,7 @@ export function replay(...responses: Recorded[]) {
     sent.push({ url: request.url, headers: request.headers, body: JSON.parse(await request.text()) as SentRequest["body"] });
     const next = queue.shift();
     if (!next) throw new Error("no more recorded Gemini responses");
+    if (next.status === NETWORK_ERROR) throw new TypeError("fetch failed");
     return new Response(JSON.stringify(next.body), { status: next.status, headers: { "content-type": "application/json" } });
   }) as typeof fetch;
   return { send, sent, remaining: () => queue.length };
@@ -81,5 +89,5 @@ export function replay(...responses: Recorded[]) {
 /** The real SDK-backed model, talking to `replay` instead of Gemini. */
 export function recordedModel(...responses: Recorded[]) {
   const r = replay(...responses);
-  return { model: createGeminiModel({ apiKey: TEST_GEMINI_KEY, model: TEST_MODEL, fetch: r.send }), ...r };
+  return { model: createGeminiModel({ apiKey: TEST_GEMINI_KEY, model: TEST_MODEL, fetch: r.send, retryDelayMs: 0 }), ...r };
 }
