@@ -25,6 +25,7 @@ export const EVENT_TYPES = [
   "scenario_started",
   "sandbox_created",
   "sandbox_retired",
+  "mcp_agent_created",
 ] as const;
 
 export type EventType = (typeof EVENT_TYPES)[number];
