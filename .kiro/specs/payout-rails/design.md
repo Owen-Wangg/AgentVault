@@ -116,5 +116,5 @@ Same REST client and injected fetch as the MPP adapter, so every call takes the 
 - PO-22 is verified by the probes' recorded results in `docs/KIRO_LOG.md`, as rail-adapters task 4 was.
 - `@live` tests: a guarded Stripe Connect transfer of $1.00 and a PayPal sandbox payout of $1.00, each found again by `lookup()`.
 - The Playwright test gains the Payee hijack path: run it, see both holds, deny the payee change, approve the payout, see where it went.
-- The theme-neutrality property's coverage check (all scenario names seen in 8 runs) gets more likely to fail by chance with a fifth scenario, so it changes to cover every scenario in every run's first steps.
+- The theme-neutrality property's first run is a fixed case that runs every scenario in `SCENARIO_NAMES`, so the fifth scenario is covered without changing that test.
 - Mutation checks to run: destination taken from the request; payee row updated before the check; `payout.create` left as a debit; `paypal.payout` missing from the high-privilege list; `PENDING` mapped to failed; the host made configurable.

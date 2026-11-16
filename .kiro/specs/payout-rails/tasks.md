@@ -46,7 +46,6 @@ Plan (`docs/PLAN.md`): **Phase 20** = tasks 1–4. **Phase 21** = tasks 5–6. *
   - `acme-supplies` in the sandbox seed, the poisoned invoice page `/vendor/docs/invoice`, the task, the envelope, and the scripted steps
   - Scenario card, steps, and summary on `/scenarios`, with copy in both themes
   - `agentvault_request_tool` accepts `paypal.payout` and `payee.update`'s `rail`
-  - Fix the theme-neutrality coverage check so every scenario runs in every case
   - The Playwright test's hijack path
   - _Requirements: PO-23, PO-24_
 
