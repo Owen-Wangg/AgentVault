@@ -23,6 +23,7 @@ type UiKey =
   | "state.live"
   | "workspace.sandbox"
   | "workspace.sandboxNote"
+  | "workspace.publicName"
   | "workspace.personal"
   | "workspace.none"
   | "auth.signIn"
@@ -224,7 +225,8 @@ const defaultCopy: CopyTable = {
   "state.reconnecting": "Reconnecting…",
   "state.live": "Live",
   "workspace.sandbox": "Sandbox",
-  "workspace.sandboxNote": "Sandbox: mock rails only. Anyone can approve, deny, and unfreeze here, and no real money moves.",
+  "workspace.sandboxNote": "Sandbox: mock rails only. Anyone can approve, deny, and unfreeze here, and no real money moves. It starts fresh every night.",
+  "workspace.publicName": "Public demo workspace",
   "workspace.personal": "Your workspace",
   "workspace.none": "There's no workspace to show yet. Run pnpm db:seed to create the sandbox.",
   "auth.signIn": "Sign in with GitHub",
@@ -419,7 +421,9 @@ const kiroweenCopy: CopyTable = {
   "agents.unfreeze": "Release from The Crypt",
   "agents.empty": "No agents have been summoned yet.",
   "workspace.sandbox": "Haunted sandbox",
-  "workspace.sandboxNote": "Haunted sandbox: mock rails only. Anyone can approve, deny, and release agents from The Crypt here, and no real money moves.",
+  "workspace.sandboxNote":
+    "Haunted sandbox: mock rails only. Anyone can approve, deny, and release agents from The Crypt here, and no real money moves. It rises fresh every night.",
+  "workspace.publicName": "Public haunted workspace",
   "overview.frozen": "Agents in The Crypt",
   "overview.alerts": "Recent hauntings",
   "overview.noAlerts": "All quiet in the graveyard: no denials, holds, or freezes in this range.",

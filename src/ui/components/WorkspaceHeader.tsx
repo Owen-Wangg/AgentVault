@@ -15,7 +15,10 @@ export function WorkspaceHeader({ workspace, account }: { workspace: { name: str
     <header className="mb-6 flex flex-col gap-3 border-b border-border pb-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-sm text-text-muted">{workspace ? workspace.name : t("workspace.none")}</span>
+          {/* The sandbox's stored name is a timestamp; people see a plain label, and the name stays in the tooltip. */}
+          <span className="truncate text-sm text-text-muted" title={workspace?.name}>
+            {workspace ? (workspace.isSandbox ? t("workspace.publicName") : workspace.name) : t("workspace.none")}
+          </span>
           {workspace?.isSandbox ? (
             <Badge tone="hold">
               <FlaskConical aria-hidden="true" className="size-3" />
