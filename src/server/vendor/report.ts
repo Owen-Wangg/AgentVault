@@ -67,6 +67,12 @@ export interface ReportVendorOptions {
   profileId: string;
   challengeKey: string;
   price?: Micros;
+  /**
+   * The challenge's realm: the public hostname. mppx defaults it to the
+   * request URL's hostname, which on Vercel is the deployment's own
+   * hostname, not the production domain clients call.
+   */
+  realm?: string;
 }
 
 export type ReportHandler = (request: Request) => Promise<Response>;
@@ -83,6 +89,7 @@ export function createReportHandler(options: ReportVendorOptions): ReportHandler
       }),
     ],
     secretKey: options.challengeKey,
+    ...(options.realm ? { realm: options.realm } : {}),
   });
   const charge = mppx.charge({
     amount: stripeChargeAmount(options.price ?? REPORT_PRICE),
@@ -101,6 +108,17 @@ export function vendorStripeClient(config: StripeConfig): Stripe {
   return new Stripe(config.secretKey(), { maxNetworkRetries: 1, timeout: 20_000, httpClient: Stripe.createFetchHttpClient() });
 }
 
+/** The hostname of APP_ORIGIN, or undefined if it's unset or not an http(s) URL. Then mppx uses the request's hostname. */
+export function realmFrom(appOrigin: string | undefined): string | undefined {
+  if (!appOrigin) return undefined;
+  try {
+    const url = new URL(appOrigin);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.hostname : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 let cached: ReportHandler | null = null;
 
 /** GET /vendor/api/report. Answers 503 until the Stripe variables are set (docs/SETUP.md, section 7). */
@@ -114,7 +132,14 @@ export async function reportRoute(request: Request, env: Record<string, string |
       console.error(`vendor report: ${error instanceof RailConfigError ? error.message : "configuration failed"}`);
       return Response.json({ error: "VENDOR_NOT_CONFIGURED" }, { status: 503 });
     }
-    cached = createReportHandler({ client: vendorStripeClient(config), profileId: config.profileId, challengeKey: challengeSigningKey(config.secretKey()) });
+    // APP_ORIGIN is the public origin (https://owen-agentvault.vercel.app on Vercel).
+    const realm = realmFrom(env.APP_ORIGIN);
+    cached = createReportHandler({
+      client: vendorStripeClient(config),
+      profileId: config.profileId,
+      challengeKey: challengeSigningKey(config.secretKey()),
+      ...(realm ? { realm } : {}),
+    });
   }
   return cached(request);
 }

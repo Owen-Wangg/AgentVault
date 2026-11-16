@@ -8,6 +8,7 @@ import {
   challengeSigningKey,
   createReportHandler,
   payerReferenceMetadata,
+  realmFrom,
   reportRoute,
 } from "./report";
 
@@ -106,11 +107,34 @@ describe("MPP vendor endpoint /vendor/api/report", () => {
     for (const bad of [undefined, 42, "", "a b", "x".repeat(201), "<script>"]) expect(payerReferenceMetadata(bad)).toEqual({});
   });
 
+  it("RAIL-18: the challenge's realm is the configured public hostname, not the request's", async () => {
+    const { client } = fakeStripe();
+    const handler = createReportHandler({ client, profileId: PROFILE, challengeKey: challengeSigningKey("sk_test_vendor"), realm: "owen-agentvault.vercel.app" });
+    const response = await handler(new Request("https://agentvault-abc123-team.vercel.app/vendor/api/report"));
+    expect(Challenge.fromResponse(response).realm).toBe("owen-agentvault.vercel.app");
+    // Without one, mppx uses the request's hostname.
+    expect(Challenge.fromResponse(await handlerWith(client)(new Request(URL_))).realm).toBe("localhost");
+  });
+
+  it("RAIL-18: takes the realm from APP_ORIGIN's hostname, and ignores a value that isn't an http(s) URL", () => {
+    expect(realmFrom("https://owen-agentvault.vercel.app")).toBe("owen-agentvault.vercel.app");
+    expect(realmFrom("http://localhost:3000")).toBe("localhost");
+    for (const bad of [undefined, "", "not a url", "javascript:alert(1)"]) expect(realmFrom(bad)).toBeUndefined();
+  });
+
   it("RAIL-7: answers 503 until the Stripe variables are set, and refuses a live key", async () => {
     for (const env of [{}, { STRIPE_SECRET_KEY: "sk_live_x", STRIPE_PROFILE_ID: PROFILE }]) {
       const response = await reportRoute(new Request(URL_), env);
       expect(response.status).toBe(503);
       expect(await response.json()).toEqual({ error: "VENDOR_NOT_CONFIGURED" });
     }
+  });
+
+  // Last in the file: reportRoute keeps the first handler it builds.
+  it("RAIL-18: the route signs challenges with APP_ORIGIN's hostname as the realm", async () => {
+    const env = { STRIPE_SECRET_KEY: "sk_test_route", STRIPE_PROFILE_ID: PROFILE, APP_ORIGIN: "https://owen-agentvault.vercel.app" };
+    const response = await reportRoute(new Request("https://agentvault-abc123-team.vercel.app/vendor/api/report"), env);
+    expect(response.status).toBe(402);
+    expect(Challenge.fromResponse(response).realm).toBe("owen-agentvault.vercel.app");
   });
 });
