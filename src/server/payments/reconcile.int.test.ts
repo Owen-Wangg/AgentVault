@@ -59,7 +59,7 @@ function lookupOnly(lookup: (key: string) => Promise<RailLookup>): RailAdapter {
   const never = async (): Promise<never> => {
     throw new Error("the reconciler called a paying method");
   };
-  return { rail: "x402", minimumUnits: 1n, quote: never, execute: never, refund: never, lookup };
+  return { rail: "x402", minimumUnits: 1n, quote: never, execute: never, refund: never, payout: never, checkDestination: never, lookup };
 }
 
 describe("RES-6, RES-3, RES-9: resolving unknown outcomes", () => {

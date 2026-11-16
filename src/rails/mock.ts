@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 import { type Micros, type Rail, fromRailUnits, toRailUnits } from "@/core/money";
+import { isDestinationFor, isPayoutRail } from "./destination";
 import type {
+  DestinationCheck,
+  PayoutRequest,
   RailAdapter,
   RailContext,
   RailFailureCode,
@@ -25,27 +28,36 @@ export const STRIPE_MINIMUM_CENTS = 50n;
 /** 1 cent until `pnpm paypal:probe` measures PayPal's minimum (payout-rails PO-22). */
 export const PAYPAL_MINIMUM_CENTS = 1n;
 
+const keyHash = (idempotencyKey: string) => createHash("sha256").update(idempotencyKey, "utf8").digest("hex").slice(0, 16);
+
 /** `mock_tx_` + the first 16 hex chars of sha256(key) (RAIL-19). */
 export function mockRef(idempotencyKey: string): string {
-  return `mock_tx_${createHash("sha256").update(idempotencyKey, "utf8").digest("hex").slice(0, 16)}`;
+  return `mock_tx_${keyHash(idempotencyKey)}`;
+}
+
+/** `mock_po_` + the same hash, for payouts (payout-rails design, "Rail interface additions"). */
+export function mockPayoutRef(idempotencyKey: string): string {
+  return `mock_po_${keyHash(idempotencyKey)}`;
 }
 
 /** Codes that mean "the rail may have charged": the mock records the payment before reporting them. */
 const RECORDS_BEFORE_FAILING: ReadonlySet<RailFailureCode> = new Set(["RAIL_TIMEOUT", "INVALID_RAIL_RESPONSE"]);
 
 export interface MockRecord {
-  kind: "payment" | "refund";
+  kind: "payment" | "refund" | "payout";
   idempotencyKey: string;
   ref: string;
   units: bigint;
   settledMicros: Micros;
+  /** For a payout: where it went. */
+  destination?: string;
 }
 
 export class MockRail implements RailAdapter {
   private readonly records = new Map<string, MockRecord>();
   private readonly lookupOverrides = new Map<string, RailLookup>();
   private failureMode: RailFailureCode | null = null;
-  /** Number of execute and refund calls that reached the simulated rail. */
+  /** Number of execute, refund, and payout calls that reached the simulated rail. */
   calls = 0;
 
   constructor(
@@ -89,6 +101,27 @@ export class MockRail implements RailAdapter {
     return this.charge("refund", req.idempotencyKey, toRailUnits(req.amountMicros, this.rail, "credit"), 1n, ctx);
   }
 
+  /**
+   * payout-rails PO-1, PO-3, PO-5: pay out to a destination, rounded down
+   * for the payee, at most once per key. Applies the simulated rail's
+   * rules: x402 and the mock rail can't pay out, and a malformed
+   * destination is refused, both before anything is recorded.
+   */
+  async payout(req: PayoutRequest, ctx: RailContext = {}): Promise<RailResult> {
+    const existing = this.records.get(req.idempotencyKey);
+    if (existing) return { ok: true, ref: existing.ref, settledMicros: existing.settledMicros };
+    const check = await this.checkDestination(req.destination);
+    if (!check.ok) return check;
+    return this.charge("payout", req.idempotencyKey, toRailUnits(req.amountMicros, this.rail, "credit"), 1n, ctx, req.destination);
+  }
+
+  /** PO-1, PO-11: any well-formed destination for the simulated rail. Nothing is recorded. */
+  async checkDestination(destination: string): Promise<DestinationCheck> {
+    if (!isPayoutRail(this.rail)) return { ok: false, code: "RAIL_REJECTED", detail: `the ${this.rail} rail can't pay out` };
+    if (!isDestinationFor(this.rail, destination)) return { ok: false, code: "RAIL_REJECTED", detail: `not a ${this.rail} payout destination` };
+    return { ok: true };
+  }
+
   /** Read-only (RAIL-22). An unrecorded key is unknown: this process can't prove another one never paid. */
   async lookup(idempotencyKey: string): Promise<RailLookup> {
     const override = this.lookupOverrides.get(idempotencyKey);
@@ -103,6 +136,7 @@ export class MockRail implements RailAdapter {
     units: bigint,
     minimum: bigint,
     ctx: RailContext,
+    destination?: string,
   ): Promise<RailResult> {
     // An idempotent replay returns the original result and charges nothing (RAIL-3).
     const existing = this.records.get(idempotencyKey);
@@ -115,7 +149,14 @@ export class MockRail implements RailAdapter {
     const mode = this.failureMode;
     if (mode && !RECORDS_BEFORE_FAILING.has(mode)) return { ok: false, code: mode };
 
-    const record: MockRecord = { kind, idempotencyKey, ref: mockRef(idempotencyKey), units, settledMicros: fromRailUnits(units, this.rail) };
+    const record: MockRecord = {
+      kind,
+      idempotencyKey,
+      ref: kind === "payout" ? mockPayoutRef(idempotencyKey) : mockRef(idempotencyKey),
+      units,
+      settledMicros: fromRailUnits(units, this.rail),
+      ...(destination !== undefined ? { destination } : {}),
+    };
     this.records.set(idempotencyKey, record);
     if (mode) return { ok: false, code: mode };
     return { ok: true, ref: record.ref, settledMicros: record.settledMicros };

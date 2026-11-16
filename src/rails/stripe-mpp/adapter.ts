@@ -1,7 +1,7 @@
 import { Challenge, Credential, Receipt } from "mppx";
 import { z } from "zod";
 import { fromRailUnits, toRailUnits } from "@/core/money";
-import type { RailAdapter, RailContext, RailLookup, RailQuote, RailRequest, RailResult, RefundRequest } from "../types";
+import type { DestinationCheck, RailAdapter, RailContext, RailLookup, RailQuote, RailRequest, RailResult, RefundRequest } from "../types";
 import { NO_PAYMENT_URL, isPaymentUrl } from "../url";
 import { STRIPE_SPT_MINIMUM_CENTS, stripeDashboardUrl } from "./constants";
 import { type StripeApi, StripeApiError, StripeResponseError } from "./stripe-api";
@@ -222,6 +222,19 @@ export class StripeMppRail implements RailAdapter {
       return { ok: false, code: "INVALID_RAIL_RESPONSE", detail: "network error after the refund was sent" };
     }
     return refundResult(refund);
+  }
+
+  /**
+   * payout-rails PO-1: Connect payouts arrive in task 5. Until then this
+   * refuses without contacting Stripe, so a real-mode payout fails closed.
+   */
+  async payout(): Promise<RailResult> {
+    return { ok: false, code: "RAIL_REJECTED", detail: "Stripe Connect payouts aren't available yet; nothing was sent" };
+  }
+
+  /** PO-1: refuses without contacting Stripe until the Connect check arrives in task 5. */
+  async checkDestination(): Promise<DestinationCheck> {
+    return { ok: false, code: "RAIL_REJECTED", detail: "Stripe Connect payouts aren't available yet" };
   }
 
   /**

@@ -15,9 +15,33 @@ export interface RailAdapter {
   execute(req: RailRequest, ctx?: RailContext): Promise<RailResult>;
   /** Refund part or all of an earlier payment. */
   refund(req: RefundRequest, ctx?: RailContext): Promise<RailResult>;
-  /** Report what happened to an earlier call. Read-only: never pays or refunds (RAIL-21, RAIL-22). */
+  /** Report what happened to an earlier call. Read-only: never pays, refunds, or pays out (RAIL-21, RAIL-22). */
   lookup(idempotencyKey: string, ctx?: RailContext): Promise<RailLookup>;
+  /**
+   * Send money from the platform to a payee (payout-rails PO-1, PO-5). The
+   * amount rounds down for the payee (PO-3). Calling twice with the same
+   * idempotency key pays out at most once. A rail that can't pay out
+   * returns RAIL_REJECTED without contacting anyone.
+   */
+  payout(req: PayoutRequest, ctx?: RailContext): Promise<RailResult>;
+  /**
+   * Check that a destination can receive payouts, without moving money
+   * (PO-1, PO-11). A rail that can't pay out returns RAIL_REJECTED
+   * without contacting anyone.
+   */
+  checkDestination(destination: string, ctx?: RailContext): Promise<DestinationCheck>;
 }
+
+export interface PayoutRequest {
+  /** The payee's destination on this rail, from the vendor registry, never from the agent (PO-4). */
+  destination: string;
+  /** The full approved amount. The rail sends it rounded down (PO-3). */
+  amountMicros: Micros;
+  /** The reservation ID. */
+  idempotencyKey: string;
+}
+
+export type DestinationCheck = { ok: true } | { ok: false; code: RailFailureCode; detail?: string };
 
 export interface RailRequest {
   vendorUrl: string;

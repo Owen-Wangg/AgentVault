@@ -89,4 +89,56 @@ describe("mock rail properties", () => {
       RUNS,
     );
   });
+
+  const payoutRailArb = fc.constantFrom<[Rail, string]>(["stripe", "acct_1AcmeSupplies"], ["paypal", "supplier@personal.example.com"]);
+  // Amounts of at least one cent, so every payout clears the 1-cent minimum.
+  const payoutAmountArb = amountArb.filter((a) => a >= 10_000n);
+  const payout = (key: string, amount: Micros, destination: string) => ({ destination, amountMicros: amount, idempotencyKey: key });
+
+  // payout-rails property 3, one payout per key (PO-5): for any number of
+  // `payout` calls with the same key on the mock adapter, one payout is
+  // recorded.
+  it("PO-5: any number of payout calls with one key records one payout, and replays return the first result", async () => {
+    await fc.assert(
+      fc.asyncProperty(payoutRailArb, fc.array(payoutAmountArb, { minLength: 1, maxLength: 10 }), async ([rail, destination], amounts) => {
+        const adapter = new MockRail(rail, 1n);
+        const results = [];
+        for (const amount of amounts) results.push(await adapter.payout(payout("same-key", amount, destination)));
+        expect(adapter.recorded()).toHaveLength(1);
+        expect(adapter.calls).toBe(1);
+        for (const r of results) expect(r).toEqual(results[0]);
+        // PO-3: the payee gets the first amount rounded down, never more.
+        const [first] = amounts;
+        if (results[0]?.ok && first !== undefined) expect(results[0].settledMicros <= first).toBe(true);
+      }),
+      RUNS,
+    );
+  });
+
+  // payout-rails property 6, lookup stays read-only (RAIL-22, PO-8): for
+  // any sequence of payouts and lookups on the mock adapter, the number of
+  // recorded payouts equals the number of distinct keys passed to `payout`.
+  it("RAIL-22, PO-8: lookups never add payouts, and report settled exactly for keys paid out", async () => {
+    const op = fc.oneof(
+      fc.record({ kind: fc.constant("payout" as const), key: keyArb }),
+      fc.record({ kind: fc.constant("lookup" as const), key: keyArb }),
+    );
+    await fc.assert(
+      fc.asyncProperty(payoutRailArb, fc.array(op, { maxLength: 30 }), async ([rail, destination], ops) => {
+        const adapter = new MockRail(rail, 1n);
+        const paid = new Set<string>();
+        for (const o of ops) {
+          if (o.kind === "payout") {
+            await adapter.payout(payout(o.key, micros(1_000_000n), destination));
+            paid.add(o.key);
+          } else {
+            expect((await adapter.lookup(o.key)).status).toBe(paid.has(o.key) ? "settled" : "unknown");
+          }
+        }
+        expect(adapter.recorded().filter((r) => r.kind === "payout").length).toBe(paid.size);
+        expect(adapter.recorded().length).toBe(paid.size);
+      }),
+      RUNS,
+    );
+  });
 });

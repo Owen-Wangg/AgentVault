@@ -115,6 +115,8 @@ describe("x402 in the pay flow", () => {
       quote: (r) => inner.quote(r),
       execute: (r, ctx = {}) => (seen.push({ method: "execute", ctx }), inner.execute(r, ctx)),
       refund: (r, ctx = {}) => inner.refund(r, ctx),
+      payout: (r, ctx = {}) => inner.payout(r, ctx),
+      checkDestination: (d) => inner.checkDestination(d),
       lookup: (k, ctx = {}) => (seen.push({ method: "lookup", ctx }), inner.lookup(k)),
     };
     const flow = withX402(deps, spy);

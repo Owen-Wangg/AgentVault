@@ -6,7 +6,7 @@ import type { LocalAccount } from "viem/accounts";
 import { z } from "zod";
 import { fromRailUnits, toRailUnits } from "@/core/money";
 import { BASE_SEPOLIA } from "../config";
-import type { RailAdapter, RailContext, RailLookup, RailQuote, RailRequest, RailResult } from "../types";
+import type { DestinationCheck, RailAdapter, RailContext, RailLookup, RailQuote, RailRequest, RailResult } from "../types";
 import { NO_PAYMENT_URL, isPaymentUrl } from "../url";
 import { BaseSepoliaReader, type ChainBlock, usdcTransferredFrom } from "./chain";
 import { BASE_SEPOLIA_CHAIN_ID, MAX_LOG_BLOCKS, USDC_BASE_SEPOLIA, USDC_EIP712, explorerTxUrl } from "./constants";
@@ -226,6 +226,16 @@ export class X402Rail implements RailAdapter {
   /** x402 has no refunds. Nothing is sent, so this is a confirmed failure. */
   async refund(): Promise<RailResult> {
     return { ok: false, code: "RAIL_REJECTED", detail: "x402 payments can't be refunded" };
+  }
+
+  /** payout-rails PO-1: x402 can't pay out. Nothing is signed or sent. */
+  async payout(): Promise<RailResult> {
+    return { ok: false, code: "RAIL_REJECTED", detail: "x402 can't pay out; nothing was signed" };
+  }
+
+  /** PO-1: x402 has no payout destinations. Nothing is sent. */
+  async checkDestination(): Promise<DestinationCheck> {
+    return { ok: false, code: "RAIL_REJECTED", detail: "x402 can't pay out" };
   }
 
   /**

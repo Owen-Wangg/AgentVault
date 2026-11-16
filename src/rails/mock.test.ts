@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { fromDecimalString, micros } from "@/core/money";
 import type { RailConfig } from "./config";
-import { MockRail, mockRef } from "./mock";
+import { MockRail, mockPayoutRef, mockRef } from "./mock";
 import { RailUnavailableError, createMockRails, railFor } from "./select";
 import type { RailAdapter } from "./types";
 
@@ -22,6 +22,68 @@ describe("RAIL-19: deterministic mock references", () => {
 
   it("RAIL-19: different keys give different refs", () => {
     expect(mockRef("a")).not.toBe(mockRef("b"));
+  });
+});
+
+describe("PO-1, PO-3, PO-5: mock payouts", () => {
+  const payout = (key: string, amount: string, destination = "acct_1AcmeSupplies") => ({ destination, amountMicros: fromDecimalString(amount), idempotencyKey: key });
+
+  it("PO-1: a payout records a mock_po_ reference and where it went", async () => {
+    const rail = new MockRail("stripe", 50n);
+    const expected = `mock_po_${createHash("sha256").update("res-1").digest("hex").slice(0, 16)}`;
+    expect(mockPayoutRef("res-1")).toBe(expected);
+    expect(await rail.payout(payout("res-1", "900"))).toEqual({ ok: true, ref: expected, settledMicros: micros(900_000_000n) });
+    expect(rail.recorded()).toEqual([{ kind: "payout", idempotencyKey: "res-1", ref: expected, units: 90_000n, settledMicros: micros(900_000_000n), destination: "acct_1AcmeSupplies" }]);
+  });
+
+  it("PO-3: a payout rounds down for the payee, and the 1-cent minimum is checked after rounding, not the 50-cent card minimum", async () => {
+    const rail = new MockRail("stripe", 50n);
+    expect(await rail.payout(payout("a", "0.019999"))).toMatchObject({ ok: true, settledMicros: micros(10_000n) });
+    expect(await rail.payout(payout("b", "0.009999"))).toMatchObject({ ok: false, code: "BELOW_RAIL_MINIMUM" });
+    expect(rail.recorded()).toHaveLength(1);
+  });
+
+  it("PO-5: the same key pays out once, even with another amount or destination", async () => {
+    const rail = new MockRail("paypal", 1n);
+    const first = await rail.payout(payout("k", "1.00", "supplier@personal.example.com"));
+    expect(await rail.payout(payout("k", "2.00", "attacker@personal.example.com"))).toEqual(first);
+    expect(rail.recorded()).toHaveLength(1);
+    expect(rail.calls).toBe(1);
+  });
+
+  it("PO-1: x402 and the mock rail can't pay out; nothing is recorded or sent", async () => {
+    for (const rail of [new MockRail("x402", 1n), new MockRail("mock", 1n)]) {
+      expect(await rail.payout(payout("k", "1.00"))).toMatchObject({ ok: false, code: "RAIL_REJECTED" });
+      expect(await rail.checkDestination("acct_1AcmeSupplies")).toMatchObject({ ok: false, code: "RAIL_REJECTED" });
+      expect(rail.calls).toBe(0);
+      expect(rail.recorded()).toEqual([]);
+    }
+  });
+
+  it("PO-11: checkDestination accepts a well-formed destination for the rail and records nothing", async () => {
+    const stripe = new MockRail("stripe", 50n);
+    expect(await stripe.checkDestination("acct_1AttackerSandbox")).toEqual({ ok: true });
+    expect(await stripe.checkDestination("supplier@personal.example.com")).toMatchObject({ ok: false, code: "RAIL_REJECTED" });
+    const paypal = new MockRail("paypal", 1n);
+    expect(await paypal.checkDestination("supplier@personal.example.com")).toEqual({ ok: true });
+    expect(await paypal.checkDestination("acct_1AttackerSandbox")).toMatchObject({ ok: false, code: "RAIL_REJECTED" });
+    expect([...stripe.recorded(), ...paypal.recorded()]).toEqual([]);
+  });
+
+  it("PO-1: a malformed destination is refused before anything is recorded", async () => {
+    const rail = new MockRail("stripe", 50n);
+    expect(await rail.payout(payout("k", "1.00", "acct_"))).toMatchObject({ ok: false, code: "RAIL_REJECTED" });
+    expect(rail.calls).toBe(0);
+  });
+
+  it("RAIL-20: failure modes apply to payouts too, and a timeout records the payout first", async () => {
+    const rail = new MockRail("stripe", 50n);
+    rail.setFailureMode("RAIL_TIMEOUT");
+    expect(await rail.payout(payout("k", "1.00"))).toEqual({ ok: false, code: "RAIL_TIMEOUT" });
+    expect(await rail.lookup("k")).toMatchObject({ status: "settled", ref: mockPayoutRef("k") });
+    rail.setFailureMode("RAIL_REJECTED");
+    expect(await rail.payout(payout("k2", "1.00"))).toEqual({ ok: false, code: "RAIL_REJECTED" });
+    expect(await rail.lookup("k2")).toEqual({ status: "unknown" });
   });
 });
 
