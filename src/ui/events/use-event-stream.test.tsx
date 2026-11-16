@@ -3,7 +3,7 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { StreamStatusBadge } from "@/ui/components/StreamStatusBadge";
 import type { AuditEventMessage } from "./summarize";
-import { type EventStreamOptions, mergeEvents, useEventStream } from "./use-event-stream";
+import { BACKLOG_FLUSH_MS, type EventStreamOptions, mergeEvents, useEventStream } from "./use-event-stream";
 
 afterEach(cleanup);
 
@@ -68,6 +68,39 @@ describe("useEventStream", () => {
     act(() => source.emit("audit", event(3)));
     await flush();
     expect(screen.getByTestId("seqs").textContent).toBe("1,2,3");
+  });
+
+  it("UI-5: the backlog renders once, when ready arrives, not once per event", async () => {
+    const onRender = vi.fn();
+    function Counter({ options, rendered }: { options: EventStreamOptions; rendered: () => void }) {
+      const { events } = useEventStream("w1", options);
+      rendered();
+      return <p data-testid="count">{events.length}</p>;
+    }
+    // A long fallback, so it can't fire however slow the test run is.
+    const options: EventStreamOptions = { createEventSource: (url) => new FakeSource(url) as unknown as EventSource, onRetired: vi.fn(), backlogFlushMs: 60_000 };
+    render(<Counter rendered={onRender} options={options} />);
+    const source = FakeSource.last!;
+    const before = onRender.mock.calls.length;
+    // Each SSE message is its own task in a browser, so emit them in separate acts.
+    for (let seq = 1; seq <= 50; seq += 1) await act(async () => source.emit("audit", event(seq)));
+    expect(screen.getByTestId("count").textContent).toBe("0");
+    await act(async () => source.emit("ready", { seq: 50 }));
+    expect(screen.getByTestId("count").textContent).toBe("50");
+    expect(onRender.mock.calls.length - before).toBeLessThanOrEqual(3);
+  });
+
+  it("UI-5: if ready never comes, the backlog still renders after BACKLOG_FLUSH_MS", async () => {
+    vi.useFakeTimers();
+    try {
+      const { source } = mount();
+      act(() => source.emit("audit", event(1)));
+      expect(screen.getByTestId("seqs").textContent).toBe("");
+      await act(async () => vi.advanceTimersByTime(BACKLOG_FLUSH_MS));
+      expect(screen.getByTestId("seqs").textContent).toBe("1");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("UI-6: shows Live when connected and Reconnecting… while EventSource retries", async () => {

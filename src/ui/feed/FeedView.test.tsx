@@ -72,6 +72,8 @@ describe("<FeedView>", () => {
       FakeSource.last.emit("audit", decision("a1", "v", "1", "allow", []));
       FakeSource.last.emit("audit", decision("a2", "v", "2", "deny", ["VENDOR_NOT_ALLOWED"]));
       FakeSource.last.emit("audit", decision("a1", "v", "3", "hold", ["NEEDS_APPROVAL"]));
+      // The server sends `ready` once the backlog is out.
+      FakeSource.last.emit("ready", { seq: 3 });
     });
     await flush();
     expect(bodyRows()).toHaveLength(3);

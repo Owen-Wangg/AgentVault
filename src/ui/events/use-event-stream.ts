@@ -15,6 +15,9 @@ import type { AuditEventMessage } from "./summarize";
  * - the connection status for the "Reconnecting…" badge.
  */
 
+/** How long backlog events wait for the server's `ready` before they render anyway. */
+export const BACKLOG_FLUSH_MS = 100;
+
 export type StreamStatus = "connecting" | "live" | "reconnecting" | "closed";
 
 export interface EventStreamState {
@@ -29,6 +32,8 @@ export interface EventStreamOptions {
   createEventSource?: (url: string) => EventSource;
   /** Called when the workspace is a retired sandbox. Defaults to reloading the page. */
   onRetired?: () => void;
+  /** For tests. Defaults to BACKLOG_FLUSH_MS. */
+  backlogFlushMs?: number;
 }
 
 /** Add events in seq order, keeping each seq once. Events arrive in order; this also survives a replay. */
@@ -42,17 +47,26 @@ export function mergeEvents(current: readonly AuditEventMessage[], incoming: rea
 
 export function useEventStream(workspaceId: string | null, options: EventStreamOptions = {}): EventStreamState {
   const [state, setState] = useState<EventStreamState>({ events: [], status: "connecting", ready: false });
-  const { createEventSource, onRetired } = options;
+  const { createEventSource, onRetired, backlogFlushMs = BACKLOG_FLUSH_MS } = options;
 
   useEffect(() => {
     if (!workspaceId) return;
     const url = `/api/v1/events?workspace_id=${encodeURIComponent(workspaceId)}`;
     const source = createEventSource ? createEventSource(url) : new EventSource(url);
-    // Batch events that arrive together into one render.
+    // Batch events into as few renders as possible. Each SSE message is its own task, so the
+    // backlog (hundreds of events on a busy sandbox) would otherwise render once per event,
+    // and the overview recomputes its summary on each render. Until the server sends `ready`,
+    // events wait for `ready` (or BACKLOG_FLUSH_MS, if a server never sends it); after that,
+    // each live event renders at once.
     let pending: AuditEventMessage[] = [];
     let scheduled = false;
+    let backlogDone = false;
+    let backlogTimer: ReturnType<typeof setTimeout> | undefined;
     const flush = () => {
       scheduled = false;
+      if (backlogTimer !== undefined) clearTimeout(backlogTimer);
+      backlogTimer = undefined;
+      if (pending.length === 0) return;
       const batch = pending;
       pending = [];
       setState((s) => ({ ...s, events: mergeEvents(s.events, batch) }));
@@ -65,12 +79,17 @@ export function useEventStream(workspaceId: string | null, options: EventStreamO
       } catch {
         return;
       }
-      if (!scheduled) {
+      if (!backlogDone) {
+        backlogTimer ??= setTimeout(flush, backlogFlushMs);
+      } else if (!scheduled) {
         scheduled = true;
         queueMicrotask(flush);
       }
     });
     source.addEventListener("ready", () => {
+      // The whole backlog lands in one render, together with `ready`.
+      backlogDone = true;
+      flush();
       queueMicrotask(() => setState((s) => ({ ...s, ready: true })));
     });
     source.addEventListener("workspace", (message) => {
@@ -85,8 +104,11 @@ export function useEventStream(workspaceId: string | null, options: EventStreamO
       // CLOSED means the server refused the stream (for example 401 or 429), so EventSource won't retry.
       setState((s) => ({ ...s, status: source.readyState === 2 ? "closed" : "reconnecting" }));
     });
-    return () => source.close();
-  }, [workspaceId, createEventSource, onRetired]);
+    return () => {
+      if (backlogTimer !== undefined) clearTimeout(backlogTimer);
+      source.close();
+    };
+  }, [workspaceId, createEventSource, onRetired, backlogFlushMs]);
 
   return state;
 }
