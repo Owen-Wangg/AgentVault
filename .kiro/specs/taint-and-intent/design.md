@@ -117,4 +117,5 @@ The demo vendor lives on the same deployment (`/vendor/...`), so the sandbox reg
 ## Testing strategy
 - Properties 1–5 with fast-check.
 - Unit tests for `labelOrigin` with path prefixes and lookalike hosts (`vendor.example.evil.com`).
+- Unit and integration tests per requirement: labelOrigin, the fetcher, and the fetch route's labels and redirects (TAINT-1, TAINT-3, TAINT-4), intent rules (INT-1 to INT-5), the tool route (TAINT-7, TAINT-8, TAINT-9), and advisoryRule with evaluate() and the pay and tool routes (INT-7, INT-8).
 - Integration test: fetch the poisoned page, then `stripe.refund` returns 202 with `HELD_TAINTED`.
