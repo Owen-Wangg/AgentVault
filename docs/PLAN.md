@@ -21,7 +21,7 @@ Deployment target: Vercel **Hobby**. Cron jobs run at most once per day (see `te
 | 13 | Nov 28–29 | rail-adapters tasks 3–5 (x402) | Done |
 | 14 | Nov 29–30 | rail-adapters tasks 6–8 (Stripe) | Done |
 | 15 | Nov 30 | telemetry-dashboard task 8 (Kiroween mode) | Done |
-| 16 | Dec 1 | mcp-server tasks 1–4 | |
+| 16 | Dec 1 | mcp-server tasks 1–4 | Tasks 1–3 done; task 4 needs the Kiro demo |
 | 17 | Dec 1 (optional, cut first) | demo-agents tasks 5–6; taint-and-intent task 7 | |
 | 18 | Dec 2 | telemetry-dashboard task 9 (polish, nightly reset cron) | |
 | — | Dec 3 | Submission: demo video, Kiro write-up, final deploy check | |
