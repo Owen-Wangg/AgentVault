@@ -16,12 +16,15 @@ function testDatabaseUrl(): string | undefined {
 }
 
 /**
- * `pnpm test:live` also needs the x402 and Stripe variables
- * (docs/SETUP.md, sections 6 and 7). They're loaded only in live mode, so
- * `pnpm test` never sees the agent wallet key or the Stripe key. Values
- * set in the shell win.
+ * `pnpm test:live` also needs the x402, Stripe, and Gemini variables
+ * (docs/SETUP.md, sections 6 to 8). They're loaded only in live mode, so
+ * `pnpm test` never sees the agent wallet key, the Stripe key, or the
+ * Gemini key. Values set in the shell win.
  */
 const LIVE_VARIABLES = [
+  // The live Gemini agent (docs/SETUP.md, section 8). Each live run uses a few of the free tier's daily requests.
+  "GEMINI_API_KEY",
+  "GEMINI_MODEL",
   "CDP_API_KEY_ID",
   "CDP_API_KEY_SECRET",
   "X402_PAY_TO",

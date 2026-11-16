@@ -21,10 +21,10 @@ export const passthroughLock: ScenarioLock = async (_db, _name, run) => ({ acqui
 /** Route deps on a test database, with the agent's requests sent to the real handlers. */
 export function scenarioRouteDeps(
   database: { db: Db; driver: "postgres" | "pglite" },
-  { clock: given, ...over }: Partial<ScenarioRouteDeps> & { clock?: FakeClock } = {},
+  { clock: given, otherPages, ...over }: Partial<ScenarioRouteDeps> & { clock?: FakeClock; otherPages?: boolean } = {},
 ) {
   const { deps: guarded, mocks, clock } = testDeps(database.db, given ? { clock: given } : {});
-  const { send, sent } = apiFetch(database.db, guarded);
+  const { send, sent } = apiFetch(database.db, guarded, otherPages ? { otherPages } : {});
   const deps: ScenarioRouteDeps = {
     openDb: () => ({ db: database.db, close: async () => {} }),
     key: () => TEST_HEAD_KEY,
@@ -34,6 +34,7 @@ export function scenarioRouteDeps(
     lock: database.driver === "postgres" ? advisoryScenarioLock : passthroughLock,
     // Every FakeClock starts in the same minute, so tests would share one rate-limit window.
     rateLimit: { limit: 1_000_000, windowMs: 60_000 },
+    liveRateLimit: { perIp: { limit: 1_000_000, windowMs: 60_000 }, total: { limit: 1_000_000, windowMs: 60_000 } },
     ...over,
   };
   return { deps, mocks, clock, sent, guarded };
@@ -47,7 +48,19 @@ export interface RunBody {
   session_id: string;
   started_seq: number;
   completed: boolean;
-  steps: { kind: string; decision?: string; reasons?: string[]; label?: string; url?: string; event_seq?: number; approval_id?: string; amount_micros?: string }[];
+  steps: {
+    kind: string;
+    tool?: string;
+    vendor?: string;
+    decision?: string;
+    reasons?: string[];
+    label?: string;
+    url?: string;
+    event_seq?: number;
+    approval_id?: string;
+    amount_micros?: string;
+    advisory_drift_score?: number;
+  }[];
   summary: { requests: number; allowed_micros: string; held_micros: string; blocked_micros: string; decisions: Record<string, number>; reasons: { code: string; count: number }[] };
 }
 
@@ -70,7 +83,7 @@ export const expectedOf = (name: ScenarioName) => SCENARIOS[name].expected.map((
  * route for the docs URL, so the injection agent sees the poisoned page.
  * `sent` records every request, for checks on what the agent sent.
  */
-export function apiFetch(db: Db, guarded: Pick<GuardedDeps, "key" | "now" | "railFor">) {
+export function apiFetch(db: Db, guarded: Pick<GuardedDeps, "key" | "now" | "railFor">, options: { otherPages?: boolean } = {}) {
   const open = () => ({ db, close: async () => {} });
   const pay: PayDeps = { openDb: open, key: () => guarded.key, now: guarded.now, railFor: guarded.railFor };
   const fetchDeps: FetchDeps = {
@@ -78,7 +91,11 @@ export function apiFetch(db: Db, guarded: Pick<GuardedDeps, "key" | "now" | "rai
     key: () => guarded.key,
     now: guarded.now,
     fetchPage: async (url) => {
-      if (url !== `${BASE_URL}/vendor/docs/integration`) throw new Error(`unexpected fetch of ${url}`);
+      if (url !== `${BASE_URL}/vendor/docs/integration`) {
+        // A live model may follow other links on the page; they answer 404 here.
+        if (options.otherPages && new URL(url).origin === BASE_URL) return { url, hops: [url], status: 404, contentType: "text/plain", body: "Not found" };
+        throw new Error(`unexpected fetch of ${url}`);
+      }
       return { url, hops: [url], status: 200, contentType: "text/html", body: await poisonedDocs().text() };
     },
   };

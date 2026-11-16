@@ -1,5 +1,8 @@
 import { sql } from "drizzle-orm";
 import { AgentClient } from "@/agents/client";
+import { type LiveRun, runGemini } from "@/agents/gemini/agent";
+import type { GeminiModel } from "@/agents/gemini/model";
+import type { LiveScenarioName } from "@/agents/gemini/scenarios";
 import { type ScriptedRun, runScripted } from "@/agents/scripted/agent";
 import { SCENARIOS, type ScenarioName } from "@/agents/scripted/scenarios";
 import { type RunSummary, summarizeRun } from "@/agents/scripted/summary";
@@ -36,6 +39,8 @@ export interface RunnerDeps {
   /** How the agent sends HTTP requests. Defaults to the global fetch. */
   agentFetch?: typeof fetch;
   lock?: ScenarioLock;
+  /** Wall-clock milliseconds for the live agent's time budget. Defaults to Date.now. */
+  clockMs?: () => number;
 }
 
 export type Locked<T> = { acquired: true; value: T } | { acquired: false };
@@ -80,7 +85,7 @@ export interface StartedRun {
 /** Step 2: the fresh agent, task, and session, and scenario_started, in one transaction. */
 export async function startRun(
   db: Db,
-  input: { workspaceId: string; scenario: ScenarioName; runId: string; actor: string },
+  input: { workspaceId: string; scenario: ScenarioName; runId: string; actor: string; agent?: RunAgent },
   options: { key: Uint8Array; now: Date },
 ): Promise<StartedRun> {
   const scenario = SCENARIOS[input.scenario];
@@ -113,6 +118,8 @@ export async function startRun(
           actor: input.actor,
           agent_id: agentId,
           agent_name: scenario.agentName,
+          // Only live runs say which agent and model ran, so scripted events are unchanged.
+          ...(input.agent?.kind === "gemini" ? { agent: "gemini", model: input.agent.model.id } : {}),
           task_id: task.id,
           session_id: session.id,
           envelope: { limits, vendorLimits, toolLimits, allowedVendors, allowedTools },
@@ -134,21 +141,31 @@ export interface FinishedRun {
   agentId: string;
   sessionId: string;
   startedSeq: number;
-  run: ScriptedRun;
+  run: ScriptedRun | LiveRun;
   summary: RunSummary;
 }
 
 export type RunOutcome = { kind: "busy" } | ({ kind: "done" } & FinishedRun);
 
+/**
+ * Which agent runs the steps. `gemini` is the optional live agent
+ * (demo-agents AGT-11), for the scenarios it offers; the caller checks that.
+ */
+export type RunAgent = { kind: "scripted" } | { kind: "gemini"; model: GeminiModel; scenario: LiveScenarioName };
+
 export async function runScenario(
-  input: { workspaceId: string; scenario: ScenarioName; runId: string; actor: string },
+  input: { workspaceId: string; scenario: ScenarioName; runId: string; actor: string; agent?: RunAgent },
   deps: RunnerDeps,
 ): Promise<RunOutcome> {
   const lock = deps.lock ?? advisoryScenarioLock;
+  const agent = input.agent ?? { kind: "scripted" };
   const locked = await lock(deps.db, input.scenario, async (): Promise<FinishedRun> => {
     const started = await startRun(deps.db, input, { key: deps.key, now: deps.now() });
     const client = new AgentClient(deps.baseUrl, started.apiKey, started.sessionId, deps.agentFetch ? { fetch: deps.agentFetch } : {});
-    const run = await runScripted(SCENARIOS[input.scenario], client, { vendorOrigin: deps.baseUrl });
+    const run =
+      agent.kind === "gemini"
+        ? await runGemini(agent.scenario, client, agent.model, { vendorOrigin: deps.baseUrl, now: deps.clockMs ?? Date.now })
+        : await runScripted(SCENARIOS[input.scenario], client, { vendorOrigin: deps.baseUrl });
     return { agentId: started.agentId, sessionId: started.sessionId, startedSeq: started.eventSeq, run, summary: summarizeRun(run) };
   });
   return locked.acquired ? { kind: "done", ...locked.value } : { kind: "busy" };
