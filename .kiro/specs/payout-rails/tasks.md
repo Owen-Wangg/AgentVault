@@ -17,7 +17,7 @@ Plan (`docs/PLAN.md`): **Phase 20** = tasks 1–4. **Phase 21** = tasks 5–6. *
   - A PayPal section in `pnpm env:check`, and the recipient accounts in `pnpm connect:check` (read-only)
   - _Requirements: PO-21, PO-22_
 
-- [ ] 3. Add `payout` and `checkDestination` to the rail interface, the mock rail, and the registry
+- [x] 3. Add `payout` and `checkDestination` to the rail interface, the mock rail, and the registry
   - `RailAdapter.payout()` and `checkDestination()`; x402 returns `RAIL_REJECTED` without a call; the mock rail records payouts with deterministic `mock_po_` references
   - `ToolDef.operation`; `payout.create` becomes a credit on the stripe rail; `paypal.payout` registered; `payee.update` takes `rail`
   - Properties 3 and 6
