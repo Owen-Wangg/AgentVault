@@ -30,7 +30,11 @@ inclusion: always
 |---|---|---|
 | Stripe MPP (card SPTs) | `mppx`, `stripe` | Stripe **test mode** only (`sk_test_`) |
 | x402 | `@coinbase/cdp-sdk`, `@x402/core`, `@x402/evm`, Next.js adapter | **Base Sepolia** (`eip155:84532`), `environment: "development"` |
+| Stripe Connect payouts | `stripe` REST client (no new package): Accounts v2 recipient accounts, v1 Transfers | Stripe **test mode** only; any object with `livemode: true` is an invalid response |
+| PayPal payouts | None: REST over `fetch` (OAuth client credentials, Payouts API) | **Sandbox** only: the host is the constant `https://api-m.sandbox.paypal.com` and `PAYPAL_ENV` must be `sandbox` |
 | Mock | Internal | Always available; default for tests and the public sandbox |
+
+Why the payout rails (`.kiro/specs/payout-rails`): `payout.create` and `payee.update` send money out or change where it goes, so they're the tools a prompt injection most wants. Stripe Connect gives them a real test-mode rail on the Stripe account the project already has. PayPal adds a second, unrelated provider for `paypal.payout`, to show the same rules hold on a rail AgentVault didn't start with. PayPal's REST API is small enough that an SDK would add a dependency for no gain.
 
 `RAIL_MODE=mock|real` selects the adapter. The public sandbox always uses `mock`.
 

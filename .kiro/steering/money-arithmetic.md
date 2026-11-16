@@ -31,17 +31,20 @@ No division on money except inside `toRailUnits`.
 
 ## Converting at the rail boundary
 ```ts
-toRailUnits(amount: Micros, rail: "stripe" | "x402" | "mock", direction: "debit" | "credit"): bigint
+toRailUnits(amount: Micros, rail: "stripe" | "x402" | "mock" | "paypal", direction: "debit" | "credit"): bigint
 chargeableMicros(amount: Micros, rail, direction): Micros   // what the envelope counts
 ```
 - **x402 (USDC, 6 decimals) and mock:** exact, 1:1. No rounding.
 - **Stripe (cents):** `micros / 10_000n` with **directional rounding that never favors the agent**:
   - `debit` (the agent spends): round **up** (ceiling). The amount counted against the envelope is the rounded-up value, so the envelope can never be exceeded through rounding.
-  - `credit` (a refund the agent issues): round **down** (floor), so the customer never gets more than was approved. The envelope still counts the full requested amount (MON-11), so a refund can't use rounding to slip under a cap.
+  - `credit` (money the platform sends: a refund the agent issues, or a payout to a payee): round **down** (floor), so the customer or payee never gets more than was approved. The envelope still counts the full requested amount (MON-11), so a refund or payout can't use rounding to slip under a cap.
+- **PayPal (cents):** the same as Stripe, with the same directional rounding. The Payouts API takes a decimal string, which is built from integer cents only: `` `${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")}` ``. No float, no `toFixed`.
+- **Payouts are credits** on every rail (`payout.create` on Stripe, `paypal.payout` on PayPal, payout-rails PO-3). `payee.update` moves no money and has no amount to round.
 - `chargeableMicros` is never less than the requested amount.
 - `toRailUnits` is called only inside `src/rails/**`. The server uses `chargeableMicros`, with the rail the tool is registered to, even when the sandbox runs it on the mock adapter.
 - Rail minimums are enforced in the adapter, after conversion. Below the minimum, the adapter returns `BELOW_RAIL_MINIMUM`. It never silently rounds up to the minimum.
   - Stripe SPT card payments: at least 50 cents.
+  - Stripe Connect transfers and PayPal payouts: 1 cent until `pnpm connect:probe` and `pnpm paypal:probe` measure them (payout-rails task 2).
   - x402: USDC has no protocol minimum, but the CDP facilitator sets one. rail-adapters task 4 measured it on Base Sepolia: 1000 units ($0.001). It refuses 999 units with `amount_too_low`, and settles 1000 and the sandbox's `$0.0015` weather payment. `X402_MIN_UNITS` defaults to 1000, and the mock rail uses the same minimum.
 
 > Note: the original plan mentioned banker's rounding. Directional rounding replaces it, because banker's rounding can round a debit down, which favors the agent.

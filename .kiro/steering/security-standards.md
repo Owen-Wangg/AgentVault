@@ -44,6 +44,7 @@ Rules:
   - `wire_transfer`
   - `payout.create`
   - `payee.update`
+  - `paypal.payout`
   - Any tool flagged `privileged: true` in the tool registry.
 - The audit event for a taint records the source URL and a SHA-256 hash of the content, never the raw content.
 - Never execute, `eval`, or render as HTML any fetched content. Display it as escaped text.
@@ -72,6 +73,8 @@ Rules:
 ## 7. Secrets and environments
 - Secrets live only in environment variables (`.env.local` locally, Vercel settings in production). Commit only `.env.example` with placeholders.
 - **Testnet and test mode only.** Code must refuse to start if `STRIPE_SECRET_KEY` starts with `sk_live_`, or if the x402 network is not `eip155:84532`.
+- **Stripe objects must be test mode.** A connected account, transfer, or any other Stripe object returned with `livemode: true` is an invalid response (`INVALID_RAIL_RESPONSE`), never recorded as settled.
+- **PayPal is sandbox only.** Every PayPal call is refused unless `PAYPAL_ENV` is `sandbox`. The API host is the constant `https://api-m.sandbox.paypal.com`, with no setting to change it. The demo receivers in `PAYPAL_SUPPLIER_RECEIVER` and `PAYPAL_ATTACKER_RECEIVER` must be sandbox accounts (`@personal.example.com` or `@business.example.com`).
 - The agent wallet private key is a testnet-only key. Never log it or send it to the client.
 - Nothing secret goes in the client bundle. Only `NEXT_PUBLIC_*` variables reach the browser, and none of them may be secret.
 

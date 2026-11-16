@@ -17,7 +17,7 @@ AI agents now pay for APIs on their own. Stripe's Machine Payments Protocol (MPP
 
 ## Core features
 1. **Spend envelopes**: per-agent limits (per transaction, rolling per minute, hour, and day, calls per minute, an approval threshold, vendor and tool allow-lists), with optional per-vendor and per-tool limits.
-2. **Taint tracking**: content fetched from outside the allow-list marks the session as tainted. While tainted, high-privilege tools (`stripe.refund`, `wire_transfer`, `payout.create`, `payee.update`) are frozen and need human approval.
+2. **Taint tracking**: content fetched from outside the allow-list marks the session as tainted. While tainted, high-privilege tools (`stripe.refund`, `wire_transfer`, `payout.create`, `payee.update`, `paypal.payout`) are frozen and need human approval.
 3. **Intent scope**: each task declares the vendor categories, tools, and budget it may use. Anything outside that scope is denied as intent drift.
 4. **Human-in-the-loop approvals**: held requests wait in an inbox. Approving re-runs the policy check.
 5. **Tamper-evident audit log**: a hash-chained, append-only log of every decision, with a "Verify chain" button.
