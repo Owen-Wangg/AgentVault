@@ -1,0 +1,1292 @@
+{
+  "recorded_at": "2026-11-16T22:19:38.993Z",
+  "exchanges": [
+    {
+      "step": "pay $1.00",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/payouts",
+        "paypal_request_id": "agentvault-payout-v1:probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+        "body": {
+          "sender_batch_header": {
+            "sender_batch_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+            "email_subject": "AgentVault sandbox payout probe"
+          },
+          "items": [
+            {
+              "recipient_type": "EMAIL",
+              "receiver": "supplier@personal.example.com",
+              "amount": {
+                "value": "1.00",
+                "currency": "USD"
+              },
+              "sender_item_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+              "note": "AgentVault payout-rails probe"
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": 201,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "QSP4748SPHA4Y",
+            "batch_status": "PENDING",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+              "email_subject": "AgentVault sandbox payout probe"
+            }
+          },
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/QSP4748SPHA4Y",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "same request id, same batch id",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/payouts",
+        "paypal_request_id": "agentvault-payout-v1:probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+        "body": {
+          "sender_batch_header": {
+            "sender_batch_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+            "email_subject": "AgentVault sandbox payout probe"
+          },
+          "items": [
+            {
+              "recipient_type": "EMAIL",
+              "receiver": "supplier@personal.example.com",
+              "amount": {
+                "value": "1.00",
+                "currency": "USD"
+              },
+              "sender_item_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+              "note": "AgentVault payout-rails probe"
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": 400,
+        "json": {
+          "name": "USER_BUSINESS_ERROR",
+          "message": "User business error.",
+          "debug_id": "f3840785452c3",
+          "information_link": "https://developer.paypal.com/docs/api/payments.payouts-batch/#errors",
+          "details": [
+            {
+              "field": "SENDER_BATCH_ID",
+              "location": "body",
+              "issue": "Batch with given sender_batch_id already exists",
+              "link": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts/QSP4748SPHA4Y",
+                  "rel": "self",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": []
+        }
+      }
+    },
+    {
+      "step": "new request id, same batch id",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/payouts",
+        "paypal_request_id": "agentvault-payout-v1:probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56:again",
+        "body": {
+          "sender_batch_header": {
+            "sender_batch_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+            "email_subject": "AgentVault sandbox payout probe"
+          },
+          "items": [
+            {
+              "recipient_type": "EMAIL",
+              "receiver": "supplier@personal.example.com",
+              "amount": {
+                "value": "1.00",
+                "currency": "USD"
+              },
+              "sender_item_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+              "note": "AgentVault payout-rails probe"
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": 400,
+        "json": {
+          "name": "USER_BUSINESS_ERROR",
+          "message": "User business error.",
+          "debug_id": "f38407864e28e",
+          "information_link": "https://developer.paypal.com/docs/api/payments.payouts-batch/#errors",
+          "details": [
+            {
+              "field": "SENDER_BATCH_ID",
+              "location": "body",
+              "issue": "Batch with given sender_batch_id already exists",
+              "link": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts/QSP4748SPHA4Y",
+                  "rel": "self",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": []
+        }
+      }
+    },
+    {
+      "step": "read $1.00 batch",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/QSP4748SPHA4Y",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "QSP4748SPHA4Y",
+            "batch_status": "PENDING",
+            "time_created": "2026-11-16T22:18:36Z",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+              "email_subject": "AgentVault sandbox payout probe"
+            },
+            "funding_source": "BALANCE",
+            "amount": {
+              "currency": "USD",
+              "value": "1.00"
+            }
+          },
+          "items": [
+            {
+              "payout_item_id": "2H9DNKKF97WFQ",
+              "transaction_status": "PENDING",
+              "payout_batch_id": "QSP4748SPHA4Y",
+              "payout_item": {
+                "recipient_type": "EMAIL",
+                "amount": {
+                  "currency": "USD",
+                  "value": "1.00"
+                },
+                "note": "AgentVault payout-rails probe",
+                "receiver": "supplier@personal.example.com",
+                "sender_item_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+                "recipient_wallet": "PAYPAL",
+                "purpose": "GOODS"
+              },
+              "links": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/2H9DNKKF97WFQ",
+                  "rel": "item",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/QSP4748SPHA4Y?page_size=1000&page=1",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "read $1.00 batch",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/QSP4748SPHA4Y",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "QSP4748SPHA4Y",
+            "batch_status": "PENDING",
+            "time_created": "2026-11-16T22:18:36Z",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+              "email_subject": "AgentVault sandbox payout probe"
+            },
+            "funding_source": "BALANCE",
+            "amount": {
+              "currency": "USD",
+              "value": "1.00"
+            },
+            "fees": {
+              "currency": "USD",
+              "value": "0.25"
+            }
+          },
+          "items": [
+            {
+              "payout_item_id": "2H9DNKKF97WFQ",
+              "transaction_status": "PENDING",
+              "payout_item_fee": {
+                "currency": "USD",
+                "value": "0.25"
+              },
+              "payout_batch_id": "QSP4748SPHA4Y",
+              "payout_item": {
+                "recipient_type": "EMAIL",
+                "amount": {
+                  "currency": "USD",
+                  "value": "1.00"
+                },
+                "note": "AgentVault payout-rails probe",
+                "receiver": "supplier@personal.example.com",
+                "sender_item_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+                "recipient_wallet": "PAYPAL",
+                "purpose": "GOODS"
+              },
+              "links": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/2H9DNKKF97WFQ",
+                  "rel": "item",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/QSP4748SPHA4Y?page_size=1000&page=1",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "read $1.00 batch",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/QSP4748SPHA4Y",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "QSP4748SPHA4Y",
+            "batch_status": "PROCESSING",
+            "time_created": "2026-11-16T22:18:36Z",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+              "email_subject": "AgentVault sandbox payout probe"
+            },
+            "funding_source": "BALANCE",
+            "amount": {
+              "currency": "USD",
+              "value": "1.00"
+            },
+            "fees": {
+              "currency": "USD",
+              "value": "0.25"
+            }
+          },
+          "items": [
+            {
+              "payout_item_id": "2H9DNKKF97WFQ",
+              "transaction_status": "PENDING",
+              "payout_item_fee": {
+                "currency": "USD",
+                "value": "0.25"
+              },
+              "payout_batch_id": "QSP4748SPHA4Y",
+              "payout_item": {
+                "recipient_type": "EMAIL",
+                "amount": {
+                  "currency": "USD",
+                  "value": "1.00"
+                },
+                "note": "AgentVault payout-rails probe",
+                "receiver": "supplier@personal.example.com",
+                "sender_item_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+                "recipient_wallet": "PAYPAL",
+                "purpose": "GOODS"
+              },
+              "links": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/2H9DNKKF97WFQ",
+                  "rel": "item",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/QSP4748SPHA4Y?page_size=1000&page=1",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "read $1.00 batch",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/QSP4748SPHA4Y",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "QSP4748SPHA4Y",
+            "batch_status": "PROCESSING",
+            "time_created": "2026-11-16T22:18:36Z",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+              "email_subject": "AgentVault sandbox payout probe"
+            },
+            "funding_source": "BALANCE",
+            "amount": {
+              "currency": "USD",
+              "value": "1.00"
+            },
+            "fees": {
+              "currency": "USD",
+              "value": "0.25"
+            }
+          },
+          "items": [
+            {
+              "payout_item_id": "2H9DNKKF97WFQ",
+              "transaction_id": "3BU02162VH931871B",
+              "activity_id": "86636066B0872212N",
+              "transaction_status": "SUCCESS",
+              "payout_item_fee": {
+                "currency": "USD",
+                "value": "0.25"
+              },
+              "payout_batch_id": "QSP4748SPHA4Y",
+              "payout_item": {
+                "recipient_type": "EMAIL",
+                "amount": {
+                  "currency": "USD",
+                  "value": "1.00"
+                },
+                "note": "AgentVault payout-rails probe",
+                "receiver": "supplier@personal.example.com",
+                "sender_item_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+                "recipient_wallet": "PAYPAL",
+                "purpose": "GOODS"
+              },
+              "time_processed": "2026-11-16T22:18:52Z",
+              "links": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/2H9DNKKF97WFQ",
+                  "rel": "item",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/QSP4748SPHA4Y?page_size=1000&page=1",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "read $1.00 batch",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/QSP4748SPHA4Y",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "QSP4748SPHA4Y",
+            "batch_status": "SUCCESS",
+            "time_created": "2026-11-16T22:18:36Z",
+            "time_completed": "2026-11-16T22:18:59Z",
+            "time_closed": "2026-11-16T22:18:59Z",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+              "email_subject": "AgentVault sandbox payout probe"
+            },
+            "funding_source": "BALANCE",
+            "amount": {
+              "currency": "USD",
+              "value": "1.00"
+            },
+            "fees": {
+              "currency": "USD",
+              "value": "0.25"
+            }
+          },
+          "items": [
+            {
+              "payout_item_id": "2H9DNKKF97WFQ",
+              "transaction_id": "3BU02162VH931871B",
+              "activity_id": "86636066B0872212N",
+              "transaction_status": "SUCCESS",
+              "payout_item_fee": {
+                "currency": "USD",
+                "value": "0.25"
+              },
+              "payout_batch_id": "QSP4748SPHA4Y",
+              "payout_item": {
+                "recipient_type": "EMAIL",
+                "amount": {
+                  "currency": "USD",
+                  "value": "1.00"
+                },
+                "note": "AgentVault payout-rails probe",
+                "receiver": "supplier@personal.example.com",
+                "sender_item_id": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+                "recipient_wallet": "PAYPAL",
+                "purpose": "GOODS"
+              },
+              "time_processed": "2026-11-16T22:18:52Z",
+              "links": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/2H9DNKKF97WFQ",
+                  "rel": "item",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/QSP4748SPHA4Y?page_size=1000&page=1",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "pay $0.01",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/payouts",
+        "paypal_request_id": "agentvault-payout-v1:probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+        "body": {
+          "sender_batch_header": {
+            "sender_batch_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+            "email_subject": "AgentVault sandbox payout probe"
+          },
+          "items": [
+            {
+              "recipient_type": "EMAIL",
+              "receiver": "supplier@personal.example.com",
+              "amount": {
+                "value": "0.01",
+                "currency": "USD"
+              },
+              "sender_item_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+              "note": "AgentVault payout-rails probe"
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": 201,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "7NTGZG9XW2URC",
+            "batch_status": "PENDING",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+              "email_subject": "AgentVault sandbox payout probe"
+            }
+          },
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/7NTGZG9XW2URC",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "read $0.01 batch",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/7NTGZG9XW2URC",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "7NTGZG9XW2URC",
+            "batch_status": "PENDING",
+            "time_created": "2026-11-16T22:18:59Z",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+              "email_subject": "AgentVault sandbox payout probe"
+            },
+            "funding_source": "BALANCE",
+            "amount": {
+              "currency": "USD",
+              "value": "0.01"
+            }
+          },
+          "items": [
+            {
+              "payout_item_id": "6FAKU6AARPWPS",
+              "transaction_status": "PENDING",
+              "payout_batch_id": "7NTGZG9XW2URC",
+              "payout_item": {
+                "recipient_type": "EMAIL",
+                "amount": {
+                  "currency": "USD",
+                  "value": "0.01"
+                },
+                "note": "AgentVault payout-rails probe",
+                "receiver": "supplier@personal.example.com",
+                "sender_item_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+                "recipient_wallet": "PAYPAL",
+                "purpose": "GOODS"
+              },
+              "links": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/6FAKU6AARPWPS",
+                  "rel": "item",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/7NTGZG9XW2URC?page_size=1000&page=1",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "read $0.01 batch",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/7NTGZG9XW2URC",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "7NTGZG9XW2URC",
+            "batch_status": "PENDING",
+            "time_created": "2026-11-16T22:18:59Z",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+              "email_subject": "AgentVault sandbox payout probe"
+            },
+            "funding_source": "BALANCE",
+            "amount": {
+              "currency": "USD",
+              "value": "0.01"
+            }
+          },
+          "items": [
+            {
+              "payout_item_id": "6FAKU6AARPWPS",
+              "transaction_status": "PENDING",
+              "payout_batch_id": "7NTGZG9XW2URC",
+              "payout_item": {
+                "recipient_type": "EMAIL",
+                "amount": {
+                  "currency": "USD",
+                  "value": "0.01"
+                },
+                "note": "AgentVault payout-rails probe",
+                "receiver": "supplier@personal.example.com",
+                "sender_item_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+                "recipient_wallet": "PAYPAL",
+                "purpose": "GOODS"
+              },
+              "links": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/6FAKU6AARPWPS",
+                  "rel": "item",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/7NTGZG9XW2URC?page_size=1000&page=1",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "read $0.01 batch",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/7NTGZG9XW2URC",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "7NTGZG9XW2URC",
+            "batch_status": "PROCESSING",
+            "time_created": "2026-11-16T22:18:59Z",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+              "email_subject": "AgentVault sandbox payout probe"
+            },
+            "funding_source": "BALANCE",
+            "amount": {
+              "currency": "USD",
+              "value": "0.01"
+            },
+            "fees": {
+              "currency": "USD",
+              "value": "0.25"
+            }
+          },
+          "items": [
+            {
+              "payout_item_id": "6FAKU6AARPWPS",
+              "transaction_status": "PENDING",
+              "payout_item_fee": {
+                "currency": "USD",
+                "value": "0.25"
+              },
+              "payout_batch_id": "7NTGZG9XW2URC",
+              "payout_item": {
+                "recipient_type": "EMAIL",
+                "amount": {
+                  "currency": "USD",
+                  "value": "0.01"
+                },
+                "note": "AgentVault payout-rails probe",
+                "receiver": "supplier@personal.example.com",
+                "sender_item_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+                "recipient_wallet": "PAYPAL",
+                "purpose": "GOODS"
+              },
+              "links": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/6FAKU6AARPWPS",
+                  "rel": "item",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/7NTGZG9XW2URC?page_size=1000&page=1",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "read $0.01 batch",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/7NTGZG9XW2URC",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "7NTGZG9XW2URC",
+            "batch_status": "PROCESSING",
+            "time_created": "2026-11-16T22:18:59Z",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+              "email_subject": "AgentVault sandbox payout probe"
+            },
+            "funding_source": "BALANCE",
+            "amount": {
+              "currency": "USD",
+              "value": "0.01"
+            },
+            "fees": {
+              "currency": "USD",
+              "value": "0.25"
+            }
+          },
+          "items": [
+            {
+              "payout_item_id": "6FAKU6AARPWPS",
+              "transaction_id": "9FV1006910438544K",
+              "activity_id": "0SN72357WY725213V",
+              "transaction_status": "SUCCESS",
+              "payout_item_fee": {
+                "currency": "USD",
+                "value": "0.25"
+              },
+              "payout_batch_id": "7NTGZG9XW2URC",
+              "payout_item": {
+                "recipient_type": "EMAIL",
+                "amount": {
+                  "currency": "USD",
+                  "value": "0.01"
+                },
+                "note": "AgentVault payout-rails probe",
+                "receiver": "supplier@personal.example.com",
+                "sender_item_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+                "recipient_wallet": "PAYPAL",
+                "purpose": "GOODS"
+              },
+              "time_processed": "2026-11-16T22:19:15Z",
+              "links": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/6FAKU6AARPWPS",
+                  "rel": "item",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/7NTGZG9XW2URC?page_size=1000&page=1",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "read $0.01 batch",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/7NTGZG9XW2URC",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "7NTGZG9XW2URC",
+            "batch_status": "PROCESSING",
+            "time_created": "2026-11-16T22:18:59Z",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+              "email_subject": "AgentVault sandbox payout probe"
+            },
+            "funding_source": "BALANCE",
+            "amount": {
+              "currency": "USD",
+              "value": "0.01"
+            },
+            "fees": {
+              "currency": "USD",
+              "value": "0.25"
+            }
+          },
+          "items": [
+            {
+              "payout_item_id": "6FAKU6AARPWPS",
+              "transaction_id": "9FV1006910438544K",
+              "activity_id": "0SN72357WY725213V",
+              "transaction_status": "SUCCESS",
+              "payout_item_fee": {
+                "currency": "USD",
+                "value": "0.25"
+              },
+              "payout_batch_id": "7NTGZG9XW2URC",
+              "payout_item": {
+                "recipient_type": "EMAIL",
+                "amount": {
+                  "currency": "USD",
+                  "value": "0.01"
+                },
+                "note": "AgentVault payout-rails probe",
+                "receiver": "supplier@personal.example.com",
+                "sender_item_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+                "recipient_wallet": "PAYPAL",
+                "purpose": "GOODS"
+              },
+              "time_processed": "2026-11-16T22:19:15Z",
+              "links": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/6FAKU6AARPWPS",
+                  "rel": "item",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/7NTGZG9XW2URC?page_size=1000&page=1",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "read $0.01 batch",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/7NTGZG9XW2URC",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "7NTGZG9XW2URC",
+            "batch_status": "SUCCESS",
+            "time_created": "2026-11-16T22:18:59Z",
+            "time_completed": "2026-11-16T22:19:22Z",
+            "time_closed": "2026-11-16T22:19:22Z",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+              "email_subject": "AgentVault sandbox payout probe"
+            },
+            "funding_source": "BALANCE",
+            "amount": {
+              "currency": "USD",
+              "value": "0.01"
+            },
+            "fees": {
+              "currency": "USD",
+              "value": "0.25"
+            }
+          },
+          "items": [
+            {
+              "payout_item_id": "6FAKU6AARPWPS",
+              "transaction_id": "9FV1006910438544K",
+              "activity_id": "0SN72357WY725213V",
+              "transaction_status": "SUCCESS",
+              "payout_item_fee": {
+                "currency": "USD",
+                "value": "0.25"
+              },
+              "payout_batch_id": "7NTGZG9XW2URC",
+              "payout_item": {
+                "recipient_type": "EMAIL",
+                "amount": {
+                  "currency": "USD",
+                  "value": "0.01"
+                },
+                "note": "AgentVault payout-rails probe",
+                "receiver": "supplier@personal.example.com",
+                "sender_item_id": "probe-d7a1d30a-0328-47a3-830f-6cb94234df28",
+                "recipient_wallet": "PAYPAL",
+                "purpose": "GOODS"
+              },
+              "time_processed": "2026-11-16T22:19:15Z",
+              "links": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/6FAKU6AARPWPS",
+                  "rel": "item",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/7NTGZG9XW2URC?page_size=1000&page=1",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "pay $0.00",
+      "request": {
+        "method": "POST",
+        "path": "/v1/payments/payouts",
+        "paypal_request_id": "agentvault-payout-v1:probe-98217de8-ce84-440d-89ab-e4b77c35b2cf",
+        "body": {
+          "sender_batch_header": {
+            "sender_batch_id": "probe-98217de8-ce84-440d-89ab-e4b77c35b2cf",
+            "email_subject": "AgentVault sandbox payout probe"
+          },
+          "items": [
+            {
+              "recipient_type": "EMAIL",
+              "receiver": "supplier@personal.example.com",
+              "amount": {
+                "value": "0.00",
+                "currency": "USD"
+              },
+              "sender_item_id": "probe-98217de8-ce84-440d-89ab-e4b77c35b2cf",
+              "note": "AgentVault payout-rails probe"
+            }
+          ]
+        }
+      },
+      "response": {
+        "status": 201,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "XWPQDRQ26VJWU",
+            "batch_status": "PENDING",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-98217de8-ce84-440d-89ab-e4b77c35b2cf",
+              "email_subject": "AgentVault sandbox payout probe"
+            }
+          },
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/XWPQDRQ26VJWU",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "read $0.00 batch",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/XWPQDRQ26VJWU",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "XWPQDRQ26VJWU",
+            "batch_status": "PENDING",
+            "time_created": "2026-11-16T22:19:27Z",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-98217de8-ce84-440d-89ab-e4b77c35b2cf",
+              "email_subject": "AgentVault sandbox payout probe"
+            },
+            "funding_source": "BALANCE",
+            "amount": {
+              "currency": "USD",
+              "value": "0.00"
+            }
+          },
+          "items": [
+            {
+              "payout_item_id": "J6RRZHC75CBA6",
+              "transaction_status": "FAILED",
+              "payout_item_fee": {
+                "currency": "USD",
+                "value": "0.00"
+              },
+              "payout_batch_id": "XWPQDRQ26VJWU",
+              "payout_item": {
+                "recipient_type": "EMAIL",
+                "amount": {
+                  "currency": "USD",
+                  "value": "0.00"
+                },
+                "note": "AgentVault payout-rails probe",
+                "receiver": "supplier@personal.example.com",
+                "sender_item_id": "probe-98217de8-ce84-440d-89ab-e4b77c35b2cf",
+                "recipient_wallet": "PAYPAL",
+                "purpose": "GOODS"
+              },
+              "time_processed": "2026-11-16T22:19:27Z",
+              "errors": {
+                "name": "ZERO_AMOUNT",
+                "message": "The Payout can't be done without any amount. You must enter a valid amount that's greater than zero.",
+                "information_link": "https://developer.paypal.com/docs/api/payments.payouts-batch/#errors",
+                "details": [],
+                "links": []
+              },
+              "links": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/J6RRZHC75CBA6",
+                  "rel": "item",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/XWPQDRQ26VJWU?page_size=1000&page=1",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "read $0.00 batch",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/XWPQDRQ26VJWU",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "XWPQDRQ26VJWU",
+            "batch_status": "PENDING",
+            "time_created": "2026-11-16T22:19:27Z",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-98217de8-ce84-440d-89ab-e4b77c35b2cf",
+              "email_subject": "AgentVault sandbox payout probe"
+            },
+            "funding_source": "BALANCE",
+            "amount": {
+              "currency": "USD",
+              "value": "0.00"
+            }
+          },
+          "items": [
+            {
+              "payout_item_id": "J6RRZHC75CBA6",
+              "transaction_status": "FAILED",
+              "payout_item_fee": {
+                "currency": "USD",
+                "value": "0.00"
+              },
+              "payout_batch_id": "XWPQDRQ26VJWU",
+              "payout_item": {
+                "recipient_type": "EMAIL",
+                "amount": {
+                  "currency": "USD",
+                  "value": "0.00"
+                },
+                "note": "AgentVault payout-rails probe",
+                "receiver": "supplier@personal.example.com",
+                "sender_item_id": "probe-98217de8-ce84-440d-89ab-e4b77c35b2cf",
+                "recipient_wallet": "PAYPAL",
+                "purpose": "GOODS"
+              },
+              "time_processed": "2026-11-16T22:19:27Z",
+              "errors": {
+                "name": "ZERO_AMOUNT",
+                "message": "The Payout can't be done without any amount. You must enter a valid amount that's greater than zero.",
+                "information_link": "https://developer.paypal.com/docs/api/payments.payouts-batch/#errors",
+                "details": [],
+                "links": []
+              },
+              "links": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/J6RRZHC75CBA6",
+                  "rel": "item",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/XWPQDRQ26VJWU?page_size=1000&page=1",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "read $0.00 batch",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/XWPQDRQ26VJWU",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 200,
+        "json": {
+          "batch_header": {
+            "payout_batch_id": "XWPQDRQ26VJWU",
+            "batch_status": "DENIED",
+            "time_created": "2026-11-16T22:19:27Z",
+            "sender_batch_header": {
+              "sender_batch_id": "probe-98217de8-ce84-440d-89ab-e4b77c35b2cf",
+              "email_subject": "AgentVault sandbox payout probe"
+            },
+            "funding_source": "BALANCE",
+            "amount": {
+              "currency": "USD",
+              "value": "0.00"
+            },
+            "fees": {
+              "currency": "USD",
+              "value": "0.00"
+            }
+          },
+          "items": [
+            {
+              "payout_item_id": "J6RRZHC75CBA6",
+              "transaction_status": "FAILED",
+              "payout_item_fee": {
+                "currency": "USD",
+                "value": "0.00"
+              },
+              "payout_batch_id": "XWPQDRQ26VJWU",
+              "payout_item": {
+                "recipient_type": "EMAIL",
+                "amount": {
+                  "currency": "USD",
+                  "value": "0.00"
+                },
+                "note": "AgentVault payout-rails probe",
+                "receiver": "supplier@personal.example.com",
+                "sender_item_id": "probe-98217de8-ce84-440d-89ab-e4b77c35b2cf",
+                "recipient_wallet": "PAYPAL",
+                "purpose": "GOODS"
+              },
+              "time_processed": "2026-11-16T22:19:27Z",
+              "errors": {
+                "name": "ZERO_AMOUNT",
+                "message": "The Payout can't be done without any amount. You must enter a valid amount that's greater than zero.",
+                "information_link": "https://developer.paypal.com/docs/api/payments.payouts-batch/#errors",
+                "details": [],
+                "links": []
+              },
+              "links": [
+                {
+                  "href": "https://api.sandbox.paypal.com/v1/payments/payouts-item/J6RRZHC75CBA6",
+                  "rel": "item",
+                  "method": "GET",
+                  "encType": "application/json"
+                }
+              ]
+            }
+          ],
+          "links": [
+            {
+              "href": "https://api.sandbox.paypal.com/v1/payments/payouts/XWPQDRQ26VJWU?page_size=1000&page=1",
+              "rel": "self",
+              "method": "GET",
+              "encType": "application/json"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "step": "lookup by sender_batch_id",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts?sender_batch_id=probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 404,
+        "json": null
+      }
+    },
+    {
+      "step": "lookup by sender_batch_id",
+      "request": {
+        "method": "GET",
+        "path": "/v1/payments/payouts/probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+        "paypal_request_id": null,
+        "body": null
+      },
+      "response": {
+        "status": 400,
+        "json": {
+          "name": "VALIDATION_ERROR",
+          "message": "Invalid request - see details",
+          "debug_id": "f732316b74537",
+          "details": [
+            {
+              "field": "payoutBatchId",
+              "value": "probe-07b2f628-b3de-4ea1-966f-d0a9dd054c56",
+              "location": "body",
+              "issue": "must match \"^[a-zA-Z0-9]*$\""
+            }
+          ],
+          "links": []
+        }
+      }
+    }
+  ]
+}
