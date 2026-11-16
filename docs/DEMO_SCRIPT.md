@@ -4,7 +4,7 @@ Recorded against <https://owen-agentvault.vercel.app> in the default theme until
 
 ## Before recording
 
-1. Record after the nightly reset (it runs some time in the 11:00 UTC hour), so the sandbox starts empty and the charts are clean.
+1. Record after the nightly reset (it runs some time in the 11:00 UTC hour, which is 4:00 to 5:00 AM in Vancouver), so the sandbox starts empty and the charts are clean.
 2. After the reset, run `pnpm --silent mcp:agent` and put the new key in `~/.kiro/settings/mcp.json`. The reset revokes the old key. Note the session ID it prints.
 3. In a fresh Kiro chat, confirm the `agentvault` server shows as connected.
 4. Browser at 1920 × 1080, zoom 125%, a private window so the theme is the default and no sign-in shows.
