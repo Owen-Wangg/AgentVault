@@ -22,7 +22,7 @@ AI agents now pay for APIs on their own. Stripe's Machine Payments Protocol (MPP
 4. **Human-in-the-loop approvals**: held requests wait in an inbox. Approving re-runs the policy check.
 5. **Tamper-evident audit log**: a hash-chained, append-only log of every decision, with a "Verify chain" button.
 6. **Live telemetry dashboard**: spend, blocked spend, live feed, approvals, and agents.
-7. **Real rails**: x402 on Base Sepolia and Stripe MPP in test mode, plus mock rails for tests and the sandbox.
+7. **Real rails**: x402 on Base Sepolia and Stripe MPP in test mode, plus mock rails for tests and the sandbox. Payouts (`.kiro/specs/payout-rails`, in progress): Stripe Connect transfers to recipient accounts in test mode, and PayPal sandbox payouts.
 8. **MCP server**: lets any MCP client (Kiro, Claude Desktop) route payments through AgentVault.
 
 ## Demo scenarios (the scripted agent runs these)
@@ -32,6 +32,7 @@ AI agents now pay for APIs on their own. Stripe's Machine Payments Protocol (MPP
 | Runaway loop | A retry bug sends hundreds of calls per minute | `deny` with `VELOCITY_EXCEEDED`, agent frozen |
 | Prompt injection | Agent reads a poisoned vendor docs page asking for a $480 refund | Session tainted, `stripe.refund` → `hold` with `HELD_TAINTED` |
 | Intent drift | Task is "buy weather data," agent tries to pay for GPU compute | `deny` with `DENY_INTENT_DRIFT` |
+| Payee hijack (planned, payout-rails PO-23) | Agent paying a supplier's $900 invoice reads a poisoned invoice that says to change the supplier's payout account first | `payee.update` → `hold` with `HELD_TAINTED`; the $900 `payout.create` → `hold` with `HELD_TAINTED`, `NEEDS_APPROVAL` |
 
 ## Out of scope
 - Mainnet funds or live Stripe keys. Everything runs on testnets and Stripe test mode.
