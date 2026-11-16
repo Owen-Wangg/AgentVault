@@ -2,7 +2,7 @@ import { z } from "zod";
 import { type Micros, MicrosSchema, micros } from "@/core/money";
 import { idempotencyKeyOf, invalidIdempotencyKey, json, parseBody, withAgent } from "@/server/http/agent-route";
 import { type GuardedBody, runGuardedRequest } from "@/server/payments/guarded";
-import { type PayDeps, defaultPayDeps, scheduleReconcile } from "@/server/payments/pay-handler";
+import { AdvisoryDriftScoreSchema, type PayDeps, defaultPayDeps, scheduleReconcile } from "@/server/payments/pay-handler";
 import { PAY_TOOLS, findTool } from "./registry";
 
 /**
@@ -49,6 +49,7 @@ export const ToolBodySchema = z.strictObject({
   // Checked per tool below. Not z.record: it silently drops an own "__proto__" key, and the
   // strict per-tool schemas should see and reject every key the agent sent.
   args: z.unknown(),
+  advisory_drift_score: AdvisoryDriftScoreSchema.optional(),
 });
 
 function argsSchemaFor(tool: string) {
@@ -63,7 +64,7 @@ export function handleTool(request: Request, deps: ToolDeps = defaultToolDeps())
 
     const parsed = await parseBody(request, ToolBodySchema);
     if (!parsed.ok) return parsed.response;
-    const { tool, session_id: sessionId, args } = parsed.value;
+    const { tool, session_id: sessionId, args, advisory_drift_score: score } = parsed.value;
 
     if (PAY_TOOLS.includes(tool)) {
       return json(400, { error: "INVALID_REQUEST", issues: [{ path: "tool", message: "Payments go through /api/v1/pay" }] });
@@ -79,7 +80,7 @@ export function handleTool(request: Request, deps: ToolDeps = defaultToolDeps())
       });
     }
 
-    const body: GuardedBody = { tool, sessionId, ...toolArgs.data };
+    const body: GuardedBody = { tool, sessionId, ...toolArgs.data, ...(score !== undefined ? { advisoryDriftScore: score } : {}) };
     const result = await runGuardedRequest({ agent, idempotencyKey, body }, { db, key: deps.key(), now: deps.now, railFor: deps.railFor });
     scheduleReconcile(deps, agent.id);
     return json(result.status, result.body);

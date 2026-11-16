@@ -58,6 +58,16 @@ export interface AgentClientOptions {
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 
+export interface DecideOptions {
+  /**
+   * An LLM's advisory drift score for the request, 0 to 100
+   * (taint-and-intent INT-7). It can only add a hold. A rating, not money.
+   */
+  advisoryDriftScore?: number;
+}
+
+const scoreField = (o: DecideOptions) => (o.advisoryDriftScore !== undefined ? { advisory_drift_score: o.advisoryDriftScore } : {});
+
 /** Reason details are string maps (ReasonDetail). Anything else isn't the API's shape. */
 const ReasonSchema = z.looseObject({ code: z.string().min(1), detail: z.record(z.string(), z.string()).optional() });
 
@@ -106,13 +116,17 @@ export class AgentClient {
   }
 
   /** POST /api/v1/pay. */
-  pay(vendor: string, amountMicros: Micros, idempotencyKey: string, tool = "x402.pay"): Promise<DecisionResult> {
-    return this.decide("/api/v1/pay", { vendor, tool, amount_micros: toMicrosString(amountMicros), session_id: this.sessionId }, idempotencyKey);
+  pay(vendor: string, amountMicros: Micros, idempotencyKey: string, tool = "x402.pay", options: DecideOptions = {}): Promise<DecisionResult> {
+    return this.decide(
+      "/api/v1/pay",
+      { vendor, tool, amount_micros: toMicrosString(amountMicros), session_id: this.sessionId, ...scoreField(options) },
+      idempotencyKey,
+    );
   }
 
   /** POST /api/v1/tool. `args` is sent as given; amounts in it must already be micros strings. */
-  tool(name: string, args: unknown, idempotencyKey: string): Promise<DecisionResult> {
-    return this.decide("/api/v1/tool", { tool: name, session_id: this.sessionId, args }, idempotencyKey);
+  tool(name: string, args: unknown, idempotencyKey: string, options: DecideOptions = {}): Promise<DecisionResult> {
+    return this.decide("/api/v1/tool", { tool: name, session_id: this.sessionId, args, ...scoreField(options) }, idempotencyKey);
   }
 
   private async decide(path: string, payload: unknown, idempotencyKey: string): Promise<DecisionResult> {

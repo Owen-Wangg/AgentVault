@@ -35,6 +35,13 @@ export interface GuardedBody {
    * audit event, and the approval, so an approved re-run gets them back.
    */
   args?: Readonly<Record<string, string>>;
+  /**
+   * The agent's advisory drift score, 0 to 100 (taint-and-intent INT-7).
+   * It can only add ADVISORY_DRIFT. Part of the request hash, the audit
+   * event, and the approval, so an approved re-run uses the same score
+   * and never asks the LLM again.
+   */
+  advisoryDriftScore?: number;
 }
 
 export interface GuardedRequest {
@@ -89,8 +96,15 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** sha256 of the canonical validated body, so key order and whitespace in the client's JSON don't matter. */
 export function requestHash(body: GuardedBody): string {
-  // canonicalJson omits undefined properties, so a body without args hashes as it did before args existed.
-  const canonical = canonicalJson({ vendor: body.vendor, tool: body.tool, amount_micros: body.amountMicros, session_id: body.sessionId, args: body.args });
+  // canonicalJson omits undefined properties, so a body without args or a score hashes as it did before they existed.
+  const canonical = canonicalJson({
+    vendor: body.vendor,
+    tool: body.tool,
+    amount_micros: body.amountMicros,
+    session_id: body.sessionId,
+    args: body.args,
+    advisory_drift_score: body.advisoryDriftScore,
+  });
   return createHash("sha256").update(canonical, "utf8").digest("hex");
 }
 
@@ -299,6 +313,8 @@ export async function decideGuarded(tx: Tx, req: GuardedRequest, deps: GuardedDe
       },
       tool: policyTool(tool),
       ...(req.approval ? { approvedHoldReasons: req.approval.approvedHoldReasons } : {}),
+      // INT-7 to INT-9: advisory only. evaluate() can only add ADVISORY_DRIFT for it.
+      ...(body.advisoryDriftScore !== undefined ? { advisoryDriftScore: body.advisoryDriftScore } : {}),
     };
     decision = evaluate(input);
   }
@@ -312,6 +328,7 @@ export async function decideGuarded(tx: Tx, req: GuardedRequest, deps: GuardedDe
     session_id: body.sessionId,
     idempotency_key: req.idempotencyKey,
     args: body.args,
+    advisory_drift_score: body.advisoryDriftScore,
   };
   const decisionEvent = await appendEvent(
     tx,

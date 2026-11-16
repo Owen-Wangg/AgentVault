@@ -1,5 +1,6 @@
 import { after } from "next/server";
 import { z } from "zod";
+import { ADVISORY_SCORE_MAX, ADVISORY_SCORE_MIN } from "@/core/intent";
 import { MicrosSchema, type Rail } from "@/core/money";
 import { railOptions } from "@/rails/real";
 import { railFor } from "@/rails/select";
@@ -67,11 +68,20 @@ export function defaultPayDeps(): PayDeps {
   };
 }
 
+/**
+ * Optional on pay and tool requests (taint-and-intent INT-7): an LLM's
+ * advisory drift score, an integer from 0 to 100. It can only add the
+ * ADVISORY_DRIFT hold, so an agent that sends a low score or none gains
+ * nothing. A rating, not money.
+ */
+export const AdvisoryDriftScoreSchema = z.number().int().min(ADVISORY_SCORE_MIN).max(ADVISORY_SCORE_MAX);
+
 export const PayBodySchema = z.strictObject({
   vendor: z.string().min(1).max(200),
   tool: z.enum(PAY_TOOLS as [string, ...string[]]),
   amount_micros: MicrosSchema,
   session_id: z.uuid(),
+  advisory_drift_score: AdvisoryDriftScoreSchema.optional(),
 });
 
 export function handlePay(request: Request, deps: PayDeps = defaultPayDeps()): Promise<Response> {
@@ -85,7 +95,17 @@ export function handlePay(request: Request, deps: PayDeps = defaultPayDeps()): P
     const body = parsed.value;
 
     const result = await runGuardedRequest(
-      { agent, idempotencyKey, body: { vendor: body.vendor, tool: body.tool, amountMicros: body.amount_micros, sessionId: body.session_id } },
+      {
+        agent,
+        idempotencyKey,
+        body: {
+          vendor: body.vendor,
+          tool: body.tool,
+          amountMicros: body.amount_micros,
+          sessionId: body.session_id,
+          ...(body.advisory_drift_score !== undefined ? { advisoryDriftScore: body.advisory_drift_score } : {}),
+        },
+      },
       { db, key: deps.key(), now: deps.now, railFor: deps.railFor },
     );
     scheduleReconcile(deps, agent.id);

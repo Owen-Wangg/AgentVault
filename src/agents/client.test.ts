@@ -54,6 +54,18 @@ describe("AgentClient", () => {
     });
   });
 
+  it("AGT-16: pay and tool send an advisory drift score only when one is given", async () => {
+    const allow = { status: 200, body: { decision: "allow", reasons: [], event_seq: 1 } };
+    const { send, requests } = fakeFetch(allow, allow, allow);
+    const c = client(send);
+    await c.pay("nimbus-weather", fromDecimalString("0.0015"), "k1", "x402.pay", { advisoryDriftScore: 12 });
+    await c.tool("stripe.refund", { vendor: "v", amount_micros: "1", payment_ref: "pi_1" }, "k2", { advisoryDriftScore: 0 });
+    await c.pay("nimbus-weather", fromDecimalString("0.0015"), "k3");
+    expect(await requests[0]!.json()).toMatchObject({ advisory_drift_score: 12 });
+    expect(await requests[1]!.json()).toMatchObject({ advisory_drift_score: 0 });
+    expect(await requests[2]!.json()).not.toHaveProperty("advisory_drift_score");
+  });
+
   it("AGT-4: tool sends the tool, session, and args", async () => {
     const { send, requests } = fakeFetch({ status: 403, body: { decision: "deny", reasons: [{ code: "TOOL_NOT_ALLOWED" }], event_seq: 1 } });
     await client(send).tool("stripe.refund", { vendor: "v", amount_micros: "1", payment_ref: "pi_1" }, "k");
