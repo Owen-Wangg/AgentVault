@@ -24,7 +24,7 @@ pnpm doesn't run package install scripts unless they're approved. `pnpm-workspac
 ```powershell
 Copy-Item .env.example .env.local
 ```
-`.env.local` is gitignored. Nothing in Phase 2 reads it yet; later phases explain each value. Use test-mode and testnet values only.
+`.env.local` is gitignored. The sections below explain each value; a local run needs only `DATABASE_URL`, `AUDIT_HEAD_KEY`, and `CRON_SECRET` (section 4). Check what's set with `pnpm env:check`. Use test-mode and testnet values only.
 
 ## 4. Database
 
