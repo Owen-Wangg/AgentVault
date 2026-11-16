@@ -1,32 +1,32 @@
 # Plan
 
-**Naming:** a **task** is a numbered entry in a spec's `tasks.md`, for example "audit-and-approvals task 2". A **phase** is a row in this plan; one phase can cover tasks from several specs. Dates are suggestions.
+**Naming:** a **task** is a numbered entry in a spec's `tasks.md`, for example "audit-and-approvals task 2". A **phase** is a row in this plan; one phase can cover tasks from several specs. "Planned" dates were suggestions; "Done" dates come from the commit history.
 
 Deployment target: Vercel **Hobby**. Cron jobs run at most once per day (see `tech.md`).
 
-| Phase | Dates | Work | Status |
+| Phase | Planned | Work | Done |
 |---|---|---|---|
-| 1 | Nov 13 | Planning: research, 7 specs, steering, hooks | Done |
-| 2 | Nov 14 | Project setup (checklist below) | Done |
-| 3 | Nov 15 | money-and-policy-core tasks 1–2 | Done |
-| 4 | Nov 16–17 | money-and-policy-core tasks 3–6 | Done |
-| 5 | Nov 18 | audit-and-approvals tasks 1–3 | Done |
-| 6 | Nov 19–20 | rail-adapters tasks 1–2, then audit-and-approvals tasks 4–6 | Done |
-| 7 | Nov 21–22 | taint-and-intent tasks 1–6 | Done |
-| 8 | Nov 23 | audit-and-approvals tasks 7–9 | Done |
-| 9 | Nov 24 | telemetry-dashboard task 1 | Done |
-| 10 | Nov 24–26 | telemetry-dashboard tasks 2–6 | Done |
-| 11 | Nov 27 | demo-agents tasks 1–4 | Done |
-| 12 | Nov 28 | telemetry-dashboard task 7 | Done |
-| 13 | Nov 28–29 | rail-adapters tasks 3–5 (x402) | Done |
-| 14 | Nov 29–30 | rail-adapters tasks 6–8 (Stripe) | Done |
-| 15 | Nov 30 | telemetry-dashboard task 8 (Kiroween mode) | Done |
-| 16 | Dec 1 | mcp-server tasks 1–4 | Done |
-| 17 | Dec 1 (optional, cut first) | demo-agents tasks 5–6; taint-and-intent task 7 | Done |
-| 18 | Dec 2 | telemetry-dashboard task 9 (polish, nightly reset cron) | Done |
-| — | Dec 3 | Submission: demo video, Kiro write-up, final deploy check | |
+| 1 | Nov 13 | Planning: research, 7 specs, steering, hooks | Nov 13–14 |
+| 2 | Nov 14 | Project setup (checklist below) | Nov 14 |
+| 3 | Nov 15 | money-and-policy-core tasks 1–2 | Nov 14 |
+| 4 | Nov 16–17 | money-and-policy-core tasks 3–6 | Nov 14 |
+| 5 | Nov 18 | audit-and-approvals tasks 1–3 | Nov 14 |
+| 6 | Nov 19–20 | rail-adapters tasks 1–2, then audit-and-approvals tasks 4–6 | Nov 14 |
+| 7 | Nov 21–22 | taint-and-intent tasks 1–6 | Nov 14 |
+| 8 | Nov 23 | audit-and-approvals tasks 7–9 | Nov 14 |
+| 9 | Nov 24 | telemetry-dashboard task 1 | Nov 14 |
+| 10 | Nov 24–26 | telemetry-dashboard tasks 2–6 | Nov 14 |
+| 11 | Nov 27 | demo-agents tasks 1–4 | Nov 14 |
+| 12 | Nov 28 | telemetry-dashboard task 7 | Nov 14 |
+| 13 | Nov 28–29 | rail-adapters tasks 3–5 (x402) | Nov 14–15 |
+| 14 | Nov 29–30 | rail-adapters tasks 6–8 (Stripe) | Nov 15 |
+| 15 | Nov 30 | telemetry-dashboard task 8 (Kiroween mode) | Nov 15 |
+| 16 | Dec 1 | mcp-server tasks 1–4 | Nov 15–16 |
+| 17 | Dec 1 (optional, cut first) | demo-agents tasks 5–6; taint-and-intent task 7 | Nov 16 |
+| 18 | Dec 2 | telemetry-dashboard task 9 (polish, nightly reset cron) | Nov 16 |
+| — | Dec 3 | Submission: demo video, Kiro write-up, final deploy check | In progress |
 
-Deadline: Dec 4, 2:00 PM PT.
+Deadline: Dec 4, 2:00 PM PT (22:00 UTC). British Columbia now stays on UTC−7 all year, so that is 3:00 PM in Vancouver; aim for 2:00 PM Vancouver time anyway.
 
 **Scope-cut order** (if behind schedule, cut from the top):
 1. Phase 17: the Gemini agent and advisory drift score.
