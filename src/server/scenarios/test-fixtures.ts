@@ -36,7 +36,7 @@ export function scenarioRouteDeps(
     rateLimit: { limit: 1_000_000, windowMs: 60_000 },
     ...over,
   };
-  return { deps, mocks, clock, sent };
+  return { deps, mocks, clock, sent, guarded };
 }
 
 export interface RunBody {
