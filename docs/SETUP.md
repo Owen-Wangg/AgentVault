@@ -405,6 +405,24 @@ It runs `npx mppx@latest validate http://localhost:3000`, Stripe's MPP checker. 
 
 With `pnpm dev` running, <http://localhost:3000/vendor/api/report> answers `402 Payment Required`, with the challenge in the `WWW-Authenticate` header. Without the Stripe variables it answers `503`.
 
+### Step 8: Set up Connect payouts (payout-rails)
+
+`payout.create` sends money from the platform's balance to a supplier's Stripe account with a Transfer. The supplier and the "attacker" from the Payee hijack demo are two connected accounts that can only receive money (Accounts v2 recipient accounts). Do all of this in the sandbox: check for the sandbox banner first.
+
+1. **Platform liability.** Recipient-only accounts need the platform to carry negative-balance liability. In **Settings → Connect → Platform profile**, open platform setup, choose the funds flow where the platform collects payments and pays out (separate charges and transfers), set negative balance liability to your platform, and click **Acknowledge**. Without this, account creation fails with `account_creation_losses_collector_unavailable`.
+2. **A USD balance.** A Canadian sandbox converts USD charges to CAD unless USD is a settlement currency. In **Settings → Business → Bank accounts and currencies**, add a bank account with currency **USD** and country **Canada**, using Stripe's test numbers: transit `11000`, institution `000`, account `000123456789`. Leave the CAD account as it is.
+3. **Create the accounts and add funds:**
+   ```powershell
+   pnpm connect:setup --fund 5
+   ```
+   It creates the two accounts (or finds them on later runs), prints a single-use onboarding link for each account that isn't active yet, and adds $5 of USD test funds that are available at once. The links expire after a few minutes; run `pnpm connect:setup` again for new ones.
+4. **Onboard both accounts.** Open each link and use test data: phone `000 000 0000`, SMS code `000-000`, date of birth `1901-01-01`, address line 1 `address_full_match` with a real Canadian city and postal code, ID number `000000000`, and the bank numbers from step 2. Then `pnpm connect:setup` should show `stripe_transfers active` for both.
+5. **Run the probe:**
+   ```powershell
+   pnpm connect:probe
+   ```
+   It transfers $1.00 and $0.01 of test money to the supplier, resends the $1.00 request with the same idempotency key (Stripe returns the same transfer), finds the transfer by its `transfer_group`, and shows the errors for $0.00 and for more than the balance. `--record src/rails/__fixtures__/stripe-connect` saves the exchanges for the contract tests, without the key.
+
 ### Vercel
 
 So the deployed `/vendor/api/report` can charge, add these under **Project → Settings → Environment Variables** (Production), then redeploy:
