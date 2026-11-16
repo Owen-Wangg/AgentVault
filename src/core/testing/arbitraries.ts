@@ -138,6 +138,10 @@ export const toolDefArb = (name: string): fc.Arbitrary<ToolDef> =>
   });
 
 /** Hold codes an approval re-run might carry (HITL-2). Duplicates are allowed: the schema accepts them. */
+/** An advisory drift score (INT-7): any integer from 0 to 100, biased to the ends and the default threshold. */
+export const advisoryScoreArb = (): fc.Arbitrary<number> =>
+  fc.oneof({ arbitrary: fc.constantFrom(0, 1, 69, 70, 71, 99, 100), weight: 1 }, { arbitrary: fc.integer({ min: 0, max: 100 }), weight: 2 });
+
 export const approvedHoldReasonsArb = (): fc.Arbitrary<HoldReason[]> => fc.array(fc.constantFrom(...HOLD_REASONS), { maxLength: 4 });
 
 /**

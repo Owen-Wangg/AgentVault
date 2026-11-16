@@ -1,3 +1,4 @@
+import { ADVISORY_DRIFT_THRESHOLD, advisoryRule as advisoryScoreRule } from "@/core/intent/advisory";
 import { intentRules } from "@/core/intent/rules";
 import { taintRules } from "@/core/taint/rules";
 import { type HoldReason, isDenyReason, isHoldReason } from "./reasons";
@@ -9,6 +10,8 @@ import type { Decision, EvaluateInput, ReasonDetail, Rule } from "./types";
 export const intentRule: Rule = (input) => intentRules(input, input.scope, input.request.vendorCategory);
 /** TAINT-6, TAINT-7. */
 export const taintRule: Rule = (input) => taintRules(input, input.tool);
+/** INT-7 to INT-9: the advisory score can only add ADVISORY_DRIFT. */
+export const advisoryRule: Rule = (input) => advisoryScoreRule(input.advisoryDriftScore, ADVISORY_DRIFT_THRESHOLD);
 
 /** Rules that run on every valid request, in the order their reasons are reported. */
 const RULES: readonly Rule[] = [
@@ -19,6 +22,7 @@ const RULES: readonly Rule[] = [
   allowListRule, // ENV-6, ENV-7
   intentRule, // INT-2, INT-3, INT-4, INT-6
   taintRule, // TAINT-6
+  advisoryRule, // INT-8
 ];
 
 /**

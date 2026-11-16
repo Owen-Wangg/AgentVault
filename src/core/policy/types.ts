@@ -69,6 +69,12 @@ export interface EvaluateInput {
    * dropped (HITL-3, TAINT-9).
    */
   approvedHoldReasons?: readonly HoldReason[];
+  /**
+   * An LLM's advisory drift score for this request, an integer from 0 to
+   * 100 (INT-7). It can only add ADVISORY_DRIFT (INT-8, INT-9). A rating,
+   * not money.
+   */
+  advisoryDriftScore?: number;
 }
 
 export interface ReasonDetail {
