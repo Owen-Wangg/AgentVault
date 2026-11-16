@@ -7,7 +7,7 @@ This spec covers the two defenses against a hijacked agent: **taint tracking**, 
 - **Trusted origin**: an origin on the workspace's vendor list with `trusted = true`.
 - **Untrusted content**: any fetched content whose origin is not trusted.
 - **Tainted session**: a session that has received untrusted content.
-- **High-privilege tool**: a tool that can move money out or change payees: `stripe.refund`, `wire_transfer`, `payout.create`, `payee.update`, or any registry tool flagged `privileged`.
+- **High-privilege tool**: a tool that can move money out or change payees: `stripe.refund`, `wire_transfer`, `payout.create`, `payee.update`, `paypal.payout` (added by payout-rails PO-18), or any registry tool flagged `privileged`.
 - **Task scope**: the vendor categories, tools, and budget declared for a task.
 
 ## Requirement 1: Proxied fetch with origin labels

@@ -2,7 +2,7 @@
 
 Plan (`docs/PLAN.md`): **Phase 20** = tasks 1–4. **Phase 21** = tasks 5–6. **Phase 22** = tasks 7–8.
 
-- [ ] 1. Update steering and the money core for payouts
+- [x] 1. Update steering and the money core for payouts
   - `tech.md`: Stripe Connect (Accounts v2 recipients, Transfers) and the PayPal sandbox in the rails table, with why each was added
   - `security-standards.md`: `paypal.payout` in the §3 high-privilege list; §7 refuses any PayPal environment but `sandbox` and any `livemode: true` Stripe object
   - `money-arithmetic.md`: payouts are credits; PayPal uses cents with the same directional rounding
