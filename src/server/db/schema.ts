@@ -168,6 +168,10 @@ export const vendors = pgTable(
     x402Url: text("x402_url"),
     /** The paid endpoint for mpp.pay, under `origin` (rail-adapters RAIL-23, RAIL-25). */
     mppUrl: text("mpp_url"),
+    /** Where payout.create sends money: a Stripe recipient account (payout-rails PO-4). Changed only by payee.update. */
+    stripeAccount: text("stripe_account"),
+    /** Where paypal.payout sends money: a PayPal sandbox receiver email (PO-4). Changed only by payee.update. */
+    paypalReceiver: text("paypal_receiver"),
   },
   (t) => [
     uniqueIndex("vendors_workspace_name_idx").on(t.workspaceId, t.name),
@@ -175,6 +179,12 @@ export const vendors = pgTable(
     // can't register "https://a.example.evil.test/pay".
     check("vendors_x402_url_origin_check", sql`${t.x402Url} IS NULL OR left(${t.x402Url}, length(${t.origin}) + 1) = ${t.origin} || '/'`),
     check("vendors_mpp_url_origin_check", sql`${t.mppUrl} IS NULL OR left(${t.mppUrl}, length(${t.origin}) + 1) = ${t.origin} || '/'`),
+    // payout-rails design, "Vendor registry": the same formats src/rails/destination.ts checks.
+    check("vendors_stripe_account_check", sql`${t.stripeAccount} IS NULL OR ${t.stripeAccount} ~ '^acct_[A-Za-z0-9]{1,64}$'`),
+    check(
+      "vendors_paypal_receiver_check",
+      sql`${t.paypalReceiver} IS NULL OR (length(${t.paypalReceiver}) <= 254 AND ${t.paypalReceiver} ~ '^[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$')`,
+    ),
   ],
 );
 

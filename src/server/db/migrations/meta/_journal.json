@@ -29,6 +29,13 @@
       "when": 1794859105691,
       "tag": "0003_vendor_payment_urls",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794873018965,
+      "tag": "0004_vendor_payout_destinations",
+      "breakpoints": true
     }
   ]
 }

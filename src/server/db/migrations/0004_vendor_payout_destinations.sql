@@ -1,0 +1,4 @@
+ALTER TABLE "vendors" ADD COLUMN "stripe_account" text;--> statement-breakpoint
+ALTER TABLE "vendors" ADD COLUMN "paypal_receiver" text;--> statement-breakpoint
+ALTER TABLE "vendors" ADD CONSTRAINT "vendors_stripe_account_check" CHECK ("vendors"."stripe_account" IS NULL OR "vendors"."stripe_account" ~ '^acct_[A-Za-z0-9]{1,64}$');--> statement-breakpoint
+ALTER TABLE "vendors" ADD CONSTRAINT "vendors_paypal_receiver_check" CHECK ("vendors"."paypal_receiver" IS NULL OR (length("vendors"."paypal_receiver") <= 254 AND "vendors"."paypal_receiver" ~ '^[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$'));
