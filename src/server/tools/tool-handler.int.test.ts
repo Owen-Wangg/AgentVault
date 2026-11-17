@@ -125,15 +125,17 @@ describe("TAINT-7: privileged tools in an untainted session", () => {
     ]);
   });
 
-  it("TAINT-7: payee.update moves no money: no reservation and no rail call", async () => {
+  it("TAINT-7, PO-11: payee.update moves no money: no reservation and no payment, only a destination check", async () => {
     const scene = await billingScene();
     const { tool, mocks } = toolDeps();
     const r = await read(await handleTool(request(scene, { tool: "payee.update", args: { vendor: "nimbus-weather", payee_ref: "acct_9X" } }), tool));
-    expect(r).toMatchObject({ status: 200, body: { decision: "allow", rail_status: "settled" } });
+    expect(r).toMatchObject({ status: 200, body: { decision: "allow", rail_status: "settled", rail_ref: "acct_9X" } });
     expect(await reservationsOf(scene.agent.id)).toEqual([]);
     expect(mocks.mock.calls + mocks.stripe.calls).toBe(0);
+    expect(mocks.stripe.recorded()).toEqual([]);
     const events = await eventsOf(db(), scene.workspaceId);
-    expect(events[1]?.payload).toMatchObject({ status: "settled", rail: null });
+    expect(events.map((e) => e.type)).toEqual(["decision", "rail_result", "payee_updated"]);
+    expect(events[1]?.payload).toMatchObject({ status: "settled", rail: "stripe" });
     // PO-10: the rail defaults to stripe and is kept with the request, so an approval shows it.
     expect(events[0]?.payload).toMatchObject({ request: { args: { payee_ref: "acct_9X", rail: "stripe" } } });
   });

@@ -3,7 +3,8 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { canonicalJson } from "@/core/audit";
 import { type Micros, type Rail, chargeableMicros, micros } from "@/core/money";
 import { type Decision, type EvaluateInput, type HoldReason, type ReasonDetail, type Window, evaluate } from "@/core/policy";
-import type { RailAdapter, RailResult } from "@/rails/types";
+import { type PayoutRail, isDestinationFor, isPayoutRail } from "@/rails/destination";
+import type { DestinationCheck, RailAdapter, RailResult } from "@/rails/types";
 import { RAIL_TIMEOUT_MS } from "@/rails/types";
 import { appendEvent } from "@/server/audit/append";
 import type { AuthenticatedAgent } from "@/server/auth/agent-keys";
@@ -209,6 +210,13 @@ export interface Pending {
     /** Set for refunds (stripe.refund): the payment being refunded. */
     refundOf?: string;
   };
+  /** Set when an allowed payee.update is still to run (payout-rails PO-11). It moves no money, so it has no reservation. */
+  payee?: {
+    adapter: RailAdapter;
+    vendor: string;
+    rail: PayoutRail;
+    newRef: string;
+  };
 }
 
 /**
@@ -278,6 +286,9 @@ export async function decideGuarded(tx: Tx, req: GuardedRequest, deps: GuardedDe
   } else if (tool.operation === "refund" && !body.args?.payment_ref) {
     // A refund must name the payment it refunds. The tool route checks this too.
     decision = invalid("args.payment_ref");
+  } else if (tool.operation === "payee" && !payeeChange(body)) {
+    // PO-10, checked again here because approval re-runs rebuild the request from storage.
+    decision = invalid("args.payee_ref");
   } else if (!sessionRow || !taskRow) {
     // A session that doesn't exist or belongs to another agent can't be evaluated: fail closed.
     decision = invalid("session_id");
@@ -406,6 +417,13 @@ export async function decideGuarded(tx: Tx, req: GuardedRequest, deps: GuardedDe
 
   // allow. A tool can only be allowed if it is registered.
   if (!tool) throw new Error("Allowed an unregistered tool");
+  if (tool.operation === "payee") {
+    // PO-11: the decision commits first; the destination is checked and stored after, outside the lock.
+    const change = payeeChange(body);
+    if (!change) throw new Error("Allowed a payee change without a valid destination");
+    const adapter = deps.railFor(change.rail, { isSandbox: agentRow.isSandbox });
+    return { kind: "execute", pending: { decisionSeq, decision, workspaceId, payee: { adapter, vendor: body.vendor, ...change } } };
+  }
   if (tool.rail === null) return { kind: "execute", pending: { decisionSeq, decision, workspaceId } };
 
   // RES-1: reserve the counted amount in the same transaction as the decision.
@@ -452,14 +470,31 @@ function railOperation(operation: ToolDef["operation"]): "pay" | "refund" | "pay
   return operation;
 }
 
+/** The vendor column that holds a payee's destination on each payout rail. */
+const DESTINATION_COLUMN = { stripe: vendors.stripeAccount, paypal: vendors.paypalReceiver } as const;
+
+/** A payee.update's rail and new destination, or null if they don't fit together (PO-10). */
+function payeeChange(body: GuardedBody): { rail: PayoutRail; newRef: string } | null {
+  const rail = body.args?.rail ?? "stripe";
+  const newRef = body.args?.payee_ref;
+  if (!isPayoutRail(rail as Rail) || !newRef || !isDestinationFor(rail as PayoutRail, newRef)) return null;
+  return { rail: rail as PayoutRail, newRef };
+}
+
 /**
- * Where a payout goes (payout-rails PO-4). The payee's registered
- * destination is added in payout-rails task 4 (migration 0004); until
- * then no payee has one, so every payout fails closed without contacting
- * the rail.
+ * Where a payout goes (payout-rails PO-4, PO-24): the payee's destination
+ * on the vendor row as it stands when the payout runs, never one from the
+ * request. An approved payout therefore goes wherever the row points at
+ * approval time, which is the original account if the payee change was
+ * denied. Null if the payee has none on this rail.
  */
-async function payoutDestination(_deps: GuardedDeps, _workspaceId: string, _vendor: string, _rail: Rail): Promise<string | null> {
-  return null;
+async function payoutDestination(deps: GuardedDeps, workspaceId: string, vendor: string, rail: Rail): Promise<string | null> {
+  if (!isPayoutRail(rail)) return null;
+  const [row] = await deps.db
+    .select({ destination: DESTINATION_COLUMN[rail] })
+    .from(vendors)
+    .where(and(eq(vendors.workspaceId, workspaceId), eq(vendors.name, vendor)));
+  return row?.destination ?? null;
 }
 
 /**
@@ -480,7 +515,14 @@ export function paymentUrl(
 }
 
 /** Record the rail outcome, resolve the reservation, and store the response (PXY-6, RES-3 to RES-5). */
-async function recordOutcome(tx: Tx, req: GuardedRequest, deps: GuardedDeps, pending: Pending, result: RailResult | { thrown: true }) {
+async function recordOutcome(
+  tx: Tx,
+  req: GuardedRequest,
+  deps: GuardedDeps,
+  pending: Pending,
+  result: RailResult | { thrown: true },
+  payoutTo: string | null = null,
+) {
   const now = deps.now();
   const outcome = classifyRailResult(result);
   const ok = "ok" in result && result.ok ? result : null;
@@ -491,6 +533,8 @@ async function recordOutcome(tx: Tx, req: GuardedRequest, deps: GuardedDeps, pen
     decision_seq: pending.decisionSeq,
     reservation_id: pending.rail?.reservationId,
     refund_of: pending.rail?.refundOf,
+    // PO-24: where a payout was sent, read from the registry when it ran.
+    payout_to: payoutTo ?? undefined,
     rail_ref: ok?.ref || undefined,
     explorer_url: ok?.explorerUrl,
     // A tool with no rail moves no money, so it has no settled amount.
@@ -547,15 +591,18 @@ export async function executeGuarded(req: GuardedRequest, deps: GuardedDeps, dec
   if (decided.kind === "final") return decided.response;
 
   const { pending } = decided;
-  // A tool with no rail (for example payee.update) has nothing to call, so its outcome is settled.
+  if (pending.payee) return executePayee(req, deps, { ...pending, payee: pending.payee });
+  // A tool with no rail has nothing to call, so its outcome is settled.
   let result: RailResult | { thrown: true } = { ok: true, ref: "", settledMicros: micros(0n) };
+  let destination: string | null = null;
   if (pending.rail) {
     // Step 8: the rail call happens after commit, never while holding the lock.
     const { adapter, reservationId, reservedAt, counted, vendorUrl, refundOf, operation, vendor, railName } = pending.rail;
     // reservedAt is the reservation row's created_at, which the reconciler passes to lookup() too.
     const ctx = { signal: AbortSignal.timeout(deps.railTimeoutMs ?? RAIL_TIMEOUT_MS), reservedAt };
     // PO-4: a payout's destination is read when it runs, from the registry, never from the request.
-    const destination = operation === "payout" ? await payoutDestination(deps, pending.workspaceId, vendor, railName) : null;
+    // A failed read throws before the rail is called; the reservation stays and the route returns 503.
+    destination = operation === "payout" ? await payoutDestination(deps, pending.workspaceId, vendor, railName) : null;
     try {
       if (operation === "refund" && refundOf !== undefined) {
         // A refund of an earlier payment; the rail rounds the amount down (MON-8).
@@ -577,5 +624,56 @@ export async function executeGuarded(req: GuardedRequest, deps: GuardedDeps, dec
     }
   }
   // If this fails, the reservation stays reserved and the reconciler resolves it; the route returns 503.
-  return deps.db.transaction((tx) => recordOutcome(tx, req, deps, pending, result));
+  return deps.db.transaction((tx) => recordOutcome(tx, req, deps, pending, result, destination));
+}
+
+/**
+ * An allowed or approved payee.update (payout-rails PO-11 to PO-13). The
+ * decision has committed. The new destination is checked outside any
+ * transaction, since the check may call the rail. Then one transaction
+ * locks the vendor row, stores the new destination, and appends the
+ * rail_result and payee_updated events, so the row never changes without
+ * both. A failed check, or a payee that isn't in the registry, changes
+ * nothing. No other flow locks a vendor row, so this adds no lock-order
+ * cycle with the envelope or audit head locks.
+ */
+async function executePayee(req: GuardedRequest, deps: GuardedDeps, pending: Pending & { payee: NonNullable<Pending["payee"]> }): Promise<GuardedResponse> {
+  const { adapter, vendor, rail, newRef } = pending.payee;
+  let check: DestinationCheck | { ok: false; code: "RAIL_EXCEPTION" };
+  try {
+    check = await adapter.checkDestination(newRef, { signal: AbortSignal.timeout(deps.railTimeoutMs ?? RAIL_TIMEOUT_MS) });
+  } catch {
+    check = { ok: false, code: "RAIL_EXCEPTION" };
+  }
+  return deps.db.transaction(async (tx) => {
+    const now = deps.now();
+    const [row] = await tx
+      .select({ id: vendors.id, destination: DESTINATION_COLUMN[rail] })
+      .from(vendors)
+      .where(and(eq(vendors.workspaceId, pending.workspaceId), eq(vendors.name, vendor)))
+      .for("update");
+    const base = { rail, decision_seq: pending.decisionSeq };
+    let response: GuardedResponse;
+    if (check.ok && row) {
+      await tx
+        .update(vendors)
+        .set(rail === "stripe" ? { stripeAccount: newRef } : { paypalReceiver: newRef })
+        .where(eq(vendors.id, row.id));
+      await appendEvent(tx, { workspaceId: pending.workspaceId, type: "rail_result", payload: { ...base, status: "settled", rail_ref: newRef } }, { key: deps.key, now });
+      // PO-12: the old and new destinations in full. They're account IDs and sandbox emails, not secrets.
+      await appendEvent(
+        tx,
+        { workspaceId: pending.workspaceId, type: "payee_updated", payload: { ...base, vendor, old_ref: row.destination, new_ref: newRef } },
+        { key: deps.key, now },
+      );
+      response = allowedResponse(pending.decisionSeq, "settled", { ref: newRef });
+    } else {
+      // PO-13: nothing changed. The payee change didn't happen, so it's failed even if the check timed out.
+      const code = !row ? "RAIL_REJECTED" : check.ok ? "RAIL_REJECTED" : check.code;
+      await appendEvent(tx, { workspaceId: pending.workspaceId, type: "rail_result", payload: { ...base, status: "failed", code } }, { key: deps.key, now });
+      response = allowedResponse(pending.decisionSeq, "failed", { code });
+    }
+    await storeResponse(tx, req.agent.id, req.idempotencyKey, response);
+    return response;
+  });
 }
