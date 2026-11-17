@@ -262,6 +262,11 @@ export const PAYPAL_VARIABLES = ["PAYPAL_ENV", "PAYPAL_CLIENT_ID", "PAYPAL_CLIEN
  */
 const SANDBOX_RECEIVER = /^[A-Za-z0-9._%+-]{1,64}@(personal|business)\.example\.com$/;
 
+/** True for a PayPal sandbox account address. The PayPal adapter's destination check uses the same rule. */
+export function isSandboxReceiver(address: string): boolean {
+  return SANDBOX_RECEIVER.test(address);
+}
+
 /**
  * The PayPal sandbox variables (payout-rails PO-17, PO-21), all required
  * for PayPal payouts, whatever RAIL_MODE says. Messages name variables,
@@ -302,6 +307,8 @@ export function checkPayPalEnv(env: Env = process.env): VariableCheck[] {
 }
 
 export interface PayPalConfig {
+  /** Always sandbox: the loader refuses anything else, and the adapter checks again on every call (PO-17). */
+  environment: "sandbox";
   apiOrigin: typeof PAYPAL_SANDBOX_API;
   clientId: string;
   /** A function, like StripeConfig.secretKey, so a logged config shows `[Function]`. */
@@ -316,6 +323,7 @@ export function loadPayPalConfig(env: Env = process.env): PayPalConfig {
   if (failures.length > 0) throw new RailConfigError(failures);
   const secret = env.PAYPAL_CLIENT_SECRET ?? "";
   return {
+    environment: "sandbox",
     apiOrigin: PAYPAL_SANDBOX_API,
     clientId: env.PAYPAL_CLIENT_ID ?? "",
     clientSecret: () => secret,

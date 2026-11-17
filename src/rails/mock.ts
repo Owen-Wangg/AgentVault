@@ -25,7 +25,7 @@ import type {
 
 export const STRIPE_MINIMUM_CENTS = 50n;
 
-/** 1 cent until `pnpm paypal:probe` measures PayPal's minimum (payout-rails PO-22). */
+/** PayPal's minimum payout, 1 cent, as `pnpm paypal:probe` measured (payout-rails PO-22). */
 export const PAYPAL_MINIMUM_CENTS = 1n;
 
 const keyHash = (idempotencyKey: string) => createHash("sha256").update(idempotencyKey, "utf8").digest("hex").slice(0, 16);

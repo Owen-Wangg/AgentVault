@@ -33,6 +33,12 @@ const LIVE_VARIABLES = [
   "AGENT_WALLET_PRIVATE_KEY",
   "STRIPE_SECRET_KEY",
   "STRIPE_PROFILE_ID",
+  // The PayPal sandbox (docs/SETUP.md, section 9), for the guarded PayPal payout.
+  "PAYPAL_ENV",
+  "PAYPAL_CLIENT_ID",
+  "PAYPAL_CLIENT_SECRET",
+  "PAYPAL_SUPPLIER_RECEIVER",
+  "PAYPAL_ATTACKER_RECEIVER",
 ];
 function liveEnv(): Record<string, string> {
   const file = fileURLToPath(new URL("./.env.local", import.meta.url));

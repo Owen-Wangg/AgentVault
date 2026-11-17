@@ -1,4 +1,5 @@
-import { loadRailConfig, loadStripeConfig, loadX402PayerConfig } from "./config";
+import { loadPayPalConfig, loadRailConfig, loadStripeConfig, loadX402PayerConfig } from "./config";
+import { PayPalRail } from "./paypal/adapter";
 import type { RailForOptions } from "./select";
 import { StripeMppRail } from "./stripe-mpp/adapter";
 import { StripeConnectPayouts } from "./stripe-mpp/payouts";
@@ -34,5 +35,8 @@ function buildReal(env: Env): NonNullable<RailForOptions["real"]> {
   return {
     x402: new X402Rail({ account: payer.account, minUnits: payer.minUnits }),
     stripe: new StripeMppRail({ api, profileId: stripe.profileId, payouts: new StripeConnectPayouts(api) }),
+    // payout-rails PO-17: PayPal only when it's set up, and then every PayPal variable must pass. Without
+    // it, railFor("paypal") throws RailUnavailableError, so paypal.payout fails closed.
+    ...(env.PAYPAL_CLIENT_ID ? { paypal: new PayPalRail({ config: loadPayPalConfig(env) }) } : {}),
   };
 }

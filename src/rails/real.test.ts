@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { RailConfigError } from "./config";
 import { MockRail } from "./mock";
+import { PayPalRail } from "./paypal/adapter";
 import { railOptions } from "./real";
 import { RailUnavailableError, railFor } from "./select";
 import { StripeMppRail } from "./stripe-mpp/adapter";
@@ -42,6 +44,22 @@ describe("railOptions", () => {
     const adapter = railFor("stripe", { isSandbox: false }, railOptions(realEnv));
     // A malformed destination is refused by the Connect code before any network call.
     expect(await adapter.checkDestination("not-an-account")).toMatchObject({ ok: false, code: "RAIL_REJECTED", detail: "not a Stripe account ID; nothing was sent" });
+  });
+
+  it("PO-17: real mode has a PayPal adapter only when PayPal is set up; otherwise paypal fails closed", () => {
+    const paypalEnv = {
+      PAYPAL_ENV: "sandbox",
+      PAYPAL_CLIENT_ID: "client",
+      PAYPAL_CLIENT_SECRET: "secret",
+      PAYPAL_SUPPLIER_RECEIVER: "supplier@personal.example.com",
+      PAYPAL_ATTACKER_RECEIVER: "attacker@personal.example.com",
+    };
+    expect(railFor("paypal", { isSandbox: false }, railOptions({ ...realEnv, ...paypalEnv }))).toBeInstanceOf(PayPalRail);
+    expect(railFor("paypal", { isSandbox: true }, railOptions({ ...realEnv, ...paypalEnv }))).toBeInstanceOf(MockRail);
+    expect(() => railFor("paypal", { isSandbox: false }, railOptions(realEnv))).toThrow(RailUnavailableError);
+    // Set up but incomplete, or not the sandbox: startup fails rather than running without the checks.
+    expect(() => railOptions({ ...realEnv, ...paypalEnv, PAYPAL_ATTACKER_RECEIVER: "someone@gmail.com" })).toThrow(RailConfigError);
+    expect(() => railOptions({ ...realEnv, ...paypalEnv, PAYPAL_ENV: "live" })).toThrow(RailConfigError);
   });
 
   it("an adapter that isn't configured still fails closed", () => {
