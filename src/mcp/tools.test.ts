@@ -216,6 +216,22 @@ describe("agentvault_request_tool", () => {
     expect(result.structuredContent).toMatchObject({ decision: "hold", reasons: ["HELD_TAINTED"], explanation: `${copy.default.HELD_TAINTED} ${copy.default["mcp.held"]}` });
   });
 
+  it("PO-14, PO-10: paypal.payout's dollar amount and payee.update's payee_ref and rail reach the server as sent", async () => {
+    const api = fakeApi(() => ({ status: 200, body: { decision: "hold", reasons: [{ code: "HELD_TAINTED" }], event_seq: 9, approval_id: "33333333-3333-4333-8333-333333333333" } }));
+    const { call } = await connect({ fetch: api.send });
+    await call("agentvault_request_tool", { tool: "paypal.payout", args: { vendor: "acme-supplies", amount: "900" }, session_id: SESSION, idempotency_key: "p-1" });
+    await call("agentvault_request_tool", {
+      tool: "payee.update",
+      args: { vendor: "acme-supplies", payee_ref: "acme@business.example.com", rail: "paypal" },
+      session_id: SESSION,
+      idempotency_key: "p-2",
+    });
+    expect(api.sent.map((s) => s.body)).toEqual([
+      { tool: "paypal.payout", session_id: SESSION, args: { vendor: "acme-supplies", amount_micros: "900000000" } },
+      { tool: "payee.update", session_id: SESSION, args: { vendor: "acme-supplies", payee_ref: "acme@business.example.com", rail: "paypal" } },
+    ]);
+  });
+
   it("MCP-2: both amount and amount_micros, or a non-string amount, is refused before any request", async () => {
     const api = fakeApi(() => allow);
     const { call } = await connect({ fetch: api.send });

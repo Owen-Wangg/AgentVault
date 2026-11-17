@@ -61,10 +61,12 @@ const FetchInput = z.strictObject({
 });
 
 const RequestToolInput = z.strictObject({
-  tool: z.string().regex(/^[\x21-\x7e]{1,100}$/, "must be 1 to 100 printable characters").describe("The tool, like stripe.refund, wire_transfer, payout.create, or payee.update."),
+  tool: z.string().regex(/^[\x21-\x7e]{1,100}$/, "must be 1 to 100 printable characters").describe("The tool, like stripe.refund, wire_transfer, payout.create, paypal.payout, or payee.update."),
   args: z
     .record(z.string(), z.unknown())
-    .describe('The tool\'s arguments, like { "vendor": "nimbus-weather", "amount": "480", "payment_ref": "pi_123" }. Give amounts in dollars as "amount".'),
+    .describe(
+      'The tool\'s arguments, like { "vendor": "nimbus-weather", "amount": "480", "payment_ref": "pi_123" }. Give amounts in dollars as "amount". payout.create and paypal.payout take a vendor and an amount; payee.update takes a vendor, a payee_ref, and an optional rail ("stripe", the default, or "paypal") and no amount.',
+    ),
   session_id: SessionId,
   idempotency_key: IdempotencyKey,
 });
@@ -235,7 +237,7 @@ export function createAgentVaultMcpServer(options: McpToolOptions): McpServer {
     {
       title: "Request a high-privilege tool through AgentVault",
       description:
-        "Ask AgentVault to run a high-privilege tool such as stripe.refund, wire_transfer, payout.create, or payee.update. It gets the same checks as a payment; in a tainted session it is held for a person to approve.",
+        "Ask AgentVault to run a high-privilege tool such as stripe.refund, wire_transfer, payout.create, paypal.payout, or payee.update. It gets the same checks as a payment; in a tainted session it is held for a person to approve.",
       inputSchema: RequestToolInput,
       outputSchema: DecisionOutput,
     },
