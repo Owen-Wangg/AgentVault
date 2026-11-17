@@ -44,3 +44,8 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
   - Contrast check of every color pair in both themes, keyboard walkthrough, 375 px layout check, Lighthouse ≥ 95
   - Nightly sandbox reset: Vercel Cron entry for `/api/cron/sandbox-reset` (route built in audit-and-approvals task 3), client reload when the sandbox ID changes
   - _Requirements: UI-3, UI-12, UI-13, UI-14_
+
+- [ ] 10. Pause the event stream when nobody is watching
+  - `useEventStream` closes the stream while the page is hidden or after 15 minutes without input, and reopens it on return, input, or Resume
+  - `StreamStatusBadge` shows the paused state with a Resume button, with copy in both themes; the pages pass the hook's `resume`
+  - _Requirements: TEL-6, TEL-7_

@@ -12,6 +12,10 @@ This spec covers the live event stream and the web dashboard: overview, live fee
 - **TEL-3** WHILE no new events exist, THE SYSTEM SHALL send a heartbeat comment at least every 15 seconds.
 - **TEL-4** WHEN the serverless function nears its duration limit, THE SYSTEM SHALL close the stream cleanly so the browser reconnects.
 - **TEL-5** THE SYSTEM SHALL only stream events from workspaces the caller can access.
+- **TEL-6** WHILE a dashboard page is hidden (another tab, a minimized window), THE dashboard SHALL keep no event stream open. WHEN the page is visible again, it SHALL reconnect and show the events it missed, each once and in `seq` order.
+- **TEL-7** WHEN a visible dashboard page has had no pointer, keyboard, wheel, or touch input for 15 minutes, THE dashboard SHALL close its event stream and show that live updates are paused, with a Resume button. Resuming, or any input, SHALL reconnect as in TEL-6.
+
+TEL-6 and TEL-7 keep the hosted app inside its free plans until judging ends (`docs/OPERATIONS.md`): an open stream keeps a Vercel function and the Neon compute awake, so a forgotten tab would otherwise use them up.
 
 ## Requirement 2: Access and sandbox
 **User story:** As a judge, I want to try the product without signing up; as a user, I want my own private workspace.

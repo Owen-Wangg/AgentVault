@@ -27,6 +27,14 @@ flowchart LR
 - Opening a sandbox stream counts toward a per-IP limit (30 per minute), because each stream holds a function for up to 55 s.
 - Code: the loop is `pumpEvents()` in `src/server/events/stream.ts`, with the event source and clock injected; the handler is `src/server/events/handler.ts`.
 
+### Pausing the stream (TEL-6, TEL-7)
+- All in `useEventStream`, on the client. The server doesn't change, so a client that never pauses costs what it did before.
+- The hook is *active* while `document.visibilityState` is `visible` and the page isn't idle. Becoming inactive closes the `EventSource` and sets status `paused`. Becoming active opens a new one.
+- The new `EventSource` can't send `Last-Event-ID` (the browser sets it only on its own reconnects), so it receives the workspace's backlog again. `mergeEvents` keeps each `seq` once and in order, so the events missed while paused appear and nothing repeats (property 1 still holds). A day's sandbox backlog is a few hundred events, the same as a page load.
+- Idle: a timer of `idleMs` (15 minutes) restarts on `pointerdown`, `pointermove`, `keydown`, `wheel`, and `touchstart` on `window`, at most once a second. When it fires, the hook pauses. Any of those inputs, or the badge's Resume button, resumes. Becoming visible counts as input.
+- `StreamStatusBadge` shows "Live updates paused" for `paused`, with a Resume button next to it; the status text stays in the `role="status"` region so screen readers hear the change. Copy in both themes.
+- `idleMs` and the document are injectable for tests.
+
 ## Pages
 | Route | Content |
 |---|---|
@@ -90,3 +98,4 @@ The `satisfies` check makes a missing string a compile error.
 - Playwright (`tests/e2e/layout-keyboard.spec.ts`): every dashboard page, in both themes, at 375 px and 1920 px, must not scroll sideways (UI-14); a failure names the element that sticks out. Tabbing from the top of the overview at 375 px and 1280 px must reach every navigation link, Settings included, and every focused element must show its focus ring (UI-13). It runs the drift scenario first, so the tables have rows.
 - Contrast (UI-12) is checked from the theme tokens in `src/ui/theme.test.ts`: text at 4.5:1 on every background, and focus rings and form-control borders (`control-border`) at 3:1 (WCAG 1.4.11). The lighter `border` token is decorative only.
 - Lighthouse accessibility score ≥ 95 on the overview page in both themes (manual check, task 9).
+- TEL-6 and TEL-7: hook tests with the fake event source and fake timers. Hiding the page closes the stream; showing it opens one stream, and a replayed backlog adds only the missed events. Fifteen minutes without input closes it and shows the paused badge; input just before the limit keeps it open; Resume and any input reopen it.
