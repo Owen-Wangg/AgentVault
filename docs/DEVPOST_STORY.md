@@ -1,6 +1,6 @@
 # Devpost project story (draft)
 
-Paste into the Devpost "About the project" fields. The Kiro section is in `docs/KIRO_WRITEUP.md`.
+Paste into the Devpost "About the project" fields. The Kiro section is in `docs/KIRO_WRITEUP.md`. Owen built this alone, so the text says "I"; the section headings with "we" are Devpost's own field names.
 
 **Tagline (under 200 characters):** A security proxy for AI agents that spend money: spend limits, taint tracking, and human approval checked before every x402, Stripe, or PayPal payment or payout.
 
@@ -19,7 +19,7 @@ Paste into the Devpost "About the project" fields. The Kiro section is in `docs/
 
 Stripe's Machine Payments Protocol and x402 let an AI agent answer an HTTP `402 Payment Required` and pay per call, sometimes a tenth of a cent. That's useful, and it removes the person who used to approve each purchase. Card limits and fraud checks assume a human at checkout. An agent that reads a poisoned web page, or loops on a retry bug, can spend a budget one small charge at a time, faster than anyone would notice.
 
-We wanted the agent equivalent of a firewall: a place where every payment and every risky tool call is checked against rules the agent can't talk its way around.
+I wanted the agent equivalent of a firewall: a place where every payment and every risky tool call is checked against rules the agent can't talk its way around.
 
 It's for developers shipping agents that spend money, who need per-agent budgets and a kill switch, and for platform and security teams, who need a human approval step for risky actions and an audit trail they can trust.
 
@@ -56,8 +56,8 @@ In the **payee hijack**, an agent paying a supplier's $900 invoice reads a poiso
 - **Uncertain payment outcomes.** A blockchain payment can time out after the money moved. AgentVault records it as `unknown` and keeps the amount counted until a reconciler proves the outcome. For x402 that meant deriving the authorization nonce from the reservation ID, so the payment can be found on chain later by its key alone.
 - **Concurrency.** 50 parallel payments against a $0.045 cap must allow exactly 30. Without the row lock, 37 got through. That only showed on real Postgres.
 - **A parser that dropped limits.** Zod silently skips a `__proto__` key, so a vendor limit under that name vanished and the payment was allowed. A property test found it.
-- **Measuring the rails.** The x402 facilitator's minimum on Base Sepolia turned out to be $0.001, which we measured by paying at several prices. Base Sepolia's 0.2-second blocks and 200-block log limit shaped the lookup code.
-- **Payout outcomes without a lookup key.** PayPal can't look a payout up by our own batch ID, and resending a batch to check would be a new payment request. Most payouts first answer `PENDING`, so AgentVault stores PayPal's batch ID on the reservation and the reconciler reads the payout by it. A resent batch ID is refused, so the adapter treats that refusal as unknown and reads the earlier batch it links to.
+- **Measuring the rails.** The x402 facilitator's minimum on Base Sepolia turned out to be $0.001, which I measured by paying at several prices. Base Sepolia's 0.2-second blocks and 200-block log limit shaped the lookup code.
+- **Payout outcomes without a lookup key.** PayPal can't look a payout up by AgentVault's own batch ID, and resending a batch to check would be a new payment request. Most payouts first answer `PENDING`, so AgentVault stores PayPal's batch ID on the reservation and the reconciler reads the payout by it. A resent batch ID is refused, so the adapter treats that refusal as unknown and reads the earlier batch it links to.
 - **A shared sandbox and a mutable payee.** Payouts read the supplier's account when they run, so one visitor approving the hijack would have redirected every later visitor's payout until the nightly reset. Each payee hijack run now gets its own supplier row.
 - **Live AI on a free tier.** The live agent shares 15 requests a minute with every visitor, so runs are capped, scored in parallel, and retried once on timeouts.
 
@@ -73,7 +73,7 @@ In the **payee hijack**, an agent paying a supplier's $900 invoice reads a poiso
 ## What we learned
 
 - An LLM can help judge intent, but it can't be the one that says yes. AgentVault lets a model's drift score add a hold, never remove one.
-- "We don't know if it paid" is its own state, and treating it as "failed" is how money leaks.
+- "It may have paid" is its own state, and treating it as "failed" is how money leaks.
 - Writing specs before code caught design bugs that would have been expensive later, such as a lock held across a blockchain call.
 
 ## What's next for AgentVault

@@ -453,3 +453,4 @@ Raw notes for the Devpost "How Kiro was used" write-up. The `devlog` hook (Stop 
   - All live pages in the script answered 200, and every UI string the drafts quote exists in `copy.ts`.
   - Kiro got wrong: a first count of "73 property tests" counted test cases in property files; there are 63 `fc.assert` calls in 18 property files, plus fast-check in 14 other test files, so the drafts give file counts instead.
   - Kiro features: steering (product.md's judging context), web fetch of the rules page.
+- **The Devpost story says "I".** Owen built AgentVault alone, so the four "we" and "our" phrases in the story's text now use "I" or name AgentVault. The section headings keep "we", because they're Devpost's own field names. Kiro features: none beyond the editor.
