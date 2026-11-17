@@ -2,11 +2,11 @@
 
 Plan (`docs/PLAN.md`): Phase 19's second half.
 
-- [ ] 1. Update steering for a public path to a real rail
+- [x] 1. Update steering for a public path to a real rail
   - product.md, security-standards.md, and tech.md: the testnet workspace is the one public, non-sandbox workspace; the sandbox still always uses mock rails
   - _Requirements: TN-1, TN-8_
 
-- [ ] 2. Build the adapters per workspace
+- [x] 2. Build the adapters per workspace
   - `railOptionsFor(workspace, env)` in `src/rails/real.ts`, used by every server entry point, and property 3
   - _Requirements: TN-8_
 
