@@ -24,6 +24,19 @@ type UiKey =
   | "state.paused"
   | "state.resume"
   | "nav.pendingSuffix"
+  | "testnet.title"
+  | "testnet.description"
+  | "testnet.limits"
+  | "testnet.button"
+  | "testnet.running"
+  | "testnet.settled"
+  | "testnet.unknown"
+  | "testnet.failed"
+  | "testnet.viewTx"
+  | "testnet.auditSeq"
+  | "testnet.rateLimited"
+  | "testnet.quotaUsed"
+  | "testnet.error"
   | "workspace.sandbox"
   | "workspace.sandboxNote"
   | "workspace.publicName"
@@ -237,6 +250,20 @@ const defaultCopy: CopyTable = {
   "state.paused": "Live updates paused",
   "state.resume": "Resume live updates",
   "nav.pendingSuffix": "waiting for approval",
+  "testnet.title": "Real testnet payment",
+  "testnet.description":
+    "The scenarios below run on mock rails. This button makes one real payment: AgentVault's demo agent pays the weather vendor $0.0015 over x402 on Base Sepolia, through the same checks, and you can see the transaction on BaseScan.",
+  "testnet.limits": "Base Sepolia test USDC has no real value. Limits: 2 payments per visitor an hour, and 20 a day for everyone.",
+  "testnet.button": "Make a real testnet payment",
+  "testnet.running": "Paying on Base Sepolia…",
+  "testnet.settled": "Settled on Base Sepolia",
+  "testnet.unknown": "Sent, but Base Sepolia hasn't confirmed it yet. AgentVault keeps the amount counted until it does.",
+  "testnet.failed": "The rail refused the payment, so nothing moved.",
+  "testnet.viewTx": "View the transaction on BaseScan",
+  "testnet.auditSeq": "Audit event",
+  "testnet.rateLimited": "You've made the most payments allowed for now. Try again later.",
+  "testnet.quotaUsed": "Today's 20 testnet payments are used up. Try again after midnight UTC.",
+  "testnet.error": "The payment couldn't be made right now. Try again in a moment.",
   "workspace.sandbox": "Sandbox",
   "workspace.sandboxNote": "Sandbox: mock rails only. Anyone can approve, deny, and unfreeze here, and no real money moves. It starts fresh every night.",
   "workspace.publicName": "Public demo workspace",
@@ -441,6 +468,17 @@ const kiroweenCopy: CopyTable = {
   "state.paused": "The spirits rest: live updates paused",
   "state.resume": "Wake the spirits",
   "nav.pendingSuffix": "awaiting judgment",
+  "testnet.title": "A real offering",
+  "testnet.description":
+    "The scenarios below are rehearsals on mock rails. This button makes one real payment: AgentVault's demo agent pays the weather vendor $0.0015 over x402 on Base Sepolia, through the same wards, and the transaction is etched on BaseScan.",
+  "testnet.limits": "Base Sepolia test USDC has no real value. Limits: 2 offerings per visitor an hour, and 20 a day for everyone.",
+  "testnet.button": "Make a real offering",
+  "testnet.running": "Offering on Base Sepolia…",
+  "testnet.settled": "Received on Base Sepolia",
+  "testnet.unknown": "Sent, but Base Sepolia hasn't answered yet. AgentVault keeps the amount counted until it does.",
+  "testnet.failed": "The rail refused the offering, so nothing moved.",
+  "testnet.viewTx": "See it etched on BaseScan",
+  "testnet.quotaUsed": "Today's 20 offerings are spent. Try again after midnight UTC.",
   "agents.frozen": "The Crypt",
   "agents.tainted": "Haunted",
   "agents.unfreeze": "Release from The Crypt",

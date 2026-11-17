@@ -2,7 +2,7 @@
 
 import { Bot, Play, ShieldAlert } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import type { ScenarioName } from "@/agents/scripted/scenarios";
 import { Amount } from "@/ui/components/Amount";
 import { StreamStatusBadge } from "@/ui/components/StreamStatusBadge";
@@ -76,6 +76,7 @@ export function ScenarioRunner({
   api = httpScenariosApi,
   stream,
   newRunId = () => crypto.randomUUID(),
+  featured,
 }: {
   workspaceId: string;
   scenarios: readonly ScenarioName[];
@@ -83,6 +84,8 @@ export function ScenarioRunner({
   api?: ScenariosApi;
   stream?: EventStreamOptions;
   newRunId?: () => string;
+  /** Shown above the scenario cards: the real testnet payment card, when it's available (testnet-demo TN-1). */
+  featured?: ReactNode;
 }) {
   const { t } = useCopy();
   const title = (name: ScenarioName) => t(titleKey(name));
@@ -124,6 +127,7 @@ export function ScenarioRunner({
         </p>
       ) : null}
 
+      {featured ? <div className="mb-6">{featured}</div> : null}
       <ul className="grid gap-4 sm:grid-cols-2">
         {scenarios.map((name) => (
           <li key={name}>
