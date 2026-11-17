@@ -116,4 +116,4 @@ The optional Gemini agent (`gemini-3.5-flash-lite`, free tier) runs three scenar
 
 ## Numbers
 
-About 1,460 Vitest tests (unit, property, and integration) and 8 Playwright tests; Lighthouse accessibility, best practices, and SEO 100 on the overview in both themes.
+About 1,480 Vitest tests (unit, property, and integration) and 8 Playwright tests; Lighthouse accessibility, best practices, and SEO 100 on the overview in both themes.

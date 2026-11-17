@@ -29,7 +29,7 @@ AgentVault sits between agents and payment rails. Agents call its API (or its MC
 - **Intent scope.** Each task declares the vendor categories, tools, and budget it needs. A weather task that tries to buy GPU time is denied as intent drift.
 - **Human approvals.** Held requests wait in an inbox. Approving re-runs every check, and an approval runs at most once.
 - **Tamper-evident audit log.** Every decision is in an append-only, hash-chained log with a signed head. "Verify chain" recomputes it.
-- **Live dashboard** with spend, blocked spend, a live feed, approvals, and agents, plus a Kiroween theme that changes only styling and copy.
+- **Live dashboard** with spend, blocked spend, a live feed, approvals with a pending count in the navigation, and agents, plus a Kiroween theme that changes only styling and copy. Live updates pause when the tab is hidden or idle, which keeps the free hosting plans awake only while someone is watching.
 - **MCP server,** so Kiro or Claude Desktop can pay through AgentVault. It has no approve tool, so an agent can't approve its own refund.
 
 The public sandbox runs five scripted scenarios (normal purchase, runaway loop, prompt injection, intent drift, payee hijack), and three of them can also run with a live Gemini agent that makes its own choices.
@@ -42,7 +42,7 @@ In the **payee hijack**, an agent paying a supplier's $900 invoice reads a poiso
 - **Money is `bigint` micros** (1 USD = 1,000,000), so sub-cent charges are exact. Conversions to Stripe cents round against the agent: debits up, refunds down.
 - **Each payment is one database transaction:** lock the agent's envelope row, claim the idempotency key, load the state, run a pure `evaluate()` function, write the audit row, and reserve the amount. The rail call happens after the commit, so no lock is held during a payment. If any step fails, nothing is paid.
 - **Rails:** x402 on Base Sepolia (USDC) and Stripe MPP in test mode for payments, Stripe Connect transfers (test mode) and PayPal Payouts (sandbox) for payouts, each verified with real test payments, plus a mock rail for the sandbox. PayPal is a second, unrelated provider, there to show the same rules hold on a rail AgentVault didn't start with.
-- **Testing:** about 1,460 Vitest tests, many of them fast-check property tests of the design's correctness properties, and Playwright for the judge's path. Each safeguard was broken on purpose to confirm a test catches it.
+- **Testing:** about 1,480 Vitest tests, many of them fast-check property tests of the design's correctness properties, and Playwright for the judge's path. Each safeguard was broken on purpose to confirm a test catches it.
 - **Built with Kiro:** eight specs, steering, seven hooks, and MCP. Details in the Kiro write-up.
 
 ## Challenges we ran into
@@ -73,7 +73,7 @@ In the **payee hijack**, an agent paying a supplier's $900 invoice reads a poiso
 
 - Let outside agents make real testnet payments over the HTTP API. The guarded flow already sends each payment to the vendor's registered payment URL, and a real x402 payment through it settles on Base Sepolia in the `@live` tests, but the live site runs mock rails and no workspace outside the sandbox has vendors yet.
 - Self-serve sessions for outside agents, beyond the setup script.
-- Per-vendor call counts, alerts, and a badge for pending approvals.
+- Per-vendor call counts and alerts.
 
 ## Built with
 
