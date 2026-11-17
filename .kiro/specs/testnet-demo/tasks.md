@@ -22,7 +22,7 @@ Plan (`docs/PLAN.md`): Phase 19's second half.
   - `TestnetPaymentCard`, the page's availability check, copy in both themes
   - _Requirements: TN-1, TN-3, TN-4_
 
-- [ ] 6. Operations and docs
+- [x] 6. Operations and docs
   - `pnpm ops:check` testnet counts; `docs/OPERATIONS.md` (wallet balance and refill), SETUP.md, README, the demo script, and the Devpost story
   - _Requirements: TN-10_
 
