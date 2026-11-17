@@ -553,6 +553,7 @@ In **Apps & Credentials**, open the app and generate a new secret (or delete the
 | `pnpm typecheck` | Type-checks the whole project. |
 | `pnpm lint` | Runs ESLint, including the layering rules that keep `src/core` free of I/O. |
 | `pnpm verify` | Typecheck, lint, and tests together. Run this before committing. |
+| `pnpm verify:local` | The same on in-memory PGlite, even with `DATABASE_URL_TEST` set, so it uses no Neon compute. The tests that need real concurrent connections skip. |
 | `pnpm build` | Production build, the same one Vercel runs. |
 | `pnpm check:money` | Flags float handling of money amounts. |
 | `pnpm check:kiro` | Fails if `.kiro` or anything in it is gitignored. |

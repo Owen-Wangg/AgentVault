@@ -7,7 +7,8 @@ The Official Rules require <https://owen-agentvault.vercel.app> to stay availabl
 1. `pnpm ops:check` (read-only). It reports the database size against Neon Free's 1 GB with a projection to Jan 29, when the nightly sandbox reset last ran, whether the reconciler's daily cleanup is running, and open reservations and pending approvals. It exits 1 if something needs attention.
 2. Vercel dashboard, **Usage**: Provisioned Memory, Active CPU, Function Invocations, and Fast Data Transfer, against the Hobby allotments below. Provisioned Memory is the one most likely to run out (see the event stream risk).
 3. Neon console, **Usage** for the project: compute (CU-hours this month), storage, and network transfer. The allowance is per project, so the test branch (`DATABASE_URL_TEST`) and every `pnpm verify` against it count too.
-4. Before recording the demo: `pnpm connect:setup --fund 5` if the Stripe platform's USD test balance is low. The live site doesn't need it; it runs mock rails.
+4. Prefer `pnpm verify:local` (PGlite) for routine test runs, and `pnpm verify` (Neon) only before commits that touch the payment flow, approvals, the reconciler, the scenario runner, or the schema.
+5. Before recording the demo: `pnpm connect:setup --fund 5` if the Stripe platform's USD test balance is low. The live site doesn't need it; it runs mock rails.
 
 ## Limits
 
