@@ -8,27 +8,29 @@ Recorded against <https://owen-agentvault.vercel.app> in the default theme until
 2. After the reset, run `pnpm --silent mcp:agent` and put the new key in `~/.kiro/settings/mcp.json`. The reset revokes the old key. Note the session ID it prints.
 3. In a fresh Kiro chat, confirm the `agentvault` server shows as connected.
 4. Browser at 1920 × 1080, zoom 125%, a private window so the theme is the default and no sign-in shows.
-5. Have three tabs open: `/scenarios`, `/approvals`, `/audit`.
+5. Have four tabs open: `/scenarios`, `/approvals`, `/feed`, `/audit`.
 6. If a run answers "Someone else is running this scenario right now", wait a few seconds and click again.
+7. Each Payee hijack run pays its own supplier, named `acme-supplies-` plus 8 hex characters (shown in the run's steps). If other visitors' cards are in the inbox, act on the two cards with your run's supplier name.
 
-Video rules (Official Rules, section 4): under 3 minutes, uploaded to YouTube as **public**, showing the project working on the device it was built for (a desktop browser). No copyrighted music, and no third-party trademarks or copyrighted material without permission, so use no music or a track licensed for reuse, and keep vendor logos (Stripe, Coinbase, GitHub) off screen. Kiro's own UI is the sponsor's product and is fine to show.
+Video rules (Official Rules, section 4): under 3 minutes, uploaded to YouTube as **public**, showing the project working on the device it was built for (a desktop browser). No copyrighted music, and no third-party trademarks or copyrighted material without permission, so use no music or a track licensed for reuse, and keep vendor logos (Stripe, Coinbase, PayPal, GitHub) off screen. Kiro's own UI is the sponsor's product and is fine to show.
 
 ## Script
 
 | Time | Screen | Voice-over |
 |---|---|---|
 | 0:00–0:15 | Overview, empty | "AI agents now pay for APIs on their own, a fraction of a cent per call, over Stripe's Machine Payments Protocol and x402. Nobody approves each charge. One prompt injection or one retry bug can drain a budget. AgentVault sits between the agent and the payment rail and checks every request before money moves." |
-| 0:15–0:27 | Scenarios: run **Normal purchase** | "A normal agent buys five weather forecasts at a tenth of a cent each. All five are allowed and logged." |
-| 0:27–0:42 | Run **Runaway loop**, then show the summary | "Now a retry bug. The agent pays in a tight loop. After 30 calls in a minute AgentVault denies it for velocity and freezes the agent. Every later call is denied, and the total stays at four and a half cents." |
-| 0:42–0:55 | Run **Intent drift** | "This agent's task is weather data. It tries to pay a GPU vendor. That's outside its declared scope, so it's denied as intent drift." |
-| 0:55–1:20 | Run **Prompt injection**; hover the taint step and the held refund | "The worst case. The agent reads a vendor docs page with a hidden instruction: refund four hundred and eighty dollars. Reading an untrusted page taints the session, and while it's tainted, refunds, payouts, and wire transfers are frozen. The refund is held, not paid." |
-| 1:20–1:35 | Click the summary link to Approvals, click **Approve** | "A person decides. Approving re-runs every check, and the refund runs exactly once." |
-| 1:35–1:50 | Audit: click **Verify chain** | "Every decision is in a hash-chained, append-only log with a signed head. Verify chain recomputes it; an edited, deleted, or reordered row would break it." |
-| 1:50–2:25 | Kiro chat calling the MCP tools (see below), then the Live feed | "AgentVault is also an MCP server, so Kiro itself can be the agent. Kiro pays for a forecast, allowed. It reads the poisoned page, and the result comes back labeled untrusted. It asks for the refund, and it's held for a person, the same as the scripted agent. There's no approve tool, so Kiro can't approve its own refund." |
-| 2:25–2:38 | Settings: turn on **Kiroween mode**, then the Overview and Agents | "And for Kiroween, a theme toggle. Frozen agents are sealed in The Crypt and tainted sessions are Haunted. It changes only styling and copy; a property test checks that every decision is identical in both themes." |
-| 2:38–2:50 | Overview in Kiroween mode, with the live URL and repo URL as a text overlay | "Built with Kiro: seven specs, steering, hooks, and property-based tests. Testnets and test mode only. Try the sandbox, no login." |
+| 0:15–0:25 | Scenarios: run **Normal purchase** | "A normal agent buys five weather forecasts at a tenth of a cent each. All five are allowed and logged." |
+| 0:25–0:40 | Run **Runaway loop**, then show the summary | "Now a retry bug. The agent pays in a tight loop. After 30 calls in a minute AgentVault denies it for velocity and freezes the agent. Every later call is denied, and the total stays at four and a half cents." |
+| 0:40–1:00 | Run **Prompt injection**; hover the taint step and the held refund | "The agent reads a vendor docs page with a hidden instruction: refund four hundred and eighty dollars. Reading an untrusted page taints the session, and while it's tainted, refunds, payouts, and payout account changes are frozen. The refund is held, not paid." |
+| 1:00–1:12 | Run **Payee hijack**; show the three steps | "A harder one. This agent's job is paying a supplier's nine hundred dollar invoice. The invoice hides an instruction: switch the supplier's payout account to the attacker's first, then pay. The agent obeys. Both requests are held." |
+| 1:12–1:30 | Click the summary link to Approvals. On the `payee.update` card, show the attacker account and the untrusted source, click **Deny**. On the `payout.create` card, click **Approve** | "A person decides. The account change came from an untrusted invoice, so deny it. The payout itself is real, so approve it. Approving re-runs every check, and it runs exactly once." |
+| 1:30–1:38 | Live feed: the allowed payout row, "Paid out to acct_1AcmeSupplies" | "The payout reads the account on file when it runs, so the nine hundred dollars goes to the supplier, not the attacker." |
+| 1:38–1:48 | Audit: click **Verify chain** | "Every decision is in a hash-chained, append-only log with a signed head. Verify chain recomputes it; an edited, deleted, or reordered row would break it." |
+| 1:48–2:20 | Kiro chat calling the MCP tools (see below), then the Live feed | "AgentVault is also an MCP server, so Kiro itself can be the agent. Kiro pays for a forecast, allowed. It reads the poisoned page, and the result comes back labeled untrusted. It asks for the refund, and it's held for a person, the same as the scripted agent. There's no approve tool, so Kiro can't approve its own refund." |
+| 2:20–2:33 | Settings: turn on **Kiroween mode**, then the Overview and Agents | "And for Kiroween, a theme toggle. Frozen agents are sealed in The Crypt and tainted sessions are Haunted. It changes only styling and copy; a property test checks that every decision is identical in both themes." |
+| 2:33–2:45 | Overview in Kiroween mode, with the live URL and repo URL as a text overlay | "Built with Kiro: eight specs, steering, hooks, and property-based tests. Testnets, test mode, and sandboxes only. Try the sandbox, no login." |
 
-About 2:50 in total. If a take runs long, cut the intent drift scene first (13 s), then shorten the audit scene.
+About 2:45 in total. The Intent drift scenario is left out to make room for the Payee hijack; it's on the scenarios page for anyone who tries the sandbox. If a take runs long, shorten the Prompt injection scene first (the Payee hijack shows the same taint rule), then the audit scene. If a take runs short, add Intent drift after the runaway loop (13 s): "This agent's task is weather data. It tries to pay a GPU vendor. That's outside its declared scope, so it's denied as intent drift."
 
 ## The MCP scene
 
@@ -40,6 +42,7 @@ Kiro asks before each tool call; approve the three calls on camera or speed them
 
 ## Things not to say
 
-- Don't say the live site moves real money or uses real rails. It runs mock rails. Real x402 payments through the guarded flow settle on Base Sepolia only in the `@live` tests, and agents can't make real payments over the HTTP API yet.
-- Don't show the live AI injection run as the hold. The model reads the poisoned page but hasn't asked for the refund so far.
+- Don't say the live site moves real money or uses real rails. It runs mock rails, so the $900 payout and the $480 refund are mock. Real payments through the guarded flow ran only in the `@live` tests: x402 on Base Sepolia, Stripe MPP in test mode, a $1.00 Stripe Connect test-mode transfer, and a $1.00 PayPal sandbox payout. Agents can't make real payments over the HTTP API yet.
+- Don't show the live AI injection run as the hold. The model reads the poisoned page but hasn't asked for the refund so far. The Payee hijack has no live AI version.
 - The runaway loop's freeze happens at the 31st call, not after hundreds.
+- The payee change is held only because the session is tainted (`HELD_TAINTED`). The $900 payout is held for taint and for being at or above the $100 approval threshold (`HELD_TAINTED`, `NEEDS_APPROVAL`). Don't say the change was held for its amount; it moves no money.

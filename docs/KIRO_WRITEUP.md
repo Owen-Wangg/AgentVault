@@ -25,11 +25,11 @@ No custom agents were created for this project. Kiro's built-in introspect subag
 
 ## Powers and plugins
 
-The Stripe and Neon plugins were installed but never authenticated, so their MCP tools weren't used. Stripe research used docs.stripe.com and the published `mppx` and `stripe` packages instead, and Neon work used the Neon console and `DATABASE_URL_TEST`. Vercel's official MCP server was connected and used read-only (see MCP below).
+The Stripe and Neon plugins were installed. Their account tools were never authenticated, so nothing read or changed the Stripe account or the Neon project through them. The Stripe plugin's best-practices skill set the payout-rails Connect design: Accounts v2 recipient accounts, a capability check before each transfer, and no legacy account types. Its docs search, along with docs.stripe.com's Markdown pages, stood in for the Stripe CLI, which isn't installed. Other Stripe research used the published `mppx` and `stripe` packages, and Neon work used the Neon console and `DATABASE_URL_TEST`. <!-- Owen: check that this matches how you think of the plugins. --> Vercel's official MCP server was connected and used read-only (see MCP below).
 
 ## Specs first, code second
 
-AgentVault has seven specs in `.kiro/specs/` (money-and-policy-core, audit-and-approvals, rail-adapters, taint-and-intent, telemetry-dashboard, demo-agents, mcp-server). Each has EARS requirements with IDs (`ENV-3`, `TAINT-6`, `HITL-2`), a design with numbered correctness properties, and a task list. Test names start with the requirement ID they cover, so `grep ENV-8` finds the rule, the design, the task, and the tests.
+AgentVault has eight specs in `.kiro/specs/` (money-and-policy-core, audit-and-approvals, rail-adapters, taint-and-intent, telemetry-dashboard, demo-agents, mcp-server, payout-rails). Each has EARS requirements with IDs (`ENV-3`, `TAINT-6`, `HITL-2`), a design with numbered correctness properties, and a task list. Test names start with the requirement ID they cover, so `grep ENV-8` finds the rule, the design, the task, and the tests.
 
 Writing the specs caught design bugs before any code existed:
 
@@ -38,8 +38,13 @@ Writing the specs caught design bugs before any code existed:
 - **A demo that couldn't show its own point.** If the prompt-injection task didn't allow `stripe.refund`, intent scope would deny the refund before the taint rule ever ran. The task now allows it, so the hold comes from taint.
 - **An approval that could never run.** An approval re-run that reused the original idempotency key would replay the stored "held" response forever. Re-runs use `approval:<id>`.
 - **Platform limits.** Vercel Hobby only allows daily cron jobs, so the reconciler also runs after each request with Next.js `after()`.
+- **A payout that rounded the wrong way.** `payout.create` was first registered as a debit. A payout sends money out, so the payee's amount must round down to the cent while the envelope counts the full amount.
+- **A destination read too early.** If a payout took its destination when it was requested, denying an injected payee change wouldn't help: the held payout would still carry the attacker's account. The spec has payouts read the destination when they run, so denying the change and approving the payout pays the supplier.
+- **One visitor's approval leaking into another's demo.** In the shared sandbox, one visitor approving the hijack would leave the supplier pointing at the attacker until the nightly reset. Each payee hijack run now gets its own supplier row.
 
 **Compared to vibe coding.** <!-- Owen: this paragraph is yours to write; some true points to draw on: --> Payment code fails quietly: a rounding direction or a missing lock produces a wrong number, not an error. Vibe coding would have produced working-looking code with those bugs in it. With specs, each rule had an ID, a planned property, and a task before any code, so Kiro implemented one task at a time against a fixed target, and the post-task hook ran the full suite after each one.
+
+The payout-rails spec also required a probe of each rail before any adapter was written, and the design changed when the probes disagreed with the docs. PayPal refuses a resent `sender_batch_id` instead of returning the original batch, and has no read-only lookup by it, so AgentVault now stores PayPal's own batch ID on the reservation (PO-25) and treats a duplicate refusal as unknown, never as a failure. Stripe answers a reused idempotency key with different parameters with `idempotency_error`, which also means a request under that key already exists, so it's unknown too. The Canadian Stripe sandbox couldn't create recipient accounts until the platform took on loss liability in its Connect platform profile, which only Owen could change in the Dashboard.
 
 Specs kept catching gaps during implementation. While writing `appendEvent`, the design turned out never to check the chain head's HMAC before extending it, so an attacker could delete the tail, roll the head back, and let the next normal append re-sign the forgery. While reading the mcp-server spec, nothing handed MCP clients a session, which led to `pnpm mcp:agent`.
 
@@ -55,7 +60,7 @@ Steering files in `.kiro/steering/` held the rules that every change had to foll
 
 **The strategy that made the biggest difference:** turning each steering rule into something a tool checks. "Floats never touch money" is in steering, and the no-float-money hook runs `pnpm check:money` on every save. "`src/core` does no I/O" is in steering, and an ESLint rule enforces it. "Kiroween mode changes styling and copy only" is in steering, and a property test runs two sandboxes in lockstep to prove it. Steering told Kiro the rule; the check caught the times it didn't follow it.
 
-The steering changed when the facts did. A measured x402 minimum on Base Sepolia ($0.001) replaced a guessed 0.01 USDC minimum that would have rejected the sandbox's $0.0015 payment.
+The steering changed when the facts did. A measured x402 minimum on Base Sepolia ($0.001) replaced a guessed 0.01 USDC minimum that would have rejected the sandbox's $0.0015 payment. The payout minimums in `money-arithmetic.md` were placeholders until the probes measured 1 cent on both Stripe Connect and PayPal. When the payout rails were added, `security-standards.md` gained two rules first: any Stripe object returned with `livemode: true` is an invalid response, and PayPal calls are refused outside the sandbox host.
 
 ## Hooks
 
@@ -68,7 +73,7 @@ Seven hooks in `.kiro/hooks/`:
 | no-float-money | Save of a `.ts` file | Runs `pnpm check:money`. It flagged the fake Stripe account's cents fields, which now carry an explicit exemption with a reason. |
 | test-on-save | Save in `src/core` | Runs the pure-core unit and property tests. |
 | post-task-verify | After a spec task | Runs typecheck, lint, and the full test suite. |
-| spec-trace | Save of a `requirements.md` | Lists requirement IDs with no task or no planned test. It found 13 taint-and-intent IDs and 15 demo-agents IDs that the designs never named. |
+| spec-trace | Save of a `requirements.md` | Lists requirement IDs with no task or no planned test. It found 13 taint-and-intent IDs and 15 demo-agents IDs that the designs never named, and the new PO-25 missing from the payout-rails tasks and testing strategy. |
 | devlog | End of a turn | Appends to `docs/KIRO_LOG.md`, the raw material for this write-up. |
 
 ## Property-based tests that found real bugs
@@ -87,6 +92,8 @@ For each safeguard, I broke it in the code, checked that a test failed, and rest
 - **Weak tests found by mutation.** The first taint property only checked that a privileged call after a taint is never `allow`. Most generated requests were denied by other rules anyway, so a broken taint rule passed. The test now also requires `HELD_TAINTED`, and a second form generates requests every other rule allows. The model-based approvals test missed an off-by-one in expiry, because random clocks almost never landed exactly on an expiry; a command now jumps to an expiry ± 1 ms, and the mutation fails on the first run (seed `-2124937188`).
 - **The reconciler.** Treating an "unknown" rail outcome as failed (which would release money without proof) fails property 6 with seed `2017577166`.
 - **The live AI agent.** Making a low drift score drop hold reasons failed taint-and-intent property 3 after 4 cases: a tainted privileged call with score 0. The LLM can add a hold but never remove one.
+- **The payout destination.** Taking a payout's destination from the request's arguments instead of the vendor row failed payout-rails property 1 and the PO-4 test. Storing a new payee before the rail checks it failed property 1 and four payee tests.
+- **Uncertain payouts.** Mapping PayPal's `PENDING` to failed, which would release a reservation for a payout that may still pay, failed 11 tests, including property 5 and the replay of the recorded probe. Treating Stripe's `idempotency_error` as a confirmed failure failed a contract test and a unit test.
 - **The theme boundary.** Kiroween mode must change only styling and copy. A property runs two sandboxes in lockstep, one per theme, and requires identical responses and audit events. A response made to depend on the cookie's length failed it on the first case.
 
 ## MCP, both directions
@@ -104,8 +111,9 @@ The optional Gemini agent (`gemini-3.5-flash-lite`, free tier) runs three scenar
 - **Parallel batches.** Several times, two edits to one file, or a mutation check's backup and its edit, went out in the same parallel batch. Once the backup captured the mutated file, the restore left the bug in place, and I changed a test twice before reading the code and finding the mutation. The tests caught it before any commit. The working rule is now one dependent step per call.
 - **Shell quoting.** PowerShell expanded `${…}` inside a replacement string and turned two `aria-label`s into `" bot"`. A component test's accessible-name query caught it.
 - **Calling a failure a one-off.** The end-to-end test's reload loop was first dismissed as a one-off. It came back; the test's dev server now builds into its own folder, which fixed the failures seen so far. The cause is still unknown.
+- **Mis-decoded characters.** To commit one change in `copy.ts` apart from another, Kiro rebuilt the file from `git show` output read through PowerShell, which mis-decoded six ellipsis characters, and committed that. A follow-up commit restored them from the earlier commit's bytes. The working rule is now to write `git show` to a file and read it as UTF-8.
 - **False reports.** The first two traceability rechecks reported every requirement as untested, because of a regex quoting mistake and then a search of file names instead of contents.
 
 ## Numbers
 
-About 1,270 Vitest tests (unit, property, and integration) and 7 Playwright tests; Lighthouse accessibility, best practices, and SEO 100 on the overview in both themes.
+About 1,460 Vitest tests (unit, property, and integration) and 8 Playwright tests; Lighthouse accessibility, best practices, and SEO 100 on the overview in both themes.
