@@ -4,7 +4,7 @@ AgentVault is a security proxy between AI agents and payment rails (Stripe MPP a
 
 **Live sandbox:** <https://owen-agentvault.vercel.app> (no login, mock rails, no real money)
 
-![The live feed: five $0.0015 weather payments allowed, and a $480 refund held because the session read an untrusted page](docs/images/live-feed.png)
+![The live feed after a Payee hijack run: the injected payout account change (payee.update) and the $900 payout are both held because the session read an untrusted invoice; after a person denied the change and approved the payout, it was paid out to the supplier's account on file](docs/images/payee-hijack-feed.png)
 
 ## Why
 
