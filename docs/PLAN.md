@@ -25,9 +25,9 @@ Deployment target: Vercel **Hobby**. Cron jobs run at most once per day (see `te
 | 17 | Dec 1 (optional, cut first) | demo-agents tasks 5–6; taint-and-intent task 7 | Nov 16 |
 | 18 | Dec 2 | telemetry-dashboard task 9 (polish, nightly reset cron) | Nov 16 |
 | 19 | Nov 16–19 | Real rails through AgentVault: rail-adapters task 9 (payment URLs), then a testnet workspace where an agent's `x402.pay` and `mpp.pay` over the HTTP API settle for real | Task 9 done Nov 16 |
-| 20 | Nov 20–22 | payout-rails tasks 1–4: steering, account setup and probes, `payout` on the rail interface, payouts and payee changes in the guarded flow | |
-| 21 | Nov 23–24 | payout-rails tasks 5–6: the Stripe Connect and PayPal sandbox adapters | |
-| 22 | Nov 25–26 | payout-rails tasks 7–8: the Payee hijack scenario and the docs | |
+| 20 | Nov 20–22 | payout-rails tasks 1–4: steering, account setup and probes, `payout` on the rail interface, payouts and payee changes in the guarded flow | Nov 16 |
+| 21 | Nov 23–24 | payout-rails tasks 5–6: the Stripe Connect and PayPal sandbox adapters | Nov 16 |
+| 22 | Nov 25–26 | payout-rails tasks 7–8: the Payee hijack scenario and the docs | Nov 16, except the `/validate-mpp` rerun |
 | 23 | Nov 27–28 | Reliability through judging (Jan 29): the end-to-end reload loop, a cron and quota check; a pending-approvals count; `/llms.txt` | |
 | — | Nov 29–Dec 3 | Submission: demo video, Kiro write-up, blog and social posts, final deploy check | In progress |
 
