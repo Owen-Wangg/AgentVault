@@ -1,0 +1,2 @@
+ALTER TABLE "spend_reservations" ADD COLUMN "rail_ref" text;--> statement-breakpoint
+ALTER TABLE "spend_reservations" ADD CONSTRAINT "spend_reservations_rail_ref_check" CHECK ("spend_reservations"."rail_ref" IS NULL OR length("spend_reservations"."rail_ref") <= 255);

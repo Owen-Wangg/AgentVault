@@ -212,11 +212,14 @@ export const spendReservations = pgTable(
     rail: text("rail").notNull(),
     railIdempotencyKey: text("rail_idempotency_key").notNull().unique(),
     decisionSeq: integer("decision_seq").notNull(),
+    /** The rail's reference for an outcome not known yet, such as PayPal's payout_batch_id, for the reconciler's lookup (payout-rails PO-25). */
+    railRef: text("rail_ref"),
     createdAt: createdAt(),
     resolvedAt: tz("resolved_at"),
   },
   (t) => [
     check("spend_reservations_status_check", sql`${t.status} IN ('reserved', 'settled', 'released')`),
+    check("spend_reservations_rail_ref_check", sql`${t.railRef} IS NULL OR length(${t.railRef}) <= 255`),
     check("spend_reservations_amount_check", sql`${t.amountMicros} >= 0`),
     index("spend_reservations_agent_created_idx").on(t.agentId, t.createdAt),
     index("spend_reservations_session_idx").on(t.sessionId),

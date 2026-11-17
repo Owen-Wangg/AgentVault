@@ -11,6 +11,7 @@ import type { Database } from "@/server/db/client";
 import { spendReservations, vendors } from "@/server/db/schema";
 import { createTestDb } from "@/server/db/test-db";
 import { type GuardedBody, type GuardedDeps, runGuardedRequest } from "./guarded";
+import { STALE_AFTER_MS, reconcile } from "./reconcile";
 import { OPEN_ENVELOPE, type Scene, createScene, eventsOf, expectAuditBeforeSpend, taintSession, testDeps } from "./test-fixtures";
 
 /**
@@ -280,5 +281,54 @@ describe("payout-rails design, Vendor registry: destination constraints", () => 
     await expect(db().insert(vendors).values({ ...row, name: "bad-email", paypalReceiver: "not-an-email" })).rejects.toThrow();
     await expect(db().insert(vendors).values({ ...row, name: "long-email", paypalReceiver: `${"a".repeat(60)}@${"b".repeat(200)}.com` })).rejects.toThrow();
     await db().insert(vendors).values({ ...row, name: "good", stripeAccount: SUPPLIER_ACCT, paypalReceiver: SUPPLIER_PAYPAL });
+  });
+});
+
+describe("PO-25: a payout whose outcome isn't known yet keeps the rail's reference", () => {
+  /** The paypal mock, made to answer like a PayPal batch still PENDING after the adapter's wait. */
+  function pendingPayPal(mocks: MockRails, lookups: { key: string; railRef: string | undefined }[]) {
+    return Object.assign(Object.create(mocks.paypal) as RailAdapter, {
+      payout: async () => ({ ok: false as const, code: "RAIL_TIMEOUT" as const, detail: "PayPal still reports the payout PENDING", pendingRef: "BATCH7NTGZG9" }),
+      lookup: async (key: string, ctx: { railRef?: string } = {}) => {
+        lookups.push({ key, railRef: ctx.railRef });
+        return ctx.railRef === "BATCH7NTGZG9" ? { status: "settled" as const, ref: "ITEM6FAKU6", settledMicros: micros(1_000_000n) } : { status: "unknown" as const };
+      },
+    });
+  }
+
+  it("PO-25: the batch ID is stored on the reservation and in rail_result, and the reservation stays reserved", async () => {
+    const scene = await supplierScene();
+    const { deps, mocks } = testDeps(db());
+    const paypal = pendingPayPal(mocks, []);
+    const flow = { ...deps, railFor: (r: Parameters<typeof deps.railFor>[0], w: { isSandbox: boolean }) => (r === "paypal" ? paypal : deps.railFor(r, w)) };
+    const r = await run(scene, flow, payoutBody(scene, "paypal.payout", "1"));
+    expect(r).toMatchObject({ status: 202, body: { decision: "allow", rail_status: "unknown" } });
+    const [reservation] = await db().select().from(spendReservations).where(eq(spendReservations.agentId, scene.agent.id));
+    expect(reservation).toMatchObject({ status: "reserved", railRef: "BATCH7NTGZG9", amountMicros: micros(1_000_000n) });
+    expect((await eventsOf(db(), scene.workspaceId)).at(-1)?.payload).toMatchObject({ status: "unknown", code: "RAIL_TIMEOUT", rail_ref: "BATCH7NTGZG9", payout_to: SUPPLIER_PAYPAL });
+  });
+
+  it("PO-25: the reconciler passes the stored batch ID to lookup() and settles the reservation", async () => {
+    const scene = await supplierScene();
+    const { deps, mocks, clock } = testDeps(db());
+    const lookups: { key: string; railRef: string | undefined }[] = [];
+    const paypal = pendingPayPal(mocks, lookups);
+    const flow = { ...deps, railFor: (r: Parameters<typeof deps.railFor>[0], w: { isSandbox: boolean }) => (r === "paypal" ? paypal : deps.railFor(r, w)) };
+    await run(scene, flow, payoutBody(scene, "paypal.payout", "1"));
+    clock.advance(STALE_AFTER_MS);
+    const summary = await reconcile({ db: db(), key: TEST_HEAD_KEY, now: clock.now, railFor: flow.railFor, log: () => {} }, { agentId: scene.agent.id });
+    expect(summary).toMatchObject({ checked: 1, settled: 1 });
+    const [reservation] = await db().select().from(spendReservations).where(eq(spendReservations.agentId, scene.agent.id));
+    expect(lookups).toEqual([{ key: reservation?.id, railRef: "BATCH7NTGZG9" }]);
+    expect(reservation).toMatchObject({ status: "settled" });
+    expect((await eventsOf(db(), scene.workspaceId)).at(-1)?.payload).toMatchObject({ status: "settled", reconciled: true, rail_ref: "ITEM6FAKU6" });
+  });
+
+  it("PO-25: a settled or failed outcome stores no pending reference", async () => {
+    const scene = await supplierScene();
+    const { deps } = testDeps(db());
+    await run(scene, deps, payoutBody(scene, "paypal.payout", "1"));
+    const [reservation] = await db().select().from(spendReservations).where(eq(spendReservations.agentId, scene.agent.id));
+    expect(reservation).toMatchObject({ status: "settled", railRef: null });
   });
 });

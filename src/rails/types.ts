@@ -68,6 +68,8 @@ export interface RailContext {
    * can later prove that an unused authorization can never be used.
    */
   reservedAt?: Date;
+  /** For lookup(): the `pendingRef` an earlier call returned, stored on the reservation (PO-25). */
+  railRef?: string;
 }
 
 export interface RailQuote {
@@ -85,7 +87,18 @@ export type RailFailureCode = (typeof CONFIRMED_FAILURE_CODES)[number] | (typeof
 
 export type RailResult =
   | { ok: true; ref: string; explorerUrl?: string; vendorBody?: unknown; settledMicros: Micros }
-  | { ok: false; code: RailFailureCode; detail?: string };
+  | {
+      ok: false;
+      code: RailFailureCode;
+      detail?: string;
+      /**
+       * The rail's own reference for an outcome that isn't known yet, such
+       * as PayPal's payout_batch_id (payout-rails PO-25). Only unknown codes
+       * carry it. The server stores it on the reservation and passes it
+       * back to lookup() as `railRef`.
+       */
+      pendingRef?: string;
+    };
 
 export type RailLookup =
   | { status: "settled"; ref: string; explorerUrl?: string; settledMicros: Micros }

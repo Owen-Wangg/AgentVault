@@ -527,6 +527,8 @@ async function recordOutcome(
   const outcome = classifyRailResult(result);
   const ok = "ok" in result && result.ok ? result : null;
   const failure = "ok" in result && !result.ok ? result : null;
+  // Only an unknown outcome keeps a pending reference: a settled one has its own ref, and a failed one is released.
+  const pendingRef = outcome === "unknown" && failure?.pendingRef ? failure.pendingRef.slice(0, 255) : undefined;
   const payload = {
     status: outcome,
     rail: pending.rail?.railName ?? null,
@@ -535,7 +537,8 @@ async function recordOutcome(
     refund_of: pending.rail?.refundOf,
     // PO-24: where a payout was sent, read from the registry when it ran.
     payout_to: payoutTo ?? undefined,
-    rail_ref: ok?.ref || undefined,
+    // PO-25: an unknown outcome may still carry the rail's reference, for the reconciler.
+    rail_ref: ok?.ref || pendingRef || undefined,
     explorer_url: ok?.explorerUrl,
     // A tool with no rail moves no money, so it has no settled amount.
     settled_micros: pending.rail ? ok?.settledMicros : undefined,
@@ -547,6 +550,12 @@ async function recordOutcome(
     await tx
       .update(spendReservations)
       .set({ status: outcome === "settled" ? "settled" : "released", resolvedAt: now })
+      .where(and(eq(spendReservations.id, pending.rail.reservationId), eq(spendReservations.status, "reserved")));
+  } else if (pending.rail && pendingRef) {
+    // PO-25: the reservation stays reserved, with the reference the reconciler's lookup needs.
+    await tx
+      .update(spendReservations)
+      .set({ railRef: pendingRef })
       .where(and(eq(spendReservations.id, pending.rail.reservationId), eq(spendReservations.status, "reserved")));
   }
 

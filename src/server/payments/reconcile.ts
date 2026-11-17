@@ -33,11 +33,10 @@ export const REVIEW_AFTER_MS = 24 * 60 * 60_000;
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60_000;
 /**
  * Rails whose lookup() can resolve a reservation. Stripe's covers
- * payments, refunds, and Connect payouts (payout-rails PO-8). PayPal is
- * left out until its adapter exists (payout-rails task 6), so its
- * reservations stay reserved.
+ * payments, refunds, and Connect payouts (payout-rails PO-8). PayPal's
+ * reads the batch whose ID the payout stored on the reservation (PO-25).
  */
-const RAILS: ReadonlySet<string> = new Set<Rail>(["stripe", "x402", "mock"]);
+const RAILS: ReadonlySet<string> = new Set<Rail>(["stripe", "x402", "mock", "paypal"]);
 
 export interface ReconcileDeps {
   db: Db;
@@ -72,7 +71,12 @@ async function lookUp(deps: ReconcileDeps, c: Candidate): Promise<RailLookup> {
   // railFor sends sandbox reservations to the mock adapter, whatever RAIL_MODE says (RAIL-2).
   const adapter = deps.railFor(c.rail as Rail, { isSandbox: c.isSandbox });
   // reservedAt is the same created_at the original execute() got, so the x402 adapter can rebuild the authorization's deadline.
-  return adapter.lookup(c.railIdempotencyKey, { signal: AbortSignal.timeout(deps.lookupTimeoutMs ?? RAIL_TIMEOUT_MS), reservedAt: c.createdAt });
+  // railRef is what an unknown outcome stored for this lookup, such as PayPal's batch ID (PO-25).
+  return adapter.lookup(c.railIdempotencyKey, {
+    signal: AbortSignal.timeout(deps.lookupTimeoutMs ?? RAIL_TIMEOUT_MS),
+    reservedAt: c.createdAt,
+    ...(c.railRef ? { railRef: c.railRef } : {}),
+  });
 }
 
 interface Candidate {
@@ -83,6 +87,7 @@ interface Candidate {
   isSandbox: boolean;
   rail: string;
   railIdempotencyKey: string;
+  railRef: string | null;
 }
 
 /** Resolve stale reservations (RES-6). Safe to run concurrently with itself and with live requests. */
@@ -100,6 +105,7 @@ export async function reconcile(deps: ReconcileDeps, options: ReconcileOptions =
       isSandbox: workspaces.isSandbox,
       rail: spendReservations.rail,
       railIdempotencyKey: spendReservations.railIdempotencyKey,
+      railRef: spendReservations.railRef,
     })
     .from(spendReservations)
     .innerJoin(agents, eq(agents.id, spendReservations.agentId))
