@@ -40,7 +40,8 @@ Plan (`docs/PLAN.md`): **Phase 20** = tasks 1–4. **Phase 21** = tasks 5–6. *
   - Fixed sandbox host and the `PAYPAL_ENV` check; OAuth token cache; payout batch with `sender_batch_id`; status mapping; lookup as the probe allows
   - Contract tests on recorded exchanges (`pnpm paypal:probe --record`); `@live` test of a guarded $1.00 payout
   - Property 5
-  - _Requirements: PO-15, PO-16, PO-17_
+  - Migration 0005 (`spend_reservations.rail_ref`); `pendingRef` on unknown results, stored by the flow and passed to `lookup()` by the reconciler; `paypal` in the reconciler's rail list
+  - _Requirements: PO-15, PO-16, PO-17, PO-25_
 
 - [ ] 7. Add the Payee hijack scenario
   - `acme-supplies` in the sandbox seed, the poisoned invoice page `/vendor/docs/invoice`, the task, the envelope, and the scripted steps
