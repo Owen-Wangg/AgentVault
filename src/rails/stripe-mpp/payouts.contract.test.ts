@@ -22,7 +22,7 @@ interface Exchange {
 }
 const rec = JSON.parse(readFileSync(new URL("../__fixtures__/stripe-connect/transfer-probe.json", import.meta.url), "utf8")) as { api_version: string; exchanges: Exchange[] };
 const step = (name: string) => rec.exchanges.filter((e) => e.step === name);
-const withoutDescription = ({ description: _, ...rest }: Record<string, string>) => rest;
+const withoutDescription = (params: Record<string, string>) => Object.fromEntries(Object.entries(params).filter(([name]) => name !== "description"));
 
 const [firstTransfer] = step("transfer $1.00");
 if (!firstTransfer) throw new Error("the recording has no $1.00 transfer");
