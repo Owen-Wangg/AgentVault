@@ -1,6 +1,7 @@
 import { loadRailConfig, loadStripeConfig, loadX402PayerConfig } from "./config";
 import type { RailForOptions } from "./select";
 import { StripeMppRail } from "./stripe-mpp/adapter";
+import { StripeConnectPayouts } from "./stripe-mpp/payouts";
 import { StripeApi } from "./stripe-mpp/stripe-api";
 import { X402Rail } from "./x402/adapter";
 
@@ -28,8 +29,10 @@ let cached: RailForOptions["real"] | null = null;
 function buildReal(env: Env): NonNullable<RailForOptions["real"]> {
   const payer = loadX402PayerConfig(env);
   const stripe = loadStripeConfig(env);
+  // One client for MPP payments and Connect payouts. Connect calls pin their own API version.
+  const api = new StripeApi({ secretKey: stripe.secretKey() });
   return {
     x402: new X402Rail({ account: payer.account, minUnits: payer.minUnits }),
-    stripe: new StripeMppRail({ api: new StripeApi({ secretKey: stripe.secretKey() }), profileId: stripe.profileId }),
+    stripe: new StripeMppRail({ api, profileId: stripe.profileId, payouts: new StripeConnectPayouts(api) }),
   };
 }

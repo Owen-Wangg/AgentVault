@@ -35,7 +35,7 @@ describe("rail adapter interface", () => {
     await expect(rail.checkDestination("acct_1Supplier")).resolves.toMatchObject({ ok: false, code: "RAIL_REJECTED" });
   });
 
-  it("PO-1: the Stripe adapter refuses payouts without contacting Stripe until Connect payouts are built", async () => {
+  it("PO-1: the Stripe adapter without Connect payouts configured refuses payouts without contacting Stripe", async () => {
     const rail: RailAdapter = new StripeMppRail({ api: new StripeApi({ secretKey: "sk_test_x", fetch: noNetwork }), profileId: "profile_test_x", fetch: noNetwork });
     const req = { destination: "acct_1Supplier", amountMicros: micros(1_000_000n), idempotencyKey: "k" };
     await expect(rail.payout(req)).resolves.toMatchObject({ ok: false, code: "RAIL_REJECTED" });

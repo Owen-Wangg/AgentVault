@@ -18,7 +18,18 @@ export function stripeChargeCents(price: Micros): string {
   return toRailUnits(price, "stripe", "debit").toString();
 }
 
-/** The Dashboard page for a test-mode PaymentIntent or Refund. */
+/**
+ * The GA API version for Stripe Connect, which serves both Accounts v2
+ * and v1 Transfers (measured by `pnpm connect:probe`, payout-rails task 2).
+ */
+export const CONNECT_API_VERSION = "2026-10-28.endive";
+
+/** Stripe's minimum transfer, in cents, measured by `pnpm connect:probe` (PO-22). */
+export const STRIPE_TRANSFER_MINIMUM_CENTS = 1n;
+
+/** The Dashboard page for a test-mode PaymentIntent, Refund, or Transfer. */
 export function stripeDashboardUrl(ref: string): string {
-  return ref.startsWith("re_") ? `https://dashboard.stripe.com/test/refunds/${ref}` : `https://dashboard.stripe.com/test/payments/${ref}`;
+  if (ref.startsWith("re_")) return `https://dashboard.stripe.com/test/refunds/${ref}`;
+  if (ref.startsWith("tr_")) return `https://dashboard.stripe.com/test/connect/transfers/${ref}`;
+  return `https://dashboard.stripe.com/test/payments/${ref}`;
 }

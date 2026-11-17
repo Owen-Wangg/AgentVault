@@ -31,6 +31,12 @@ export const STALE_AFTER_MS = 10 * 60_000;
 /** Reservations still unknown after this long are listed by `pnpm reconcile` for manual review. Listing never releases. */
 export const REVIEW_AFTER_MS = 24 * 60 * 60_000;
 const IDEMPOTENCY_TTL_MS = 24 * 60 * 60_000;
+/**
+ * Rails whose lookup() can resolve a reservation. Stripe's covers
+ * payments, refunds, and Connect payouts (payout-rails PO-8). PayPal is
+ * left out until its adapter exists (payout-rails task 6), so its
+ * reservations stay reserved.
+ */
 const RAILS: ReadonlySet<string> = new Set<Rail>(["stripe", "x402", "mock"]);
 
 export interface ReconcileDeps {

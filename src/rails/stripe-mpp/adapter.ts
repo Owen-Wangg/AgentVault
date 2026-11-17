@@ -1,9 +1,10 @@
 import { Challenge, Credential, Receipt } from "mppx";
 import { z } from "zod";
 import { fromRailUnits, toRailUnits } from "@/core/money";
-import type { DestinationCheck, RailAdapter, RailContext, RailLookup, RailQuote, RailRequest, RailResult, RefundRequest } from "../types";
+import type { DestinationCheck, PayoutRequest, RailAdapter, RailContext, RailLookup, RailQuote, RailRequest, RailResult, RefundRequest } from "../types";
 import { NO_PAYMENT_URL, isPaymentUrl } from "../url";
 import { STRIPE_SPT_MINIMUM_CENTS, stripeDashboardUrl } from "./constants";
+import type { StripeConnectPayouts } from "./payouts";
 import { type StripeApi, StripeApiError, StripeResponseError } from "./stripe-api";
 
 /**
@@ -87,6 +88,8 @@ export interface StripeMppRailOptions {
   /** For the vendor requests. Tests replay recorded responses through it. */
   fetch?: typeof fetch;
   now?: () => Date;
+  /** Stripe Connect payouts (payout-rails task 5). Without it, payout() and checkDestination() refuse without a call. */
+  payouts?: StripeConnectPayouts;
 }
 
 const isAbort = (error: unknown) => error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError");
@@ -98,8 +101,10 @@ export class StripeMppRail implements RailAdapter {
   private readonly profileId: string;
   private readonly fetchFn: typeof fetch;
   private readonly now: () => Date;
+  private readonly payouts: StripeConnectPayouts | undefined;
 
   constructor(options: StripeMppRailOptions) {
+    this.payouts = options.payouts;
     this.api = options.api;
     this.profileId = options.profileId;
     this.fetchFn = options.fetch ?? globalThis.fetch;
@@ -225,22 +230,27 @@ export class StripeMppRail implements RailAdapter {
   }
 
   /**
-   * payout-rails PO-1: Connect payouts arrive in task 5. Until then this
-   * refuses without contacting Stripe, so a real-mode payout fails closed.
+   * payout-rails PO-5 to PO-7: a Stripe Connect transfer, through the
+   * `payouts` option. Without it this refuses without contacting Stripe,
+   * so a payout fails closed.
    */
-  async payout(): Promise<RailResult> {
-    return { ok: false, code: "RAIL_REJECTED", detail: "Stripe Connect payouts aren't available yet; nothing was sent" };
+  async payout(req: PayoutRequest, ctx: RailContext = {}): Promise<RailResult> {
+    if (!this.payouts) return { ok: false, code: "RAIL_REJECTED", detail: "Stripe Connect payouts aren't configured; nothing was sent" };
+    return this.payouts.payout(req, ctx);
   }
 
-  /** PO-1: refuses without contacting Stripe until the Connect check arrives in task 5. */
-  async checkDestination(): Promise<DestinationCheck> {
-    return { ok: false, code: "RAIL_REJECTED", detail: "Stripe Connect payouts aren't available yet" };
+  /** PO-6, PO-11: the Accounts v2 capability check, or a refusal without a call when payouts aren't configured. */
+  async checkDestination(destination: string, ctx: RailContext = {}): Promise<DestinationCheck> {
+    if (!this.payouts) return { ok: false, code: "RAIL_REJECTED", detail: "Stripe Connect payouts aren't configured" };
+    return this.payouts.checkDestination(destination, ctx);
   }
 
   /**
-   * RAIL-21: what happened to the payment or refund for this key. RAIL-22:
-   * only lists objects. Errors are thrown; the reconciler treats them as
-   * unknown.
+   * RAIL-21: what happened to the payout, payment, or refund for this key.
+   * RAIL-22: only lists objects. Errors are thrown; the reconciler treats
+   * them as unknown.
+   * - With Connect payouts configured, transfers in the key's
+   *   transfer_group come first (PO-8).
    * - Refunds and PaymentIntents created around the reservation are
    *   listed, and matched on `metadata.idempotency_key`. List endpoints,
    *   unlike search, reflect writes at once.
@@ -251,6 +261,11 @@ export class StripeMppRail implements RailAdapter {
    *   vendor that didn't could still have charged the SPT.
    */
   async lookup(idempotencyKey: string, ctx: RailContext = {}): Promise<RailLookup> {
+    // PO-8: a payout is found by its transfer_group, with no time window. No transfer means the key isn't a payout.
+    if (this.payouts) {
+      const transfer = await this.payouts.lookup(idempotencyKey, ctx);
+      if (transfer) return transfer;
+    }
     if (!ctx.reservedAt) return { status: "unknown" };
     const from = unixSeconds(ctx.reservedAt) - CLOCK_MARGIN_SECONDS;
     const to = sptExpiresAt(ctx.reservedAt) + CLOCK_MARGIN_SECONDS;

@@ -38,6 +38,12 @@ describe("railOptions", () => {
     expect(railFor("stripe", { isSandbox: true }, railOptions(realEnv))).toBeInstanceOf(MockRail);
   });
 
+  it("PO-6: real mode's Stripe adapter has Connect payouts wired in, so a payee check reaches the Connect code", async () => {
+    const adapter = railFor("stripe", { isSandbox: false }, railOptions(realEnv));
+    // A malformed destination is refused by the Connect code before any network call.
+    expect(await adapter.checkDestination("not-an-account")).toMatchObject({ ok: false, code: "RAIL_REJECTED", detail: "not a Stripe account ID; nothing was sent" });
+  });
+
   it("an adapter that isn't configured still fails closed", () => {
     expect(() => railFor("stripe", { isSandbox: false }, { config: railOptions(realEnv).config, real: {} })).toThrow(RailUnavailableError);
   });

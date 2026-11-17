@@ -14,11 +14,12 @@
 import { z } from "zod";
 import { fromDecimalString, toDisplay, toRailUnits } from "@/core/money";
 import { loadStripeConfig } from "@/rails/config";
+import { CONNECT_API_VERSION } from "@/rails/stripe-mpp/constants";
 import { StripeApi, StripeApiError } from "@/rails/stripe-mpp/stripe-api";
 import { loadLocalEnv } from "./lib/load-env";
 
-/** The GA version, which serves both Accounts v2 and v1 Transfers (checked by `pnpm connect:probe`). */
-export const CONNECT_API_VERSION = "2026-10-28.endive";
+/** The GA version, which serves both Accounts v2 and v1 Transfers (checked by `pnpm connect:probe`). The payout adapter pins the same one. */
+export { CONNECT_API_VERSION };
 
 export const ROLES = {
   // example.com, as in Stripe's own recipient-account example: no real inbox.
