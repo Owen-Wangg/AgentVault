@@ -18,6 +18,7 @@
     "test:live": "vitest run --mode live",
     "test:e2e": "tsx scripts/e2e.ts",
     "verify": "pnpm typecheck && pnpm lint && pnpm test --run",
+    "verify:local": "pnpm typecheck && pnpm lint && pnpm test --run --mode pglite",
     "check:money": "tsx scripts/check-money.ts",
     "check:kiro": "node scripts/check-kiro-not-ignored.mjs",
     "demo:policy": "tsx scripts/demo-policy.ts",

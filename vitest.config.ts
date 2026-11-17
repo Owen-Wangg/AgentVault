@@ -53,8 +53,11 @@ function liveEnv(): Record<string, string> {
 
 // Tests whose name contains "@live" hit real testnets or Stripe test mode
 // (testing-standards.md). `pnpm test` skips them; `pnpm test:live` runs only them.
+// `--mode pglite` (`pnpm verify:local`) runs every integration test on in-memory PGlite, even
+// with DATABASE_URL_TEST set, so a routine run doesn't spend the Neon project's free compute
+// hours (docs/OPERATIONS.md). The tests that need real concurrent connections skip.
 export default defineConfig(({ mode }) => {
-  const databaseUrlTest = testDatabaseUrl();
+  const databaseUrlTest = mode === "pglite" ? "" : testDatabaseUrl();
   const live = mode === "live" ? liveEnv() : {};
   return {
     resolve: {
@@ -67,7 +70,8 @@ export default defineConfig(({ mode }) => {
       // resolver refuses. Inlining it lets Vite resolve the import, as Next.js's bundler does.
       server: { deps: { inline: ["@x402/next"] } },
       testNamePattern: mode === "live" ? /@live/ : /^(?!.*@live)/,
-      env: { ...live, ...(databaseUrlTest ? { DATABASE_URL_TEST: databaseUrlTest } : {}) },
+      // An empty value overrides one set in the shell; every reader treats it as unset.
+      env: { ...live, ...(databaseUrlTest !== undefined ? { DATABASE_URL_TEST: databaseUrlTest } : {}) },
     },
   };
 });
