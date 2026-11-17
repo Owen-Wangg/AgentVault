@@ -58,6 +58,8 @@ export interface FeedRow {
   advisoryDriftScore?: number;
   /** Set when this decision's payee.update changed a payout destination (payout-rails PO-12). */
   payeeChange?: { rail: string; oldRef: string | null; newRef: string };
+  /** Where this decision's payout was sent, read from the registry when it ran (payout-rails PO-24). */
+  payoutTo?: string;
 }
 
 const DetailSchema = z
@@ -77,6 +79,7 @@ const RailResultPayload = z.looseObject({
   status: z.enum(["settled", "failed", "unknown"]),
   decision_seq: z.number().int(),
   settled_micros: MicrosSchema.optional(),
+  payout_to: z.string().optional(),
 });
 
 const PayeeUpdatedPayload = z.looseObject({
@@ -120,7 +123,11 @@ export function feedRows(events: readonly AuditEventMessage[]): FeedRow[] {
     if (e.type === "rail_result") {
       const p = RailResultPayload.safeParse(e.payload);
       const row = p.success ? rows.get(p.data.decision_seq) : undefined;
-      if (row && p.success) row.railStatus = p.data.status;
+      if (row && p.success) {
+        row.railStatus = p.data.status;
+        // Only a payout that settled went anywhere; a failed or unknown one shows its status instead.
+        if (p.data.payout_to !== undefined && p.data.status === "settled") row.payoutTo = p.data.payout_to;
+      }
     } else if (e.type === "payee_updated") {
       const p = PayeeUpdatedPayload.safeParse(e.payload);
       const row = p.success ? rows.get(p.data.decision_seq) : undefined;

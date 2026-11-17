@@ -61,6 +61,27 @@ describe("payee changes in the feed", () => {
   });
 });
 
+describe("payout destinations in the feed", () => {
+  const payout = (decisionSeq: number, status: "settled" | "failed" | "unknown", to: unknown) =>
+    ev("rail_result", { status, rail: "stripe", decision_seq: decisionSeq, payout_to: to, ...(status === "settled" ? { settled_micros: "900000000" } : {}) });
+
+  it("PO-24: a settled payout's row says where the money went", () => {
+    const d = decision("allow", "900000000");
+    expect(feedRows([d, payout(d.seq, "settled", "acct_1AcmeSupplies")])[0]?.payoutTo).toBe("acct_1AcmeSupplies");
+  });
+
+  it("PO-24: a payout that failed or isn't known yet names no destination, and a malformed one is skipped", () => {
+    for (const status of ["failed", "unknown"] as const) {
+      const d = decision("allow", "900000000");
+      expect(feedRows([d, payout(d.seq, status, "acct_1AcmeSupplies")])[0]).not.toHaveProperty("payoutTo");
+    }
+    const d = decision("allow", "900000000");
+    const [row] = feedRows([d, payout(d.seq, "settled", 42)]);
+    expect(row).not.toHaveProperty("payoutTo");
+    expect(feedRows([decision("allow", "1500")])[0]).not.toHaveProperty("payoutTo");
+  });
+});
+
 describe("feed rows", () => {
   it("UI-6: one row per decision, newest first, with the rail outcome attached and amounts as exact micros", () => {
     const d1 = decision("allow", "1500");

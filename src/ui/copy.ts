@@ -63,6 +63,7 @@ type UiKey =
   | "feed.payeeChanged"
   | "feed.payeeNone"
   | "feed.payeeTo"
+  | "feed.payoutTo"
   | "agents.title"
   | "agents.empty"
   | "agents.create"
@@ -222,10 +223,10 @@ const defaultCopy: CopyTable = {
   "nav.agents": "Agents",
   "nav.approvals": "Approvals",
   "skip.content": "Skip to content",
-  "state.loading": "Loading…",
+  "state.loading": "LoadingΓÇª",
   "state.error": "Something went wrong loading this. Try again in a moment.",
   "state.retry": "Try again",
-  "state.reconnecting": "Reconnecting…",
+  "state.reconnecting": "ReconnectingΓÇª",
   "state.live": "Live",
   "workspace.sandbox": "Sandbox",
   "workspace.sandboxNote": "Sandbox: mock rails only. Anyone can approve, deny, and unfreeze here, and no real money moves. It starts fresh every night.",
@@ -269,6 +270,7 @@ const defaultCopy: CopyTable = {
   "feed.payeeChanged": "Payout account changed:",
   "feed.payeeNone": "none",
   "feed.payeeTo": "to",
+  "feed.payoutTo": "Paid out to",
   "agents.title": "Agents",
   "agents.empty": "No agents yet.",
   "agents.create": "Create agent",
@@ -336,9 +338,9 @@ const defaultCopy: CopyTable = {
   "scenario.drift.title": "Intent drift",
   "scenario.drift.description": "The agent's task is to buy weather data, but it tries to pay a GPU vendor, and AgentVault denies it as off-task.",
   "scenarios.run": "Run",
-  "scenarios.running": "Running…",
+  "scenarios.running": "RunningΓÇª",
   "scenarios.steps": "Steps",
-  "scenarios.starting": "Starting the run…",
+  "scenarios.starting": "Starting the runΓÇª",
   "scenarios.taintStep": "Read an untrusted page, so the session is now tainted:",
   "scenarios.summary": "Summary",
   "scenarios.requests": "Requests made",
@@ -375,7 +377,7 @@ const defaultCopy: CopyTable = {
   "audit.older": "Older events",
   "audit.newest": "Newest events",
   "audit.verify": "Verify chain",
-  "audit.verifying": "Verifying…",
+  "audit.verifying": "VerifyingΓÇª",
   "audit.verified": "Chain verified.",
   "audit.eventsChecked": "Events checked",
   "audit.headSeq": "Signed head at seq",
@@ -421,7 +423,7 @@ const kiroweenCopy: CopyTable = {
   NEEDS_APPROVAL: "Held: a sum this large needs a living person's blessing.",
   DENY_INTENT_DRIFT: "Denied: the agent wandered off the path of the task it was given.",
   "app.tagline": "Wards for AI agents that spend money: spend limits, taint tracking, and approvals.",
-  "state.loading": "Summoning…",
+  "state.loading": "SummoningΓÇª",
   "agents.frozen": "The Crypt",
   "agents.tainted": "Haunted",
   "agents.unfreeze": "Release from The Crypt",
