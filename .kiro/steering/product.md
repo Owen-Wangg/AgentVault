@@ -22,7 +22,7 @@ AI agents now pay for APIs on their own. Stripe's Machine Payments Protocol (MPP
 4. **Human-in-the-loop approvals**: held requests wait in an inbox. Approving re-runs the policy check.
 5. **Tamper-evident audit log**: a hash-chained, append-only log of every decision, with a "Verify chain" button.
 6. **Live telemetry dashboard**: spend, blocked spend, live feed, approvals, and agents.
-7. **Real rails**: x402 on Base Sepolia and Stripe MPP in test mode, plus mock rails for tests and the sandbox. Payouts (`.kiro/specs/payout-rails`, in progress): Stripe Connect transfers to recipient accounts in test mode, and PayPal sandbox payouts.
+7. **Real rails**: x402 on Base Sepolia and Stripe MPP in test mode, plus mock rails for tests and the sandbox. Payouts (`.kiro/specs/payout-rails`): Stripe Connect transfers to recipient accounts in test mode, and PayPal sandbox payouts. On the hosted site, one "Real testnet payment" button (`.kiro/specs/testnet-demo`) makes a fixed $0.0015 x402 payment on Base Sepolia through the full guarded flow and links its transaction on BaseScan.
 8. **MCP server**: lets any MCP client (Kiro, Claude Desktop) route payments through AgentVault.
 
 ## Demo scenarios (the scripted agent runs these)

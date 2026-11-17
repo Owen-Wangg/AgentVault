@@ -36,7 +36,7 @@ inclusion: always
 
 Why the payout rails (`.kiro/specs/payout-rails`): `payout.create` and `payee.update` send money out or change where it goes, so they're the tools a prompt injection most wants. Stripe Connect gives them a real test-mode rail on the Stripe account the project already has. PayPal adds a second, unrelated provider for `paypal.payout`, to show the same rules hold on a rail AgentVault didn't start with. PayPal's REST API is small enough that an SDK would add a dependency for no gain.
 
-`RAIL_MODE=mock|real` selects the adapter. The public sandbox always uses `mock`.
+`RAIL_MODE=mock|real` selects the adapter. The public sandbox always uses `mock`, and its requests build no real adapter, so a missing real-rail variable can't break it. The hosted site runs `RAIL_MODE=real` for the public testnet workspace (`.kiro/specs/testnet-demo`), with the x402 and Stripe variables on Vercel. Real mode applies to every non-sandbox workspace, but personal workspaces have no vendors, so a payment there is denied before any rail. The agent wallet key there is testnet-only, holds a few dollars of test USDC, and is never logged or sent to the browser.
 
 ## Agents
 - Scripted agent (deterministic, no external calls).

@@ -59,6 +59,7 @@ Rules:
 - Approving **re-runs** the full check (steps 3–9) with the approval attached. If the request now fails another rule, it does not execute.
 - An approval executes at most once. Approve-after-expiry and double-approve are rejected.
 - Outside the sandbox, only a signed-in member of the workspace can approve, deny, or unfreeze. In the public sandbox anyone may, and the sandbox only ever uses mock rails.
+- The public testnet workspace (`.kiro/specs/testnet-demo`) is the only path on the hosted site to a real rail without signing in. The visitor chooses nothing about the payment (the body must be empty): it is always one $0.0015 `x402.pay` on Base Sepolia, as a fixed demo agent, through the full guarded flow. Per-IP and all-visitor limits are checked before anything is created, and the demo agent's envelope caps the day. Its task allows no high-privilege tool, so nothing there can be held for approval.
 - Approval and unfreeze endpoints reject agent API keys (any bearer header) with HTTP 403, in every workspace including the sandbox. The MCP server has no approve or unfreeze tools.
 - Expiry is applied whenever approvals are read or acted on, and each expired approval gets exactly one `approval_expired` audit event.
 
