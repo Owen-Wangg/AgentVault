@@ -43,7 +43,7 @@ Plan (`docs/PLAN.md`): **Phase 20** = tasks 1–4. **Phase 21** = tasks 5–6. *
   - Migration 0005 (`spend_reservations.rail_ref`); `pendingRef` on unknown results, stored by the flow and passed to `lookup()` by the reconciler; `paypal` in the reconciler's rail list
   - _Requirements: PO-15, PO-16, PO-17, PO-25_
 
-- [ ] 7. Add the Payee hijack scenario
+- [x] 7. Add the Payee hijack scenario
   - `acme-supplies` in the sandbox seed, the poisoned invoice page `/vendor/docs/invoice`, the task, the envelope, and the scripted steps
   - Scenario card, steps, and summary on `/scenarios`, with copy in both themes
   - `agentvault_request_tool` accepts `paypal.payout` and `payee.update`'s `rail`
