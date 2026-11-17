@@ -31,7 +31,7 @@ Plan (`docs/PLAN.md`): **Phase 20** = tasks 1–4. **Phase 21** = tasks 5–6. *
   - Property 1
   - _Requirements: PO-4, PO-11, PO-12, PO-13, PO-20, PO-24_
 
-- [ ] 5. Build the Stripe Connect payout adapter
+- [x] 5. Build the Stripe Connect payout adapter
   - Accounts v2 capability and `livemode` checks; `POST /v1/transfers` with the derived idempotency key, `transfer_group`, and metadata; lookup by `transfer_group`
   - Contract tests on recorded exchanges (`pnpm connect:probe --record`); `@live` test of a guarded $1.00 transfer
   - _Requirements: PO-6, PO-7, PO-8, PO-9_
