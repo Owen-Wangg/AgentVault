@@ -18,7 +18,7 @@ Plan (`docs/PLAN.md`): Phase 19's second half.
   - The handler and route, the limits, and properties 1 and 2
   - _Requirements: TN-1, TN-2, TN-3, TN-5, TN-6, TN-7_
 
-- [ ] 5. Add the card to `/scenarios`
+- [x] 5. Add the card to `/scenarios`
   - `TestnetPaymentCard`, the page's availability check, copy in both themes
   - _Requirements: TN-1, TN-3, TN-4_
 
