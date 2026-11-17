@@ -2,8 +2,7 @@ import { after } from "next/server";
 import { z } from "zod";
 import { AdvisoryScoreSchema } from "@/core/intent";
 import { MicrosSchema, type Rail } from "@/core/money";
-import { railOptions } from "@/rails/real";
-import { railFor } from "@/rails/select";
+import { serverRailFor } from "@/rails/real";
 import type { RailAdapter } from "@/rails/types";
 import { type Database, createDb } from "@/server/db/client";
 import { env } from "@/server/env";
@@ -63,7 +62,7 @@ export function defaultPayDeps(): PayDeps {
     key: env.auditHeadKey,
     now: () => new Date(),
     // Validated per request, so a live key or wrong network refuses every payment (RAIL-7, RAIL-8).
-    railFor: (rail, workspace) => railFor(rail, workspace, railOptions()),
+    railFor: serverRailFor,
     afterResponse: (task) => after(task),
   };
 }

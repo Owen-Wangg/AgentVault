@@ -3,8 +3,7 @@
 // RES-6 to RES-9), clean up idempotency rows past 24 hours, and list
 // reservations still unknown after 24 hours for manual review. It never
 // starts a payment and never releases anything without a confirmed failure.
-import { railOptions } from "@/rails/real";
-import { railFor } from "@/rails/select";
+import { serverRailFor } from "@/rails/real";
 import { createDb } from "@/server/db/client";
 import { env } from "@/server/env";
 import { runReconcileJob } from "@/server/payments/reconcile";
@@ -14,12 +13,11 @@ async function main() {
   loadLocalEnv();
   const database = createDb(env.databaseUrl());
   try {
-    const options = railOptions();
     const { summary, cleanup, stuck } = await runReconcileJob({
       db: database.db,
       key: env.auditHeadKey(),
       now: () => new Date(),
-      railFor: (rail, workspace) => railFor(rail, workspace, options),
+      railFor: serverRailFor,
     });
     console.log(
       `Checked ${summary.checked}: ${summary.settled} settled, ${summary.released} released, ${summary.unknown} still unknown, ${summary.skipped} already resolved.`,

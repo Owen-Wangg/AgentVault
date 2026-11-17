@@ -2,8 +2,7 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Rail } from "@/core/money";
-import { railOptions } from "@/rails/real";
-import { railFor } from "@/rails/select";
+import { serverRailFor } from "@/rails/real";
 import type { RailAdapter } from "@/rails/types";
 import { type GetSessionUser, getSessionUser } from "@/server/auth/session";
 import { defaultWorkspace } from "@/server/auth/workspace-access";
@@ -43,7 +42,7 @@ export function defaultHumanRouteDeps(): HumanRouteDeps {
     openDb: () => createDb(env.databaseUrl()),
     key: env.auditHeadKey,
     now: () => new Date(),
-    railFor: (rail, workspace) => railFor(rail, workspace, railOptions()),
+    railFor: serverRailFor,
     getUser: getSessionUser,
   };
 }
