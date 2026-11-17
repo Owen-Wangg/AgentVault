@@ -45,6 +45,16 @@ const Transfer = z
 const TransferList = z.object({ data: z.array(Transfer) });
 const Balance = z.object({ available: z.array(z.object({ amount: z.number().int(), currency: z.string() })) });
 
+/** Query or form parameters, keeping every value of a repeated one (API v2 repeats `include`). */
+function allValues(params: URLSearchParams): Record<string, string | string[]> {
+  const out: Record<string, string | string[]> = {};
+  for (const name of new Set(params.keys())) {
+    const values = params.getAll(name);
+    out[name] = values.length === 1 ? (values[0] ?? "") : values;
+  }
+  return out;
+}
+
 async function main() {
   loadLocalEnv();
   const args = process.argv.slice(2);
@@ -56,7 +66,7 @@ async function main() {
     const response = await fetch(url, init);
     const u = new URL(url);
     const body = init.body ? String(init.body) : null;
-    const params = body === null ? Object.fromEntries(u.searchParams) : body.startsWith("{") ? JSON.parse(body) : Object.fromEntries(new URLSearchParams(body));
+    const params = body === null ? allValues(u.searchParams) : body.startsWith("{") ? JSON.parse(body) : allValues(new URLSearchParams(body));
     const key = new Headers(init.headers).get("idempotency-key");
     exchanges.push({ step, request: { method: init.method ?? "GET", path: u.pathname, params, idempotency_key: key }, response: { status: response.status, json: await response.clone().json().catch(() => null) } });
     return response;
