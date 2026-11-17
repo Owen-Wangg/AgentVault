@@ -27,8 +27,8 @@ Deployment target: Vercel **Hobby**. Cron jobs run at most once per day (see `te
 | 19 | Nov 16–19 | Real rails through AgentVault: rail-adapters task 9 (payment URLs), then a testnet workspace where an agent's `x402.pay` and `mpp.pay` over the HTTP API settle for real | Task 9 done Nov 16 |
 | 20 | Nov 20–22 | payout-rails tasks 1–4: steering, account setup and probes, `payout` on the rail interface, payouts and payee changes in the guarded flow | Nov 16 |
 | 21 | Nov 23–24 | payout-rails tasks 5–6: the Stripe Connect and PayPal sandbox adapters | Nov 16 |
-| 22 | Nov 25–26 | payout-rails tasks 7–8: the Payee hijack scenario and the docs | Nov 16, except the `/validate-mpp` rerun |
-| 23 | Nov 27–28 | Reliability through judging (Jan 29): the end-to-end reload loop, a cron and quota check; a pending-approvals count; `/llms.txt` | |
+| 22 | Nov 25–26 | payout-rails tasks 7–8: the Payee hijack scenario and the docs | Nov 16–17 |
+| 23 | Nov 27–28 | Reliability through judging (Jan 29): the end-to-end reload loop, a cron and quota check; a pending-approvals count; `/llms.txt` | In progress: ops check, stream pause, approvals count, and `/llms.txt` done Nov 17 |
 | — | Nov 29–Dec 3 | Submission: demo video, Kiro write-up, blog and social posts, final deploy check | In progress |
 
 Phases 19 to 23 were added on Nov 16, after Phase 18 finished 17 days early. Each starts with its spec changes, as Phases 1 to 18 did. Phases 20 to 22 follow `.kiro/specs/payout-rails`. Paid vendor responses back to the agent were dropped for the payout rails and can return if there's time. Decisions still open: whether the hosted site gets a real-rail testnet workspace (it would need the agent wallet key on Vercel), and who may use it.
