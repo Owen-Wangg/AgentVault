@@ -2,7 +2,7 @@
 
 AgentVault is a security proxy between AI agents and payment rails (Stripe MPP and x402). Every payment and high-privilege tool call is checked against spend limits, untrusted-input (taint) rules, and the task's declared scope before any money moves.
 
-**Live sandbox:** <https://owen-agentvault.vercel.app> (no login, mock rails, no real money)
+**Live sandbox:** <https://owen-agentvault.vercel.app> (no login and no real money: mock rails, plus one real Base Sepolia testnet payment)
 
 ![The live feed after a Payee hijack run: the injected payout account change (payee.update) and the $900 payout are both held because the session read an untrusted invoice; after a person denied the change and approved the payout, it was paid out to the supplier's account on file](docs/images/payee-hijack-feed.png)
 
@@ -15,6 +15,8 @@ Agents can now pay for APIs on their own: they answer an HTTP `402 Payment Requi
 1. Open [Scenarios](https://owen-agentvault.vercel.app/scenarios) and click **Run** on **Prompt injection**. The scripted agent reads a vendor docs page with a hidden instruction to refund $480. The read taints the session, and the refund is held with `HELD_TAINTED` and `NEEDS_APPROVAL`.
 2. Follow the summary's link to [Approvals](https://owen-agentvault.vercel.app/approvals) and click **Approve**. AgentVault re-runs every check with the approval attached, and the refund runs once on the mock rail ("Approved. The request ran.").
 3. Open [Audit](https://owen-agentvault.vercel.app/audit) and click **Verify chain**. Every decision, taint, and approval is in a hash-chained log, and the check reports "Chain verified."
+
+4. On Scenarios, click **Make a real testnet payment**. That's the one thing on the site that isn't a mock: AgentVault's demo agent pays the weather vendor $0.0015 over x402 on Base Sepolia, through the same checks, and the card links the transaction on BaseScan. It's test USDC with no real value, limited to 2 payments per visitor an hour and 20 a day for everyone.
 
 The other scenarios on the same page:
 
@@ -99,13 +101,13 @@ Checks:
 ## Limits
 
 - **Testnets, test mode, and sandboxes only.** Rail settings are checked on every payment: an `sk_live_` Stripe key, an x402 network other than Base Sepolia (`eip155:84532`), or a `PAYPAL_ENV` set to anything but `sandbox` fails the check and nothing is paid, even in mock mode. The PayPal host is a fixed sandbox URL, and any Stripe object returned with `livemode: true` is treated as an invalid response.
-- **The live site uses mock rails.** With `RAIL_MODE=real`, an allowed payment goes to the vendor's registered payment URL, never one the agent sends. In the `@live` tests, a $0.0015 x402 payment through the full guarded flow settles on Base Sepolia, a guarded $1.00 `payout.create` settles as a Stripe Connect test-mode transfer, and a guarded $1.00 `paypal.payout` reaches `SUCCESS` in the PayPal sandbox; the Stripe MPP adapter is tested against Stripe test mode. Real rails run only outside the public sandbox, and no workspace outside it has vendors yet, so an agent can't make a real payment over the HTTP API yet.
+- **The live sandbox uses mock rails; the testnet button is real.** The scenarios, approvals, and MCP agents run on mock rails. The **Real testnet payment** button runs in a separate public testnet workspace with `RAIL_MODE=real`: the visitor chooses nothing about the payment, which is always one $0.0015 x402 payment on Base Sepolia, and limits are checked before anything is created. An allowed payment goes to the vendor's registered payment URL, never one the agent sends. In the `@live` tests, a $0.0015 x402 payment through the full guarded flow settles on Base Sepolia, a guarded $1.00 `payout.create` settles as a Stripe Connect test-mode transfer, and a guarded $1.00 `paypal.payout` reaches `SUCCESS` in the PayPal sandbox; the Stripe MPP adapter is tested against Stripe test mode. Real rails run only outside the public sandbox. The only other workspace with vendors is the testnet one, whose agent has no key anyone holds, so an outside agent can't make a real payment over the HTTP API yet.
 - **Payout minimums are 1 cent on both payout rails** (measured). A PayPal sandbox payout costs the sender a $0.25 fee and usually takes 15 to 30 seconds to settle.
 - The mock rail keeps its records in one process's memory.
 
 ## How it was built
 
-Built with Kiro for Kiroween 2026: eight specs in [.kiro/specs](.kiro/specs), steering in [.kiro/steering](.kiro/steering), and hooks in [.kiro/hooks](.kiro/hooks). The development log is [docs/KIRO_LOG.md](docs/KIRO_LOG.md).
+Built with Kiro for Kiroween 2026: nine specs in [.kiro/specs](.kiro/specs), steering in [.kiro/steering](.kiro/steering), and hooks in [.kiro/hooks](.kiro/hooks). The development log is [docs/KIRO_LOG.md](docs/KIRO_LOG.md).
 
 ## License
 

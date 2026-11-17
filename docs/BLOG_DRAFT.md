@@ -56,7 +56,7 @@ Honest note: on the live injection run, Gemini Flash-Lite reads the poisoned pag
 
 ## Building it with Kiro
 
-I wrote eight specs before the code, each with numbered requirements and a list of correctness properties. Writing them caught design bugs early, for example a database lock that would have been held for the whole duration of a blockchain payment, and an approval flow that would have replayed "held" forever.
+I wrote nine specs before the code, each with numbered requirements and a list of correctness properties. Writing them caught design bugs early, for example a database lock that would have been held for the whole duration of a blockchain payment, and an approval flow that would have replayed "held" forever.
 
 Steering files held the rules every change had to follow (integer money, the order of checks, testnet keys only). Hooks enforced some of them: one blocks Kiro's own shell from force-deleting folders or reading `.env` files, which is AgentVault's idea applied to my coding agent. Another runs the money checker on every save.
 

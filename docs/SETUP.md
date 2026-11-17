@@ -292,7 +292,17 @@ So the deployed `/vendor/api/weather` can charge, add these under **Project → 
 - `CDP_API_KEY_SECRET` (mark it **Sensitive**)
 - `X402_PAY_TO`
 
-Don't add `AGENT_WALLET_PRIVATE_KEY` to Vercel. The deployed app runs mock rails, so it doesn't need the key, and a key that isn't stored there can't leak from there.
+For the **Real testnet payment** button (`.kiro/specs/testnet-demo`), the deployment also pays, so it needs the payer side too:
+- `AGENT_WALLET_PRIVATE_KEY` (mark it **Sensitive**). It must be the testnet-only agent wallet from step 2, holding only a few dollars of test USDC. A leak would cost test USDC and nothing else.
+- `RAIL_MODE` = `real`. The public sandbox stays on mock rails whatever this says, and its requests build no real adapter. Real mode applies to every other workspace, so the Stripe variables (section 7) must be set too, or non-sandbox payments fail closed.
+
+Then create the testnet workspace once, against the main database, with the deployment's origin:
+
+```powershell
+pnpm testnet:setup --origin https://owen-agentvault.vercel.app
+```
+
+It prints the workspace and agent IDs, and changes nothing if the workspace exists. Redeploy, and the card appears on Scenarios. `docs/OPERATIONS.md` covers the wallet's balance.
 
 ### If a key leaks
 
@@ -570,6 +580,7 @@ In **Apps & Credentials**, open the app and generate a new secret (or delete the
 | `pnpm x402:status` | Prints the agent and vendor wallet addresses and their test USDC and ETH balances. Never prints the key. |
 | `pnpm x402:probe [units...]` | Pays the weather endpoint on Base Sepolia at each price, in USDC units, and looks each payment up. `--record <dir>` saves the exchanges as test fixtures; `--lookup <file>` only looks up a recorded payment again. Spends test USDC. |
 | `pnpm audit:verify` | Checks every workspace's audit hash chain. Pass workspace IDs to check only those. |
+| `pnpm testnet:setup [--origin <origin>]` | Creates the public testnet workspace for the Real testnet payment button (section 6, Vercel), or prints the existing one. `--origin` defaults to `APP_ORIGIN`. |
 | `pnpm ops:check` | Read-only check that the hosted app can stay up until judging ends: database size against Neon Free's 1 GB with a projection to Jan 29, when the nightly reset last ran, whether the reconciler's cleanup is running, and open reservations and pending approvals. Exits 1 if something needs attention. See `docs/OPERATIONS.md`. |
 | `pnpm reconcile` | Asks the rails what happened to payments with an unknown outcome, deletes idempotency records older than 24 hours, and lists payments still unknown after 24 hours. It only looks payments up and never pays. On the mock rail it can't resolve anything a different process paid, so those stay listed. |
 | `pnpm demo:policy` | Prints a table of policy decisions for a sample request sequence. |

@@ -29,7 +29,7 @@ The Stripe and Neon plugins were installed. The Stripe plugin's account tools we
 
 ## Specs first, code second
 
-AgentVault has eight specs in `.kiro/specs/` (money-and-policy-core, audit-and-approvals, rail-adapters, taint-and-intent, telemetry-dashboard, demo-agents, mcp-server, payout-rails). Each has EARS requirements with IDs (`ENV-3`, `TAINT-6`, `HITL-2`), a design with numbered correctness properties, and a task list. Test names start with the requirement ID they cover, so `grep ENV-8` finds the rule, the design, the task, and the tests.
+AgentVault has nine specs in `.kiro/specs/` (money-and-policy-core, audit-and-approvals, rail-adapters, taint-and-intent, telemetry-dashboard, demo-agents, mcp-server, payout-rails, testnet-demo). Each has EARS requirements with IDs (`ENV-3`, `TAINT-6`, `HITL-2`), a design with numbered correctness properties, and a task list. Test names start with the requirement ID they cover, so `grep ENV-8` finds the rule, the design, the task, and the tests.
 
 Writing the specs caught design bugs before any code existed:
 
@@ -40,6 +40,7 @@ Writing the specs caught design bugs before any code existed:
 - **Platform limits.** Vercel Hobby only allows daily cron jobs, so the reconciler also runs after each request with Next.js `after()`.
 - **A payout that rounded the wrong way.** `payout.create` was first registered as a debit. A payout sends money out, so the payee's amount must round down to the cent while the envelope counts the full amount.
 - **A destination read too early.** If a payout took its destination when it was requested, denying an injected payee change wouldn't help: the held payout would still carry the attacker's account. The spec has payouts read the destination when they run, so denying the change and approving the payout pays the supplier.
+- **Turning on real rails would have broken the sandbox.** While designing the public testnet button, reading the rail setup showed that every request built every real adapter before it knew its workspace. With `RAIL_MODE=real` and any real-rail variable missing, every sandbox request would have failed, even though the sandbox only uses mocks. The testnet-demo spec made the per-workspace choice a requirement (TN-8) and a property test, and breaking it on purpose shrank to `{"RAIL_MODE":"real"}`.
 - **One visitor's approval leaking into another's demo.** In the shared sandbox, one visitor approving the hijack would leave the supplier pointing at the attacker until the nightly reset. Each payee hijack run now gets its own supplier row.
 
 **Compared to vibe coding.** <!-- Owen: this paragraph is yours to write; some true points to draw on: --> Payment code fails quietly: a rounding direction or a missing lock produces a wrong number, not an error. Vibe coding would have produced working-looking code with those bugs in it. With specs, each rule had an ID, a planned property, and a task before any code, so Kiro implemented one task at a time against a fixed target, and the post-task hook ran the full suite after each one.
@@ -94,6 +95,7 @@ For each safeguard, I broke it in the code, checked that a test failed, and rest
 - **The live AI agent.** Making a low drift score drop hold reasons failed taint-and-intent property 3 after 4 cases: a tainted privileged call with score 0. The LLM can add a hold but never remove one.
 - **The payout destination.** Taking a payout's destination from the request's arguments instead of the vendor row failed payout-rails property 1 and the PO-4 test. Storing a new payee before the rail checks it failed property 1 and four payee tests.
 - **Uncertain payouts.** Mapping PayPal's `PENDING` to failed, which would release a reservation for a payout that may still pay, failed 11 tests, including property 5 and the replay of the recorded probe. Treating Stripe's `idempotency_error` as a confirmed failure failed a contract test and a unit test.
+- **The public testnet button.** Creating the session before checking the visitor limits, so a refused press leaves a row behind, failed testnet-demo property 1, which shrank to three presses from one IP. Accepting extra fields in the body failed property 2 with `{"vendor":[]}`: the visitor must never choose anything about a real payment.
 - **The theme boundary.** Kiroween mode must change only styling and copy. A property runs two sandboxes in lockstep, one per theme, and requires identical responses and audit events. A response made to depend on the cookie's length failed it on the first case.
 
 ## MCP, both directions

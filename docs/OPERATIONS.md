@@ -4,7 +4,7 @@ The Official Rules require <https://owen-agentvault.vercel.app> to stay availabl
 
 ## Weekly check
 
-1. `pnpm ops:check` (read-only). It reports the database size against Neon Free's 1 GB with a projection to Jan 29, when the nightly sandbox reset last ran, whether the reconciler's daily cleanup is running, and open reservations and pending approvals. It exits 1 if something needs attention.
+1. `pnpm ops:check` (read-only). It reports the database size against Neon Free's 1 GB with a projection to Jan 29, when the nightly sandbox reset last ran, whether the reconciler's daily cleanup is running, open reservations and pending approvals, and the testnet button's payments. It exits 1 if something needs attention. Then `pnpm x402:status` for the agent wallet's test USDC.
 2. Vercel dashboard, **Usage**: Provisioned Memory, Active CPU, Function Invocations, and Fast Data Transfer, against the Hobby allotments below. Provisioned Memory is the one most likely to run out (see the event stream risk).
 3. Neon console, **Usage** for the project: compute (CU-hours this month), storage, and network transfer. The allowance is per project, so the test branch (`DATABASE_URL_TEST`) and every `pnpm verify` against it count too.
 4. Prefer `pnpm verify:local` (PGlite) for routine test runs, and `pnpm verify` (Neon) only before commits that touch the payment flow, approvals, the reconciler, the scenario runner, or the schema.
@@ -20,6 +20,15 @@ The Official Rules require <https://owen-agentvault.vercel.app> to stay availabl
 | Gemini free tier | Per-minute and per-day request limits | Live AI runs stop with `gemini_rate_limited`; scripted runs don't use Gemini. AgentVault also caps live runs at 3 per IP per 10 minutes and 40 a day | `docs/SETUP.md` section 8 |
 
 Vercel also says Cron Jobs "are a legacy feature and will be migrated to Schedules in the future". Nothing needs to change for that now; check the cron runs if Vercel announces the migration before Jan 29.
+
+## The testnet wallet
+
+The **Real testnet payment** button on Scenarios (`.kiro/specs/testnet-demo`) pays $0.0015 of Base Sepolia test USDC from the agent wallet per press. The endpoint allows at most 20 a day for everyone, so judging (74 days from Nov 17) can use at most about $2.22. On Nov 17 the wallet held $9.98.
+
+- **Check it:** `pnpm x402:status` prints both wallets' test USDC. `pnpm ops:check` counts the button's payments today and in total, and warns if any still has an unknown outcome.
+- **Refill it:** claim Base Sepolia USDC for the agent wallet's address from the CDP portal's faucet or <https://faucet.circle.com> (`docs/SETUP.md` section 6, step 3). No redeploy needed.
+- **If it runs dry,** the facilitator refuses the payment, the reservation is released, and the card says the rail refused it. Nothing else breaks.
+- **To turn the button off,** remove `RAIL_MODE` from Vercel and redeploy. The card disappears and the endpoint answers 404.
 
 ## The event stream risk
 
