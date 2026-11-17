@@ -26,6 +26,7 @@
     "db:seed": "tsx scripts/db-seed.ts",
     "sandbox:reset": "tsx scripts/sandbox-reset.ts",
     "audit:verify": "tsx scripts/audit-verify.ts",
+    "ops:check": "tsx scripts/ops-check.ts",
     "reconcile": "tsx scripts/reconcile.ts",
     "env:check": "tsx scripts/env-check.ts",
     "wallet:new": "tsx scripts/wallet-new.ts",

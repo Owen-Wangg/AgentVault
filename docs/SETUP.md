@@ -569,6 +569,7 @@ In **Apps & Credentials**, open the app and generate a new secret (or delete the
 | `pnpm x402:status` | Prints the agent and vendor wallet addresses and their test USDC and ETH balances. Never prints the key. |
 | `pnpm x402:probe [units...]` | Pays the weather endpoint on Base Sepolia at each price, in USDC units, and looks each payment up. `--record <dir>` saves the exchanges as test fixtures; `--lookup <file>` only looks up a recorded payment again. Spends test USDC. |
 | `pnpm audit:verify` | Checks every workspace's audit hash chain. Pass workspace IDs to check only those. |
+| `pnpm ops:check` | Read-only check that the hosted app can stay up until judging ends: database size against Neon Free's 1 GB with a projection to Jan 29, when the nightly reset last ran, whether the reconciler's cleanup is running, and open reservations and pending approvals. Exits 1 if something needs attention. See `docs/OPERATIONS.md`. |
 | `pnpm reconcile` | Asks the rails what happened to payments with an unknown outcome, deletes idempotency records older than 24 hours, and lists payments still unknown after 24 hours. It only looks payments up and never pays. On the mock rail it can't resolve anything a different process paid, so those stay listed. |
 | `pnpm demo:policy` | Prints a table of policy decisions for a sample request sequence. |
 
