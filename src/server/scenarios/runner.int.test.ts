@@ -195,7 +195,8 @@ describe("POST /api/v1/scenarios/:name/run", () => {
     expect(mocks.stripe.recorded().map((r) => r.destination)).toEqual([ATTACKER_ACCOUNT, ACME_SUPPLIER.stripeAccount]);
     const payeeChanges = (await eventsOf(db(), sandboxId)).filter((e) => e.type === "payee_updated");
     expect(payeeChanges.at(-1)?.payload).toMatchObject({ vendor: runPayeeName("acme-supplies", first.body.run_id), old_ref: ACME_SUPPLIER.stripeAccount, new_ref: ATTACKER_ACCOUNT });
-  });
+    // Two runs and four approvals take about 5 s on the Neon test branch, past Vitest's 5 s default.
+  }, 30_000);
 });
 
 describe("POST /api/v1/scenarios/:name/run: access", () => {
