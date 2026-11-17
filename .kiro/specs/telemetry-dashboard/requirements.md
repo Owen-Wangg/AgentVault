@@ -38,6 +38,7 @@ TEL-6 and TEL-7 keep the hosted app inside its free plans until judging ends (`d
 - **UI-9** THE approvals inbox SHALL show pending approvals with the request, reasons, taint source, and time left, with approve and deny buttons.
 - **UI-10** THE audit page SHALL list events with `seq` and hash, and SHALL offer a "Verify chain" button showing the result.
 - **UI-11** THE SYSTEM SHALL display amounts exactly, with up to 6 decimal places (for example `$0.0015`).
+- **UI-22** WHILE the workspace has pending approvals, THE navigation SHALL show their count on the Approvals link, read when the visitor moves to another page or returns to the tab, after expiry is applied (audit-and-approvals HITL-12). With none pending, it SHALL show no count. It SHALL NOT open another event stream or poll.
 
 ## Requirement 4: Design quality
 **User story:** As a judge, I want a polished, accessible interface.

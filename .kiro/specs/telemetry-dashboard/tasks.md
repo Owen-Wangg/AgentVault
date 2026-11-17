@@ -49,3 +49,7 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
   - `useEventStream` closes the stream while the page is hidden or after 15 minutes without input, and reopens it on return, input, or Resume
   - `StreamStatusBadge` shows the paused state with a Resume button, with copy in both themes; the pages pass the hook's `resume`
   - _Requirements: TEL-6, TEL-7_
+
+- [ ] 11. Show the pending approvals count in the navigation
+  - `PendingCount` on the Approvals link in both navigation bars, read on navigation and on return to the tab, with copy in both themes
+  - _Requirements: UI-22_

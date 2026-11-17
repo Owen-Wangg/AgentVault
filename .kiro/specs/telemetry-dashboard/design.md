@@ -27,6 +27,12 @@ flowchart LR
 - Opening a sandbox stream counts toward a per-IP limit (30 per minute), because each stream holds a function for up to 55 s.
 - Code: the loop is `pumpEvents()` in `src/server/events/stream.ts`, with the event source and clock injected; the handler is `src/server/events/handler.ts`.
 
+### Pending approvals count (UI-22)
+- `PendingCount` in the sidebar calls `GET /api/v1/approvals?status=pending`, which applies expiry first, when the pathname changes and when the tab becomes visible. One request per navigation; no stream and no timer, so it adds nothing while a tab sits open (TEL-6, TEL-7).
+- The list is capped at 100, so 100 or more shows `99+`. Zero, a failed request, or a non-200 answer shows nothing; a count is a hint, and the inbox is the source of truth.
+- The number is visible, followed by screen-reader text ("waiting for approval", Kiroween: "awaiting judgment"), so the link reads "Approvals 3 waiting for approval". Both navigation bars show it.
+- Known gap: approving inside the inbox doesn't update the count until the next navigation.
+
 ### Pausing the stream (TEL-6, TEL-7)
 - All in `useEventStream`, on the client. The server doesn't change, so a client that never pauses costs what it did before.
 - The hook is *active* while `document.visibilityState` is `visible` and the page isn't idle. Becoming inactive closes the `EventSource` and sets status `paused`. Becoming active opens a new one.
@@ -99,4 +105,5 @@ The `satisfies` check makes a missing string a compile error.
 - Contrast (UI-12) is checked from the theme tokens in `src/ui/theme.test.ts`: text at 4.5:1 on every background, and focus rings and form-control borders (`control-border`) at 3:1 (WCAG 1.4.11). The lighter `border` token is decorative only.
 - Lighthouse accessibility score ≥ 95 on the overview page in both themes (manual check, task 9).
 - Example tests, named by requirement ID, cover the rest: TEL-1, TEL-3 to TEL-5 (stream and handler), UI-1 to UI-10 and UI-15 (pages, sandbox access, rate limits, nightly reset), and UI-16, UI-17, UI-19, UI-20 (theme, motion, licensing).
+- UI-22: component tests with a fake fetch: the count and its screen-reader text, `99+` at 100, nothing for 0 or a failed request, and one new request per pathname change or return to the tab.
 - TEL-6 and TEL-7: hook tests with the fake event source and fake timers. Hiding the page closes the stream; showing it opens one stream, and a replayed backlog adds only the missed events. Fifteen minutes without input closes it and shows the paused badge; input just before the limit keeps it open; Resume and any input reopen it.
