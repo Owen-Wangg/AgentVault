@@ -25,7 +25,7 @@ No custom agents were created for this project. Kiro's built-in introspect subag
 
 ## Powers and plugins
 
-The Stripe and Neon plugins were installed. Their account tools were never authenticated, so nothing read or changed the Stripe account or the Neon project through them. The Stripe plugin's best-practices skill set the payout-rails Connect design: Accounts v2 recipient accounts, a capability check before each transfer, and no legacy account types. Its docs search, along with docs.stripe.com's Markdown pages, stood in for the Stripe CLI, which isn't installed. Other Stripe research used the published `mppx` and `stripe` packages, and Neon work used the Neon console and `DATABASE_URL_TEST`. <!-- Owen: check that this matches how you think of the plugins. --> Vercel's official MCP server was connected and used read-only (see MCP below).
+The Stripe and Neon plugins were installed. The Stripe plugin's account tools were never authenticated, so nothing read or changed the Stripe account through them. The Neon plugin's MCP server was used once, read-only, to check the project's compute and network usage against the Free plan for the judging period. The Stripe plugin's best-practices skill set the payout-rails Connect design: Accounts v2 recipient accounts, a capability check before each transfer, and no legacy account types. Its docs search, along with docs.stripe.com's Markdown pages, stood in for the Stripe CLI, which isn't installed. Other Stripe research used the published `mppx` and `stripe` packages, and Neon work used the Neon console and `DATABASE_URL_TEST`. <!-- Owen: check that this matches how you think of the plugins. --> Vercel's official MCP server was connected and used read-only (see MCP below).
 
 ## Specs first, code second
 
