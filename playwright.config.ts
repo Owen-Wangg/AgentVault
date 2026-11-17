@@ -1,3 +1,5 @@
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
 /**
@@ -13,6 +15,9 @@ if (!databaseUrl || !auditHeadKey) throw new Error("Run end-to-end tests with pn
 
 export default defineConfig({
   testDir: "tests/e2e",
+  // Traces and screenshots go outside the repo. Written under the project root, they're files the
+  // dev server can see change during a test, a suspected trigger of the end-to-end reload loop.
+  outputDir: join(tmpdir(), "agentvault-e2e-results"),
   // The dev server compiles each page on its first visit.
   timeout: 180_000,
   expect: { timeout: 30_000 },
