@@ -27,7 +27,7 @@ Every open dashboard tab holds an event stream (`/api/v1/events`). Each stream r
 - keeps a Vercel function instance alive all the time. Provisioned Memory is billed for the instance's whole lifetime, at 2 GB (the Hobby default), so that's about 48 GB-hours a day, and **360 GB-hours lasts about 7.5 days**. Tabs that share one instance cost the same as one tab.
 - keeps the Neon compute from scaling to zero. At 0.25 CU that's 6 CU-hours a day, so **100 CU-hours lasts about 16 days**, less whatever the tests use.
 
-Both numbers are estimates from the published rates, not measurements. The dashboards' usage pages show the real figures. A fix is open: pause the stream when the tab is hidden or after a period without input, and resume it when the visitor comes back.
+Both numbers are estimates from the published rates, not measurements. The dashboards' usage pages show the real figures. Since telemetry-dashboard task 10 (TEL-6, TEL-7), the dashboard closes its stream while the tab is hidden and after 15 minutes without input, and shows "Live updates paused" with a Resume button, so a forgotten tab costs at most 15 minutes. A client that ignores this, such as a script holding the stream open, still costs the same; the per-IP limit of 30 stream opens a minute is the only check on that.
 
 ## Status on 2026-11-16
 
