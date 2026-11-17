@@ -10,11 +10,11 @@ Plan (`docs/PLAN.md`): Phase 19's second half.
   - `railOptionsFor(workspace, env)` in `src/rails/real.ts`, used by every server entry point, and property 3
   - _Requirements: TN-8_
 
-- [ ] 3. Add the testnet workspace and its setup script
+- [x] 3. Add the testnet workspace and its setup script
   - Migration 0006, `createTestnetWorkspace`, the `testnet_workspace_created` event type, `pnpm testnet:setup`
   - _Requirements: TN-6, TN-9_
 
-- [ ] 4. Build `POST /api/v1/testnet/pay`
+- [x] 4. Build `POST /api/v1/testnet/pay`
   - The handler and route, the limits, and properties 1 and 2
   - _Requirements: TN-1, TN-2, TN-3, TN-5, TN-6, TN-7_
 
