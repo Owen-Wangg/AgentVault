@@ -43,7 +43,8 @@
     "paypal:probe": "tsx scripts/paypal-probe.ts",
     "gemini:probe": "tsx scripts/gemini-probe.ts",
     "mcp": "tsx src/mcp/stdio.ts",
-    "mcp:agent": "tsx scripts/mcp-agent.ts"
+    "mcp:agent": "tsx scripts/mcp-agent.ts",
+    "testnet:setup": "tsx scripts/testnet-setup.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "1.11.3",

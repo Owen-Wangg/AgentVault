@@ -43,6 +43,13 @@
       "when": 1794876150011,
       "tag": "0005_reservation_rail_ref",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794892632792,
+      "tag": "0006_public_testnet_workspace",
+      "breakpoints": true
     }
   ]
 }

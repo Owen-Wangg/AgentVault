@@ -92,8 +92,14 @@ export const workspaces = pgTable(
     ownerUserId: text("owner_user_id").references(() => users.id),
     createdAt: createdAt(),
     retiredAt: tz("retired_at"),
+    /** The one public testnet workspace (testnet-demo TN-9): real rails, no owner, never a sandbox. */
+    publicTestnet: boolean("public_testnet").notNull().default(false),
   },
-  (t) => [index("workspaces_current_sandbox_idx").on(t.createdAt).where(sql`${t.isSandbox} AND ${t.retiredAt} IS NULL`)],
+  (t) => [
+    index("workspaces_current_sandbox_idx").on(t.createdAt).where(sql`${t.isSandbox} AND ${t.retiredAt} IS NULL`),
+    check("workspaces_testnet_not_sandbox_check", sql`NOT (${t.isSandbox} AND ${t.publicTestnet})`),
+    uniqueIndex("workspaces_one_public_testnet_idx").on(t.publicTestnet).where(sql`${t.publicTestnet}`),
+  ],
 );
 
 export const agents = pgTable(

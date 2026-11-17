@@ -1,0 +1,3 @@
+ALTER TABLE "workspaces" ADD COLUMN "public_testnet" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "workspaces_one_public_testnet_idx" ON "workspaces" USING btree ("public_testnet") WHERE "workspaces"."public_testnet";--> statement-breakpoint
+ALTER TABLE "workspaces" ADD CONSTRAINT "workspaces_testnet_not_sandbox_check" CHECK (NOT ("workspaces"."is_sandbox" AND "workspaces"."public_testnet"));

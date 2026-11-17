@@ -28,6 +28,8 @@ export const EVENT_TYPES = [
   "mcp_agent_created",
   // payout-rails PO-12: a payee's payout destination changed.
   "payee_updated",
+  // testnet-demo TN-9: the public testnet workspace was created.
+  "testnet_workspace_created",
 ] as const;
 
 export type EventType = (typeof EVENT_TYPES)[number];
