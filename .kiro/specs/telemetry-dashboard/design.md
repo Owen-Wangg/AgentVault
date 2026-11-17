@@ -28,7 +28,7 @@ flowchart LR
 - Code: the loop is `pumpEvents()` in `src/server/events/stream.ts`, with the event source and clock injected; the handler is `src/server/events/handler.ts`.
 
 ### Pending approvals count (UI-22)
-- `PendingCount` in the sidebar calls `GET /api/v1/approvals?status=pending`, which applies expiry first, when the pathname changes and when the tab becomes visible. One request per navigation; no stream and no timer, so it adds nothing while a tab sits open (TEL-6, TEL-7).
+- `usePendingCount`, called once by the sidebar for both navigation bars, calls `GET /api/v1/approvals?status=pending`, which applies expiry first, when the pathname changes and when the tab becomes visible. One request per navigation; no stream and no timer, so it adds nothing while a tab sits open (TEL-6, TEL-7).
 - The list is capped at 100, so 100 or more shows `99+`. Zero, a failed request, or a non-200 answer shows nothing; a count is a hint, and the inbox is the source of truth.
 - The number is visible, followed by screen-reader text ("waiting for approval", Kiroween: "awaiting judgment"), so the link reads "Approvals 3 waiting for approval". Both navigation bars show it.
 - Known gap: approving inside the inbox doesn't update the count until the next navigation.
