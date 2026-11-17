@@ -39,6 +39,9 @@ const descriptionKey = (name: ScenarioName) => `scenario.${name}.description` as
 
 const DECISION_TONE = { allow: "allow", hold: "hold", deny: "deny" } as const;
 
+/** What to do next, for scenarios whose outcome depends on how the holds are decided (payout-rails PO-24). */
+const SUMMARY_NOTE: Partial<Record<ScenarioName, UiKey>> = { hijack: "scenario.hijack.summaryNote" };
+
 /** Why a run didn't start or didn't return, as a copy key. */
 function failureOf(status: number, body: unknown): UiKey {
   if (status === 409) return "scenarios.busy";
@@ -170,7 +173,7 @@ export function ScenarioRunner({
               <CardTitle>{t("scenarios.steps")}</CardTitle>
               <StepList steps={steps} running={running} />
             </Card>
-            {run.phase === "done" ? <SummaryPanel result={run.result} /> : null}
+            {run.phase === "done" ? <SummaryPanel result={run.result} note={SUMMARY_NOTE[run.name]} /> : null}
           </div>
         </section>
       ) : null}
@@ -220,7 +223,7 @@ function StepList({ steps, running }: { steps: RunStep[]; running: boolean }) {
   );
 }
 
-function SummaryPanel({ result }: { result: RunResult }) {
+function SummaryPanel({ result, note }: { result: RunResult; note?: UiKey | undefined }) {
   const { t, reasonText } = useCopy();
   const s = result.summary;
   return (
@@ -263,6 +266,7 @@ function SummaryPanel({ result }: { result: RunResult }) {
           ))}
         </ul>
       )}
+      {note ? <p className="mt-4 text-sm">{t(note)}</p> : null}
       {s.decisions.hold > 0 ? (
         <Link href="/approvals" className="mt-4 inline-block text-sm font-medium text-accent underline">
           {t("scenarios.openApprovals")}

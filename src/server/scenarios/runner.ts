@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { AgentClient } from "@/agents/client";
 import { type LiveRun, runGemini } from "@/agents/gemini/agent";
@@ -10,7 +11,7 @@ import { envelopeToWire } from "@/core/policy";
 import { createAgent } from "@/server/agents/agents";
 import { appendEvent } from "@/server/audit/append";
 import { type Db, queryRows } from "@/server/db/client";
-import { sessions, tasks } from "@/server/db/schema";
+import { sessions, tasks, vendors } from "@/server/db/schema";
 
 /**
  * The scenario runner (demo-agents design, "Runner"). Each run:
@@ -80,6 +81,16 @@ export interface StartedRun {
   sessionId: string;
   apiKey: string;
   eventSeq: number;
+  /** The run's own names for vendors its steps name: the per-run supplier, if the scenario has one. */
+  vendors: Record<string, string>;
+}
+
+/** Where the per-run supplier says it lives. Nothing is fetched from it: the invoice is on the app's own origin. */
+export const PAYEE_ORIGIN = "https://acme-supplies.example";
+
+/** The per-run supplier's name: the scenario's payee name and 8 hex characters derived from the run ID (payout-rails design). */
+export function runPayeeName(payeeName: string, runId: string): string {
+  return `${payeeName}-${createHash("sha256").update(runId, "utf8").digest("hex").slice(0, 8)}`;
 }
 
 /** Step 2: the fresh agent, task, and session, and scenario_started, in one transaction. */
@@ -106,6 +117,21 @@ export async function startRun(
     if (!task) throw new Error("Task insert returned no row");
     const [session] = await tx.insert(sessions).values({ agentId, taskId: task.id, createdAt: options.now }).returning({ id: sessions.id });
     if (!session) throw new Error("Session insert returned no row");
+    // payout-rails PO-23: a fresh supplier for this run, so another run's approved payee change can't redirect this run's payout.
+    const runVendors: Record<string, string> = {};
+    if (scenario.payee) {
+      const name = runPayeeName(scenario.payee.name, input.runId);
+      await tx.insert(vendors).values({
+        workspaceId: input.workspaceId,
+        name,
+        origin: PAYEE_ORIGIN,
+        category: scenario.payee.category,
+        trusted: false,
+        stripeAccount: scenario.payee.stripeAccount,
+        paypalReceiver: scenario.payee.paypalReceiver,
+      });
+      runVendors[scenario.payee.name] = name;
+    }
     const { limits, vendorLimits, toolLimits, allowedVendors, allowedTools } = envelopeToWire(scenario.envelope, 1);
     const event = await appendEvent(
       tx,
@@ -129,11 +155,12 @@ export async function startRun(
             allowed_tools: scenario.task.allowedTools,
             budget_micros: scenario.task.budgetMicros,
           },
+          ...(scenario.payee ? { vendors: runVendors } : {}),
         },
       },
       options,
     );
-    return { agentId, taskId: task.id, sessionId: session.id, apiKey, eventSeq: event.seq };
+    return { agentId, taskId: task.id, sessionId: session.id, apiKey, eventSeq: event.seq, vendors: runVendors };
   });
 }
 
@@ -165,7 +192,7 @@ export async function runScenario(
     const run =
       agent.kind === "gemini"
         ? await runGemini(agent.scenario, client, agent.model, { vendorOrigin: deps.baseUrl, now: deps.clockMs ?? Date.now })
-        : await runScripted(SCENARIOS[input.scenario], client, { vendorOrigin: deps.baseUrl });
+        : await runScripted(SCENARIOS[input.scenario], client, { vendorOrigin: deps.baseUrl, vendors: started.vendors });
     return { agentId: started.agentId, sessionId: started.sessionId, startedSeq: started.eventSeq, run, summary: summarizeRun(run) };
   });
   return locked.acquired ? { kind: "done", ...locked.value } : { kind: "busy" };

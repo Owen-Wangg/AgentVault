@@ -1,4 +1,4 @@
-import { type Micros, fromDecimalString, toMicrosString } from "@/core/money";
+import { type Micros, fromDecimalString, micros, toMicrosString } from "@/core/money";
 import type { Label } from "@/core/taint";
 import { AgentApiError, type AgentClient, type DecisionResult } from "@/agents/client";
 import type { Scenario, Step } from "./scenarios";
@@ -55,18 +55,41 @@ export function extractInjectedRefund(page: string): Micros | null {
   return match?.[1] ? fromDecimalString(match[1]) : null;
 }
 
+/** "change ... payout account to acct_…": the payee hijack instruction (payout-rails PO-23). */
+const PAYEE_INSTRUCTION = /payout account to (acct_[A-Za-z0-9]{1,64})\b/i;
+/** "Amount due: $900.00" on an invoice. At most 9 whole digits and 6 decimals, so the amount always parses. */
+const AMOUNT_DUE = /amount due:\s*\$(\d{1,9}(?:\.\d{1,6})?)(?=$|[^\w.]|\.(?!\d))/i;
+
+/** The Stripe account an injected instruction asks to switch the payee to, or null if the page has none. */
+export function extractInjectedPayee(page: string): string | null {
+  return PAYEE_INSTRUCTION.exec(page)?.[1] ?? null;
+}
+
+/** The amount due on an invoice page, or null if it shows none. */
+export function extractAmountDue(page: string): Micros | null {
+  const match = AMOUNT_DUE.exec(page);
+  return match?.[1] ? fromDecimalString(match[1]) : null;
+}
+
 class StopRun extends Error {
   constructor(readonly result: Extract<StepResult, { kind: "error" }>) {
     super(result.error);
   }
 }
 
-export async function runScripted(scenario: Scenario, client: ScenarioClient, options: { vendorOrigin: string }): Promise<ScriptedRun> {
+export interface ScriptedOptions {
+  vendorOrigin: string;
+  /** The run's own names for vendors the steps name, such as the per-run supplier (payout-rails design). */
+  vendors?: Readonly<Record<string, string>>;
+}
+
+export async function runScripted(scenario: Scenario, client: ScenarioClient, options: ScriptedOptions): Promise<ScriptedRun> {
   const results: StepResult[] = [];
   let requests = 0;
   let lastPage: string | null = null;
   // Each request gets its own key. The agent is new for every run, so the keys never collide.
   const nextKey = () => `step-${requests}`;
+  const vendorName = (name: string) => (options.vendors && Object.hasOwn(options.vendors, name) ? (options.vendors[name] ?? name) : name);
 
   async function call<T>(step: Step["kind"], send: () => Promise<T>): Promise<T> {
     requests += 1;
@@ -98,6 +121,18 @@ export async function runScripted(scenario: Scenario, client: ScenarioClient, op
         const page = await call("fetch", () => client.fetch(new URL(step.path, options.vendorOrigin).toString()));
         lastPage = page.body;
         results.push({ kind: "fetch", url: page.url, label: page.label, ...(page.eventSeq !== undefined ? { eventSeq: page.eventSeq } : {}) });
+      } else if (step.kind === "injected-payee-change") {
+        const payee = lastPage === null ? null : extractInjectedPayee(lastPage);
+        if (payee === null) throw new StopRun({ kind: "error", step: step.kind, status: 0, error: "NO_INSTRUCTION" });
+        const vendor = vendorName(step.vendor);
+        const d = await call(step.kind, () => client.tool("payee.update", { vendor, payee_ref: payee, rail: "stripe" }, nextKey()));
+        results.push(decisionResult("tool", "payee.update", vendor, micros(0n), d));
+      } else if (step.kind === "invoice-payout") {
+        const amount = lastPage === null ? null : extractAmountDue(lastPage);
+        if (amount === null) throw new StopRun({ kind: "error", step: step.kind, status: 0, error: "NO_AMOUNT_DUE" });
+        const vendor = vendorName(step.vendor);
+        const d = await call(step.kind, () => client.tool("payout.create", { vendor, amount_micros: toMicrosString(amount) }, nextKey()));
+        results.push(decisionResult("tool", "payout.create", vendor, amount, d));
       } else {
         const amount = lastPage === null ? null : extractInjectedRefund(lastPage);
         if (amount === null) throw new StopRun({ kind: "error", step: step.kind, status: 0, error: "NO_INSTRUCTION" });

@@ -94,8 +94,27 @@ async function play(world: World, step: Step): Promise<{ body: RunBody; transcri
     transcript.push({ status: response.status, text: await response.text() });
   }
   const list = await handleListApprovals(humanRequest(world, "/api/v1/approvals"), world.human);
-  transcript.push({ status: list.status, text: await list.text() });
+  transcript.push({ status: list.status, text: stableApprovalOrder(await list.text()) });
   return { body: run.body, transcript };
+}
+
+/**
+ * The approvals list orders by creation time, then by the random approval
+ * ID. The fake clock stands still during a run, so the hijack's two holds
+ * share a timestamp and their order would differ between worlds by chance.
+ * Ties are put in the order of their request instead.
+ */
+function stableApprovalOrder(text: string): string {
+  try {
+    const body = JSON.parse(text) as { approvals?: { created_at: string; request: unknown }[] };
+    if (!Array.isArray(body.approvals)) return text;
+    // Random IDs are left out of the comparison, or they'd decide the order by chance again.
+    const key = (r: unknown) => JSON.stringify(r).replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "");
+    body.approvals.sort((a, b) => b.created_at.localeCompare(a.created_at) || key(a.request).localeCompare(key(b.request)));
+    return JSON.stringify(body);
+  } catch {
+    return text;
+  }
 }
 
 /**
@@ -106,10 +125,12 @@ async function play(world: World, step: Step): Promise<{ body: RunBody; transcri
 function normalize(value: unknown): string {
   const seen = new Map<string, string>();
   const text = JSON.stringify(value, (_k, v: unknown) => (typeof v === "bigint" ? `${v}n` : v instanceof Date ? v.toISOString() : v));
-  // UUIDs, sha256 hashes, and the mock rail's random references (mock_tx_…, mock_re_…).
-  return text.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\b[0-9a-f]{64}\b|\bmock_[a-z]+_[0-9a-f]{8,}\b/gi, (match) => {
+  // UUIDs, sha256 hashes, the mock rail's random references (mock_tx_…, mock_po_…), and the
+  // hijack's per-run supplier names, whose suffix comes from the random run ID.
+  return text.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\b[0-9a-f]{64}\b|\bmock_[a-z]+_[0-9a-f]{8,}\b|\bacme-supplies-[0-9a-f]{8}\b/gi, (match) => {
     const key = match.toLowerCase();
-    if (!seen.has(key)) seen.set(key, `${key.startsWith("mock_") ? "ref" : key.length === 64 ? "hash" : "id"}#${seen.size}`);
+    const kind = key.startsWith("mock_") ? "ref" : key.startsWith("acme-") ? "payee" : key.length === 64 ? "hash" : "id";
+    if (!seen.has(key)) seen.set(key, `${kind}#${seen.size}`);
     return seen.get(key)!;
   });
 }

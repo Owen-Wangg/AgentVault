@@ -35,13 +35,13 @@ afterAll(async () => {
 describe("scenario determinism", () => {
   // Property 1 (Determinism, AGT-5): each scripted scenario's decision sequence equals its
   // expected list across 20 runs.
-  // Each case runs all four scenarios twice, in random orders and with random gaps, in one
+  // Each case runs all five scenarios twice, in random orders and with random gaps, in one
   // sandbox, so every scenario repeats after the others and after itself, inside the minute
   // window or past it. 10 cases make 20 runs of each scenario. It also checks AGT-2: no run
   // changes or deletes an earlier audit event or an earlier run's agent.
   it("AGT-5, AGT-2: property 1: every run of a scenario produces its expected decisions, whatever ran before it", async () => {
     const { deps } = scenarioRouteDeps(database, { clock });
-    const order = fc.shuffledSubarray([...SCENARIO_NAMES], { minLength: 4, maxLength: 4 });
+    const order = fc.shuffledSubarray([...SCENARIO_NAMES], { minLength: SCENARIO_NAMES.length, maxLength: SCENARIO_NAMES.length });
     // Mostly seconds apart, so repeats land inside the minute window; sometimes past it.
     const gap = fc.oneof({ weight: 4, arbitrary: fc.integer({ min: 0, max: 15_000 }) }, { weight: 1, arbitrary: fc.integer({ min: 60_000, max: 3_600_000 }) });
     const runs = new Map<ScenarioName, number>();
@@ -49,7 +49,7 @@ describe("scenario determinism", () => {
     let repeatsPastMinute = 0;
 
     await fc.assert(
-      fc.asyncProperty(order, order, fc.array(gap, { minLength: 8, maxLength: 8 }), async (a, b, gaps) => {
+      fc.asyncProperty(order, order, fc.array(gap, { minLength: 2 * SCENARIO_NAMES.length, maxLength: 2 * SCENARIO_NAMES.length }), async (a, b, gaps) => {
         const eventsBefore = await eventsOf(database.db, sandboxId);
         const agentsBefore = await database.db.select().from(agents).where(eq(agents.workspaceId, sandboxId)).orderBy(agents.id);
         const lastAt = new Map<ScenarioName, number>();
@@ -74,7 +74,7 @@ describe("scenario determinism", () => {
       }),
       { numRuns: 10 },
     );
-    expect(Object.fromEntries(runs)).toEqual({ normal: 20, runaway: 20, injection: 20, drift: 20 });
+    expect(Object.fromEntries(runs)).toEqual({ normal: 20, runaway: 20, injection: 20, drift: 20, hijack: 20 });
     // A run that inherited state from an earlier one would show up when a scenario repeats
     // inside the minute window (calls per minute, minute caps), or at all (a frozen agent).
     expect(repeatsInsideMinute).toBeGreaterThan(5);

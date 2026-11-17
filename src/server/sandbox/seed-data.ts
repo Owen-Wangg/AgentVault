@@ -1,4 +1,4 @@
-import { BILLING_ENVELOPE, BILLING_TASK, WEATHER_ENVELOPE, WEATHER_TASK } from "@/agents/scripted/scenarios";
+import { BILLING_ENVELOPE, BILLING_TASK, PAYABLES_ENVELOPE, PAYABLES_TASK, WEATHER_ENVELOPE, WEATHER_TASK } from "@/agents/scripted/scenarios";
 import type { Envelope } from "@/core/policy";
 
 /**
@@ -10,7 +10,8 @@ import type { Envelope } from "@/core/policy";
  */
 
 // 2: vendors carry payment URLs (rail-adapters RAIL-23).
-export const SEED_VERSION = 2;
+// 3: the Payee hijack's task and agent (payout-rails PO-23). Its supplier is created per run, not seeded.
+export const SEED_VERSION = 3;
 
 export interface SeedVendor {
   name: string;
@@ -33,9 +34,11 @@ export const SEED_VENDORS: readonly SeedVendor[] = [
 export const SEED_TASKS = [
   { key: "weather", ...WEATHER_TASK },
   { key: "billing", ...BILLING_TASK },
+  { key: "payables", ...PAYABLES_TASK },
 ] as const;
 
 export const SEED_AGENTS: readonly { name: string; envelope: Omit<Envelope, "agentId"> }[] = [
   { name: "weather-agent", envelope: WEATHER_ENVELOPE },
   { name: "billing-agent", envelope: BILLING_ENVELOPE },
+  { name: "payables-agent", envelope: PAYABLES_ENVELOPE },
 ];

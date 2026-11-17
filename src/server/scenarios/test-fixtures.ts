@@ -8,6 +8,7 @@ import type { GuardedDeps } from "@/server/payments/guarded";
 import { type FakeClock, testDeps } from "@/server/payments/test-fixtures";
 import { handleTool } from "@/server/tools/tool-handler";
 import { GET as poisonedDocs } from "../../../app/vendor/docs/integration/route";
+import { GET as poisonedInvoice } from "../../../app/vendor/docs/invoice/route";
 import { type ScenarioRouteDeps, handleRunScenario } from "./handler";
 import { type ScenarioLock, advisoryScenarioLock } from "./runner";
 
@@ -77,11 +78,15 @@ export async function runScenarioRoute(name: string, deps: ScenarioRouteDeps, he
 export const decisionsOf = (body: RunBody) => body.steps.filter((s) => s.decision).map((s) => ({ decision: s.decision, reasons: s.reasons }));
 export const expectedOf = (name: ScenarioName) => SCENARIOS[name].expected.map((e) => ({ decision: e.decision, reasons: [...e.reasons] }));
 
+/** The poisoned demo pages, by path, served by their real route handlers. */
+const POISONED_PAGES: Readonly<Record<string, () => Response>> = { "/vendor/docs/integration": poisonedDocs, "/vendor/docs/invoice": poisonedInvoice };
+
 /**
  * A fetch that sends each agent request to the real route handler for its
- * path, as the deployment would. The proxied fetch reads the real docs
- * route for the docs URL, so the injection agent sees the poisoned page.
- * `sent` records every request, for checks on what the agent sent.
+ * path, as the deployment would. The proxied fetch reads the real routes
+ * for the poisoned docs and invoice pages, so the injection and hijack
+ * agents see them. `sent` records every request, for checks on what the
+ * agent sent.
  */
 export function apiFetch(db: Db, guarded: Pick<GuardedDeps, "key" | "now" | "railFor">, options: { otherPages?: boolean } = {}) {
   const open = () => ({ db, close: async () => {} });
@@ -91,12 +96,13 @@ export function apiFetch(db: Db, guarded: Pick<GuardedDeps, "key" | "now" | "rai
     key: () => guarded.key,
     now: guarded.now,
     fetchPage: async (url) => {
-      if (url !== `${BASE_URL}/vendor/docs/integration`) {
+      const page = POISONED_PAGES[url.slice(BASE_URL.length)];
+      if (!url.startsWith(`${BASE_URL}/`) || !page) {
         // A live model may follow other links on the page; they answer 404 here.
         if (options.otherPages && new URL(url).origin === BASE_URL) return { url, hops: [url], status: 404, contentType: "text/plain", body: "Not found" };
         throw new Error(`unexpected fetch of ${url}`);
       }
-      return { url, hops: [url], status: 200, contentType: "text/html", body: await poisonedDocs().text() };
+      return { url, hops: [url], status: 200, contentType: "text/html", body: await page().text() };
     },
   };
   const sent: Request[] = [];

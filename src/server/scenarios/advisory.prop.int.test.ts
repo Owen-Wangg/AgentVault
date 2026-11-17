@@ -55,8 +55,9 @@ function scoredClient(inner: AgentClient, scores: readonly number[], context: Sc
     pay: async (vendor, amountMicros, key, tool = "x402.pay") =>
       inner.pay(vendor, amountMicros, key, tool, { advisoryDriftScore: await next({ tool, vendor, amountMicros }) }),
     tool: async (name, args, key) => {
-      const a = args as { vendor: string; amount_micros: string };
-      return inner.tool(name, args, key, { advisoryDriftScore: await next({ tool: name, vendor: a.vendor, amountMicros: fromMicrosString(a.amount_micros) }) });
+      // payee.update moves no money, so it has no amount_micros.
+      const a = args as { vendor: string; amount_micros?: string };
+      return inner.tool(name, args, key, { advisoryDriftScore: await next({ tool: name, vendor: a.vendor, amountMicros: fromMicrosString(a.amount_micros ?? "0") }) });
     },
   };
 }
@@ -84,7 +85,7 @@ describe("demo-agents property 3", () => {
             budgetMicros: scenario.task.budgetMicros,
             catalog: Object.fromEntries(LIVE_CATALOG.map((v) => [v.name, v.category])),
           };
-          const run = await runScripted(scenario, scoredClient(inner, scores, context), { vendorOrigin: BASE_URL });
+          const run = await runScripted(scenario, scoredClient(inner, scores, context), { vendorOrigin: BASE_URL, vendors: started.vendors });
           expect(run.completed).toBe(true);
           const actual = decisionSequence(run.results);
           // Held calls count toward calls per minute too, so even the runaway loop makes the same number of requests.
