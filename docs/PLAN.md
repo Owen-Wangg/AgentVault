@@ -24,14 +24,14 @@ Deployment target: Vercel **Hobby**. Cron jobs run at most once per day (see `te
 | 16 | Dec 1 | mcp-server tasks 1–4 | Nov 15–16 |
 | 17 | Dec 1 (optional, cut first) | demo-agents tasks 5–6; taint-and-intent task 7 | Nov 16 |
 | 18 | Dec 2 | telemetry-dashboard task 9 (polish, nightly reset cron) | Nov 16 |
-| 19 | Nov 16–19 | Real rails through AgentVault: rail-adapters task 9 (payment URLs), then a testnet workspace where an agent's `x402.pay` and `mpp.pay` over the HTTP API settle for real | Nov 16 (the testnet workspace pays with `x402.pay` only) |
+| 19 | Nov 16–19 | Real rails through AgentVault: rail-adapters task 9 (payment URLs), then a testnet workspace where an agent's `x402.pay` and `mpp.pay` over the HTTP API settle for real | Nov 16–17; `mpp.pay` over the HTTP API cut (below) |
 | 20 | Nov 20–22 | payout-rails tasks 1–4: steering, account setup and probes, `payout` on the rail interface, payouts and payee changes in the guarded flow | Nov 16 |
 | 21 | Nov 23–24 | payout-rails tasks 5–6: the Stripe Connect and PayPal sandbox adapters | Nov 16 |
 | 22 | Nov 25–26 | payout-rails tasks 7–8: the Payee hijack scenario and the docs | Nov 16–17 |
 | 23 | Nov 27–28 | Reliability through judging (Jan 29): the end-to-end reload loop, a cron and quota check; a pending-approvals count; `/llms.txt` | In progress: ops check, stream pause, approvals count, and `/llms.txt` done Nov 17 |
 | — | Nov 29–Dec 3 | Submission: demo video, Kiro write-up, blog and social posts, final deploy check | In progress |
 
-Phases 19 to 23 were added on Nov 16, after Phase 18 finished 17 days early. Each starts with its spec changes, as Phases 1 to 18 did. Phases 20 to 22 follow `.kiro/specs/payout-rails`. Paid vendor responses back to the agent were dropped for the payout rails and can return if there's time. Decisions still open: whether the hosted site gets a real-rail testnet workspace (it would need the agent wallet key on Vercel), and who may use it.
+Phases 19 to 23 were added on Nov 16, after Phase 18 finished 17 days early. Each starts with its spec changes, as Phases 1 to 18 did. Phases 20 to 22 follow `.kiro/specs/payout-rails`. Paid vendor responses back to the agent were dropped for the payout rails and can return if there's time. The hosted site got a public testnet workspace (`.kiro/specs/testnet-demo`): anyone may press its button, which makes one fixed $0.0015 `x402.pay` on Base Sepolia. It went live on Nov 17. `mpp.pay` settling over the HTTP API was cut on Nov 17: a Stripe card payment is at least $0.50, against $0.0015 for x402, and the MPP vendor endpoint already settles a real test-mode payment under `/validate-mpp`.
 
 **Scope-cut order for Phases 19 to 23** (cut from the top): the PayPal adapter (payout-rails task 6, and `paypal.payout` with it); the pending-approvals count and `/llms.txt`; the HTTP testnet workspace (Phase 19's second half). The Stripe Connect payouts and the Payee hijack scenario stay.
 
