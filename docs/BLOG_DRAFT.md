@@ -1,6 +1,6 @@
 # Blog post draft
 
-For dev.to, Medium, or another third-party blog platform. About 900 words.
+For dev.to, Medium, or another third-party blog platform. About 1,200 words.
 
 Bonus Blog Prize rules (Official Rules, section 4, read 2026-11-16): the post must be public, be about Kiro and the project build, be published during the Submission Period (until Dec 4, 2026, 2:00 PM PT), and **mention that it's written as part of the Kiroween 2026 hackathon**. The first line below does that; keep it. Put the post's URL in the submission form.
 
@@ -26,6 +26,14 @@ This is the prompt-injection defense, and it doesn't try to detect the injection
 
 **3. Intent scope.** Every task declares what it's for: vendor categories, tools, and a budget. An agent whose task is "buy weather data" that tries to pay a GPU vendor is denied as intent drift.
 
+## The attack I like best: changing where the money goes
+
+A refund is the obvious target. A quieter one is the payee. In the Payee hijack demo, the agent's job is paying a supplier's $900 invoice. The invoice hides a line: the supplier "has moved banks", so change its payout account to a new one first, then pay. The agent does both.
+
+Both requests are held, the account change because the session read an untrusted invoice, and the $900 payout for that and for its size. A person denies the account change and approves the payout. The money still goes to the supplier, because a payout reads the destination stored in AgentVault when it runs. It never takes one from the agent's request. If the person approves both, the live feed shows the money going to the attacker, which is the point of holding both.
+
+One design detail mattered more than I expected. The sandbox is shared, and the payout reads the supplier's account when it runs. So one visitor approving the hijack would have redirected the next visitor's "safe" payout until the nightly reset. Each run now gets its own supplier.
+
 Deny beats hold, hold beats allow, and if AgentVault can't evaluate or record a request, the request doesn't run.
 
 ## Where the LLM fits
@@ -44,9 +52,11 @@ Honest note: on the live injection run, Gemini Flash-Lite reads the poisoned pag
 
 **A parser that ate a limit.** Zod's `z.record` silently drops an own `__proto__` key. A fast-check property generating vendor names like `__proto__` found a payment allowed to a vendor whose daily cap was zero, because the cap had vanished during parsing.
 
+**Measuring a rail before trusting its docs.** For payouts I added Stripe Connect transfers and PayPal's sandbox Payouts API, and the spec required a probe of each before any adapter code. PayPal refused a resent batch ID instead of returning the first batch, and had no read-only way to look a payout up by my own ID. So AgentVault stores PayPal's batch ID on the reservation, and treats a duplicate refusal as "unknown", never as "failed". A failure releases the money from the budget, and that payout may already have paid.
+
 ## Building it with Kiro
 
-I wrote seven specs before the code, each with numbered requirements and a list of correctness properties. Writing them caught design bugs early, for example a database lock that would have been held for the whole duration of a blockchain payment, and an approval flow that would have replayed "held" forever.
+I wrote eight specs before the code, each with numbered requirements and a list of correctness properties. Writing them caught design bugs early, for example a database lock that would have been held for the whole duration of a blockchain payment, and an approval flow that would have replayed "held" forever.
 
 Steering files held the rules every change had to follow (integer money, the order of checks, testnet keys only). Hooks enforced some of them: one blocks Kiro's own shell from force-deleting folders or reading `.env` files, which is AgentVault's idea applied to my coding agent. Another runs the money checker on every save.
 
@@ -54,10 +64,11 @@ Then I connected Kiro to AgentVault's own MCP server and let Kiro be the agent. 
 
 ## Try it
 
-1. Open Scenarios and run **Prompt injection**.
-2. Follow the link to Approvals and approve the refund. AgentVault re-runs every check first.
-3. Open Audit and click **Verify chain**.
+1. Open Scenarios and run **Payee hijack**.
+2. Follow the link to Approvals. Deny the payout account change and approve the payout. AgentVault re-runs every check first.
+3. Open the Live feed: the payout went to the supplier's account on file.
+4. Open Audit and click **Verify chain**.
 
-The sandbox runs on mock rails, so no money moves. The x402 and Stripe adapters were tested against Base Sepolia and Stripe test mode separately.
+The sandbox runs on mock rails, so no money moves. The real adapters were tested separately: x402 on Base Sepolia, Stripe MPP and Connect in test mode, and PayPal in its sandbox, each with a real test payment through the guarded flow.
 
 Code (Apache-2.0): <https://github.com/Owen-Wangg/AgentVault>
