@@ -36,7 +36,7 @@ Plan (`docs/PLAN.md`): **Phase 20** = tasks 1–4. **Phase 21** = tasks 5–6. *
   - Contract tests on recorded exchanges (`pnpm connect:probe --record`); `@live` test of a guarded $1.00 transfer
   - _Requirements: PO-6, PO-7, PO-8, PO-9_
 
-- [ ] 6. Build the PayPal sandbox payout adapter
+- [x] 6. Build the PayPal sandbox payout adapter
   - Fixed sandbox host and the `PAYPAL_ENV` check; OAuth token cache; payout batch with `sender_batch_id`; status mapping; lookup as the probe allows
   - Contract tests on recorded exchanges (`pnpm paypal:probe --record`); `@live` test of a guarded $1.00 payout
   - Property 5
