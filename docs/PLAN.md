@@ -24,7 +24,7 @@ Deployment target: Vercel **Hobby**. Cron jobs run at most once per day (see `te
 | 16 | Dec 1 | mcp-server tasks 1–4 | Nov 15–16 |
 | 17 | Dec 1 (optional, cut first) | demo-agents tasks 5–6; taint-and-intent task 7 | Nov 16 |
 | 18 | Dec 2 | telemetry-dashboard task 9 (polish, nightly reset cron) | Nov 16 |
-| 19 | Nov 16–19 | Real rails through AgentVault: rail-adapters task 9 (payment URLs), then a testnet workspace where an agent's `x402.pay` and `mpp.pay` over the HTTP API settle for real | Task 9 done Nov 16 |
+| 19 | Nov 16–19 | Real rails through AgentVault: rail-adapters task 9 (payment URLs), then a testnet workspace where an agent's `x402.pay` and `mpp.pay` over the HTTP API settle for real | Nov 16 (the testnet workspace pays with `x402.pay` only) |
 | 20 | Nov 20–22 | payout-rails tasks 1–4: steering, account setup and probes, `payout` on the rail interface, payouts and payee changes in the guarded flow | Nov 16 |
 | 21 | Nov 23–24 | payout-rails tasks 5–6: the Stripe Connect and PayPal sandbox adapters | Nov 16 |
 | 22 | Nov 25–26 | payout-rails tasks 7–8: the Payee hijack scenario and the docs | Nov 16–17 |

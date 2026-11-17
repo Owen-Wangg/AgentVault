@@ -26,6 +26,6 @@ Plan (`docs/PLAN.md`): Phase 19's second half.
   - `pnpm ops:check` testnet counts; `docs/OPERATIONS.md` (wallet balance and refill), SETUP.md, README, the demo script, and the Devpost story
   - _Requirements: TN-10_
 
-- [ ] 7. Turn it on
+- [x] 7. Turn it on
   - Migration 0006 on the main database, `pnpm testnet:setup --origin https://owen-agentvault.vercel.app`, `RAIL_MODE=real` on Vercel, a deploy, and one real press on the hosted site
   - _Requirements: TN-1, TN-2, TN-3_
