@@ -23,7 +23,7 @@ Plan (`docs/PLAN.md`): **Phase 20** = tasks 1–4. **Phase 21** = tasks 5–6. *
   - Properties 3 and 6
   - _Requirements: PO-1, PO-2, PO-5, PO-10, PO-14_
 
-- [ ] 4. Route payouts and payee changes through the guarded flow
+- [x] 4. Route payouts and payee changes through the guarded flow
   - Migration 0004: `vendors.stripe_account` and `vendors.paypal_receiver` with format checks
   - Payouts read the destination at execution time; no destination fails closed without a rail call
   - `payee.update`: commit the decision, check the destination outside the lock, then update the row with `rail_result` and `payee_updated` in one transaction; approvals re-run the same path
