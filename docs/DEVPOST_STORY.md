@@ -12,13 +12,16 @@ Paste into the Devpost "About the project" fields. The Kiro section is in `docs/
 - Public GitHub repo URL, live app URL, public YouTube video URL (under 3 minutes), the Kiro write-up, and the blog and social post URLs.
 - No login is needed for judging; say so in the credentials field. Sign-in with GitHub is optional and only gives a personal workspace.
 - The rules say the app must stay available, free and unrestricted, **until the Judging Period ends on January 29, 2027**.
-- Pre-existing code must be disclosed. Everything here was written during the Submission Period, using open-source libraries.
+- Pre-existing code must be disclosed. Everything here was written during the Submission Period (it opened Oct 30; the first commit is Nov 14), using open-source libraries.
+- Image gallery: upload a few screenshots, since Design is a fifth of the score. For example: the live feed after a Payee hijack run (`docs/images/payee-hijack-feed.png`), the approvals inbox with both hijack cards, "Chain verified." on Audit, the testnet card with its BaseScan link, and the overview in Kiroween mode. Crop out any third-party logos.
 
 ## Inspiration
 
 Stripe's Machine Payments Protocol and x402 let an AI agent answer an HTTP `402 Payment Required` and pay per call, sometimes a tenth of a cent. That's useful, and it removes the person who used to approve each purchase. Card limits and fraud checks assume a human at checkout. An agent that reads a poisoned web page, or loops on a retry bug, can spend a budget one small charge at a time, faster than anyone would notice.
 
 We wanted the agent equivalent of a firewall: a place where every payment and every risky tool call is checked against rules the agent can't talk its way around.
+
+It's for developers shipping agents that spend money, who need per-agent budgets and a kill switch, and for platform and security teams, who need a human approval step for risky actions and an audit trail they can trust.
 
 ## What it does
 
@@ -39,11 +42,13 @@ In the **payee hijack**, an agent paying a supplier's $900 invoice reads a poiso
 
 ## How we built it
 
+**The Frankenstein part.** AgentVault stitches together pieces that were never meant to work together: card payments (Stripe MPP), stablecoin payments (x402, USDC on Base Sepolia), payouts on two unrelated providers (Stripe Connect and PayPal), taint tracking (an information-flow security technique, applied here to prompt injection), a live LLM agent, and MCP. Each rail has its own protocol, its own unit (cents, USDC atomic units, PayPal decimal strings), and its own way of failing. AgentVault puts all of them behind one deterministic policy engine, one approvals inbox, and one tamper-evident audit log.
+
 - **Next.js on Vercel** (region `pdx1`), **Neon Postgres** in us-west-2, **Drizzle**, and **Zod** at every boundary.
 - **Money is `bigint` micros** (1 USD = 1,000,000), so sub-cent charges are exact. Conversions to Stripe cents round against the agent: debits up, refunds down.
 - **Each payment is one database transaction:** lock the agent's envelope row, claim the idempotency key, load the state, run a pure `evaluate()` function, write the audit row, and reserve the amount. The rail call happens after the commit, so no lock is held during a payment. If any step fails, nothing is paid.
 - **Rails:** x402 on Base Sepolia (USDC) and Stripe MPP in test mode for payments, Stripe Connect transfers (test mode) and PayPal Payouts (sandbox) for payouts, each verified with real test payments, plus a mock rail for the sandbox. PayPal is a second, unrelated provider, there to show the same rules hold on a rail AgentVault didn't start with.
-- **Testing:** about 1,480 Vitest tests, many of them fast-check property tests of the design's correctness properties, and Playwright for the judge's path. Each safeguard was broken on purpose to confirm a test catches it.
+- **Testing:** about 1,500 Vitest tests, including 18 files of fast-check property tests that check the designs' correctness properties, and Playwright for the judge's path. Each safeguard was broken on purpose to confirm a test catches it.
 - **Built with Kiro:** nine specs, steering, seven hooks, and MCP. Details in the Kiro write-up.
 
 ## Challenges we ran into
@@ -60,6 +65,7 @@ In the **payee hijack**, an agent paying a supplier's $900 invoice reads a poiso
 
 - The prompt-injection demo works end to end: the scripted agent obeys the hidden instruction, and the $480 refund is still held for a person. Kiro, connected over MCP, got the same hold.
 - The payee hijack: the agent is fooled into changing where money goes, and the money still goes to the right place.
+- Any visitor can make a real $0.0015 x402 payment on Base Sepolia from the hosted site and see it on BaseScan, through the same checks as every other request.
 - Real sub-cent x402 payments ($0.0015) settled on Base Sepolia, and real Stripe MPP test payments with a refund, each found again by the read-only lookup the reconciler uses. Guarded $1.00 payouts settled as a Stripe Connect test-mode transfer and a PayPal sandbox payout.
 - Property tests that found real bugs, including one that would have let a limit disappear.
 - Lighthouse accessibility, best practices, and SEO scores of 100 on the overview in both themes.

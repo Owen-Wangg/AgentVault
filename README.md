@@ -93,7 +93,7 @@ Checks:
 
 | Command | What it runs |
 |---|---|
-| `pnpm verify` | Typecheck, lint, and about 1,480 Vitest unit, property, and integration tests. Integration tests use PGlite unless `DATABASE_URL_TEST` is set |
+| `pnpm verify` | Typecheck, lint, and about 1,500 Vitest unit, property, and integration tests. Integration tests use PGlite unless `DATABASE_URL_TEST` is set |
 | `pnpm check:money` | Flags float operations on money |
 | `pnpm test:e2e` | Playwright: the prompt-injection and payee-hijack paths, plus layout at 375 and 1920 px and keyboard navigation in both themes |
 | `pnpm test:live` | `@live` tests against Base Sepolia, Stripe test mode (MPP and Connect), the PayPal sandbox, and Gemini (needs their keys) |
