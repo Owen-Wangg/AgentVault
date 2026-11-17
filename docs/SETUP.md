@@ -440,7 +440,7 @@ In the Dashboard, open **Developers → API keys**, click the **⋯** menu next 
 
 ## 8. Live Gemini agent (optional)
 
-The scenarios page can run three of the four scenarios with a real LLM agent on Gemini's free tier (demo-agents AGT-11 to AGT-16). Without `GEMINI_API_KEY` the "Run with live AI agent" buttons are hidden and everything else works the same. Tests never call Gemini; they use recorded responses.
+The scenarios page can run three of the five scenarios with a real LLM agent on Gemini's free tier (demo-agents AGT-11 to AGT-16). Without `GEMINI_API_KEY` the "Run with live AI agent" buttons are hidden and everything else works the same. Tests never call Gemini; they use recorded responses.
 
 ### Step 1: Check the free-tier limits
 

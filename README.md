@@ -24,6 +24,9 @@ The other scenarios on the same page:
 | Runaway loop | A retry bug pays in a tight loop | 30 allowed, then `deny` with `VELOCITY_EXCEEDED`, and the agent is frozen (`AGENT_FROZEN`) |
 | Prompt injection | Reads the poisoned docs page, then asks for the $480 refund | `hold` with `HELD_TAINTED`, `NEEDS_APPROVAL` |
 | Intent drift | Its task is weather data, but it pays a GPU vendor | `allow`, then `deny` with `DENY_INTENT_DRIFT` |
+| Payee hijack | Its task is paying a supplier's $900 invoice. The invoice hides an instruction to switch the supplier's payout account to an attacker's first, and the agent obeys | `payee.update` → `hold` with `HELD_TAINTED`; the $900 `payout.create` → `hold` with `HELD_TAINTED`, `NEEDS_APPROVAL` |
+
+In the Payee hijack, deny the account change and approve the payout: the payout reads the supplier's account on file when it runs, and the live feed shows "Paid out to acct_1AcmeSupplies". Approve both, and it would go to the attacker. Each run gets its own supplier row, so one visitor's approvals can't redirect another visitor's payout.
 
 Normal purchase, Prompt injection, and Intent drift also have a **Run with live AI agent** button, which runs Gemini (free tier, rate-limited) in place of the script. The model chooses its own requests and AgentVault's rules still decide each one. A real model may not follow the injected instruction, and then there is nothing to hold; the scripted run always shows the hold.
 
@@ -32,7 +35,7 @@ The sandbox is shared, runs on mock rails only, and starts fresh every night, so
 ## What it checks
 
 - **Spend envelopes:** per-agent limits per transaction, per minute, hour, and day, calls per minute, an approval threshold, and vendor and tool allow-lists, with optional per-vendor and per-tool limits.
-- **Taint tracking:** agents read the web through `/api/v1/fetch`, which labels each page trusted or untrusted by origin. Reading untrusted content taints the session for good, and `stripe.refund`, `wire_transfer`, `payout.create`, and `payee.update` then need a person's approval.
+- **Taint tracking:** agents read the web through `/api/v1/fetch`, which labels each page trusted or untrusted by origin. Reading untrusted content taints the session for good, and `stripe.refund`, `wire_transfer`, `payout.create`, `paypal.payout`, and `payee.update` then need a person's approval.
 - **Intent scope:** each task declares its vendor categories, tools, and budget. Anything outside them is denied (`DENY_INTENT_DRIFT`, `OVER_TASK_BUDGET`).
 - **Approvals:** held requests wait in an inbox for 15 minutes. Approving re-runs the whole check, and an approval runs at most once.
 - **Audit log:** append-only (Postgres triggers reject `UPDATE`, `DELETE`, and `TRUNCATE`), hash-chained per workspace, with an HMAC-signed chain head so a deleted tail is detected.
@@ -54,8 +57,11 @@ agent ──► /api/v1/pay, /tool, /fetch  (bearer API key, Zod-validated)
              │
              ▼  after the commit, no lock held
           rail: mock | x402 (Base Sepolia) | Stripe MPP (test mode)
+                | Stripe Connect payouts (test mode) | PayPal payouts (sandbox)
           append the result: settled, failed, or unknown
 ```
+
+- **Payouts** (`payout.create` on Stripe Connect, `paypal.payout` on PayPal) send money to the vendor's payout destination stored in AgentVault, read when the payout runs, never one from the agent's request. Only `payee.update` can change it, and that change is checked against the rail (an open, test-mode Stripe recipient account, or a PayPal sandbox address) before it's stored. Payouts are credits: the payee's amount rounds down to the cent, and the envelope counts the full amount.
 
 - Money is `bigint` micros everywhere (1 USD = 1,000,000), so sub-cent charges are exact. Floats never touch an amount.
 - An unknown rail outcome keeps the reservation counted until the reconciler (run after requests and by a daily cron) looks it up. Only a confirmed failure releases money.
@@ -85,20 +91,21 @@ Checks:
 
 | Command | What it runs |
 |---|---|
-| `pnpm verify` | Typecheck, lint, and about 1,270 Vitest unit, property, and integration tests. Integration tests use PGlite unless `DATABASE_URL_TEST` is set |
+| `pnpm verify` | Typecheck, lint, and about 1,460 Vitest unit, property, and integration tests. Integration tests use PGlite unless `DATABASE_URL_TEST` is set |
 | `pnpm check:money` | Flags float operations on money |
-| `pnpm test:e2e` | Playwright: the prompt-injection path, plus layout at 375 and 1920 px and keyboard navigation in both themes |
-| `pnpm test:live` | `@live` tests against Base Sepolia, Stripe test mode, and Gemini (needs their keys) |
+| `pnpm test:e2e` | Playwright: the prompt-injection and payee-hijack paths, plus layout at 375 and 1920 px and keyboard navigation in both themes |
+| `pnpm test:live` | `@live` tests against Base Sepolia, Stripe test mode (MPP and Connect), the PayPal sandbox, and Gemini (needs their keys) |
 
 ## Limits
 
-- **Testnets and test mode only.** Rail settings are checked on every payment: an `sk_live_` Stripe key, or an x402 network other than Base Sepolia (`eip155:84532`), fails the check and nothing is paid, even in mock mode.
-- **The live site uses mock rails.** With `RAIL_MODE=real`, an allowed payment goes to the vendor's registered payment URL, never one the agent sends. A $0.0015 x402 payment through the full guarded flow settles on Base Sepolia in the `@live` tests, and the Stripe MPP adapter is tested against Stripe test mode. Real rails run only outside the public sandbox, and no workspace outside it has vendors yet, so an agent can't make a real payment over the HTTP API yet.
+- **Testnets, test mode, and sandboxes only.** Rail settings are checked on every payment: an `sk_live_` Stripe key, an x402 network other than Base Sepolia (`eip155:84532`), or a `PAYPAL_ENV` set to anything but `sandbox` fails the check and nothing is paid, even in mock mode. The PayPal host is a fixed sandbox URL, and any Stripe object returned with `livemode: true` is treated as an invalid response.
+- **The live site uses mock rails.** With `RAIL_MODE=real`, an allowed payment goes to the vendor's registered payment URL, never one the agent sends. In the `@live` tests, a $0.0015 x402 payment through the full guarded flow settles on Base Sepolia, a guarded $1.00 `payout.create` settles as a Stripe Connect test-mode transfer, and a guarded $1.00 `paypal.payout` reaches `SUCCESS` in the PayPal sandbox; the Stripe MPP adapter is tested against Stripe test mode. Real rails run only outside the public sandbox, and no workspace outside it has vendors yet, so an agent can't make a real payment over the HTTP API yet.
+- **Payout minimums are 1 cent on both payout rails** (measured). A PayPal sandbox payout costs the sender a $0.25 fee and usually takes 15 to 30 seconds to settle.
 - The mock rail keeps its records in one process's memory.
 
 ## How it was built
 
-Built with Kiro for Kiroween 2026: seven specs in [.kiro/specs](.kiro/specs), steering in [.kiro/steering](.kiro/steering), and hooks in [.kiro/hooks](.kiro/hooks). The development log is [docs/KIRO_LOG.md](docs/KIRO_LOG.md).
+Built with Kiro for Kiroween 2026: eight specs in [.kiro/specs](.kiro/specs), steering in [.kiro/steering](.kiro/steering), and hooks in [.kiro/hooks](.kiro/hooks). The development log is [docs/KIRO_LOG.md](docs/KIRO_LOG.md).
 
 ## License
 

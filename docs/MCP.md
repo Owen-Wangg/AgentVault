@@ -6,7 +6,17 @@ AgentVault's MCP server lets an MCP client such as Kiro or Claude Desktop pay ve
 |---|---|
 | `agentvault_pay` | Pays a vendor. `amount` is dollars as a string, like `"0.0015"`. `rail` is `x402` (default) or `mpp`. |
 | `agentvault_fetch` | Reads a URL and labels it trusted or untrusted. Untrusted content taints the session. |
-| `agentvault_request_tool` | Requests `stripe.refund`, `wire_transfer`, `payout.create`, or `payee.update`. Give amounts in `args` as dollars, like `"amount": "480"`. |
+| `agentvault_request_tool` | Requests `stripe.refund`, `wire_transfer`, `payout.create`, `paypal.payout`, or `payee.update`. Give amounts in `args` as dollars, like `"amount": "480"`. |
+
+Arguments for the payout tools:
+
+| Tool | `args` |
+|---|---|
+| `payout.create` (Stripe Connect) | `vendor`, `amount` |
+| `paypal.payout` (PayPal sandbox) | `vendor`, `amount` |
+| `payee.update` | `vendor`, `payee_ref` (a Stripe account ID like `acct_…`, or a PayPal sandbox address), and an optional `rail`: `"stripe"` (the default) or `"paypal"`. No amount. |
+
+A payout never takes a destination from the agent. It pays the vendor's payout destination stored in AgentVault, read when the payout runs, and only an allowed or approved `payee.update` changes it.
 
 There are no tools to approve, deny, or unfreeze. A person does those in the dashboard.
 
@@ -117,4 +127,5 @@ A missing or rejected key, an invalid amount, or a request the API refuses comes
 ## Limits
 
 - The setup script is the only way to get a session. Agents created on the Agents page don't get one.
-- `pnpm mcp:agent` puts agents in the public sandbox, which always uses mock rails, so MCP payments never move test funds. Real rails run only outside the sandbox (rail-adapters RAIL-2).
+- `pnpm mcp:agent` puts agents in the public sandbox, which always uses mock rails, so MCP payments and payouts never move test funds. Real rails run only outside the sandbox (rail-adapters RAIL-2).
+- Neither preset's envelope or task allows `payout.create`, `paypal.payout`, or `payee.update`, so an MCP agent's request for one is denied. The Payee hijack runs only as a scripted scenario on the scenarios page, which creates its own supplier for each run.
