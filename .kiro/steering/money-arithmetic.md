@@ -44,7 +44,7 @@ chargeableMicros(amount: Micros, rail, direction): Micros   // what the envelope
 - `toRailUnits` is called only inside `src/rails/**`. The server uses `chargeableMicros`, with the rail the tool is registered to, even when the sandbox runs it on the mock adapter.
 - Rail minimums are enforced in the adapter, after conversion. Below the minimum, the adapter returns `BELOW_RAIL_MINIMUM`. It never silently rounds up to the minimum.
   - Stripe SPT card payments: at least 50 cents.
-  - Stripe Connect transfers and PayPal payouts: 1 cent until `pnpm connect:probe` and `pnpm paypal:probe` measure them (payout-rails task 2).
+  - Stripe Connect transfers and PayPal payouts: 1 cent, measured by `pnpm connect:probe` and `pnpm paypal:probe` (payout-rails task 2). Stripe refuses $0.00 outright; PayPal accepts it and then fails the item with `ZERO_AMOUNT`, so the adapters refuse it first.
   - x402: USDC has no protocol minimum, but the CDP facilitator sets one. rail-adapters task 4 measured it on Base Sepolia: 1000 units ($0.001). It refuses 999 units with `amount_too_low`, and settles 1000 and the sandbox's `$0.0015` weather payment. `X402_MIN_UNITS` defaults to 1000, and the mock rail uses the same minimum.
 
 > Note: the original plan mentioned banker's rounding. Directional rounding replaces it, because banker's rounding can round a debit down, which favors the agent.
