@@ -99,6 +99,25 @@ async function main() {
     for (const r of open) console.log(`  reservations      ${r.rows} open on ${r.rail}, oldest ${iso(r.oldest)}`);
     console.log(`  approvals         ${pending?.rows ?? "0"} pending, oldest ${iso(pending?.oldest ?? null)} (expiry is applied when they're read)`);
 
+    // testnet-demo TN-10: real payments from the public button, by outcome.
+    const testnetRows = await queryRows<{ status: string; total: string; today: string }>(
+      db,
+      sql`SELECT r.status, count(*)::text AS total,
+                 count(*) FILTER (WHERE r.created_at >= date_trunc('day', now() AT TIME ZONE 'UTC') AT TIME ZONE 'UTC')::text AS today
+          FROM spend_reservations r
+          JOIN agents a ON a.id = r.agent_id
+          JOIN workspaces w ON w.id = a.workspace_id
+          WHERE w.public_testnet
+          GROUP BY r.status ORDER BY r.status`,
+    );
+    const [testnetWs] = await queryRows<{ n: string }>(db, sql`SELECT count(*)::text AS n FROM workspaces WHERE public_testnet`);
+    console.log("\nPublic testnet payments (Base Sepolia; check the wallet with pnpm x402:status)");
+    if (testnetWs?.n === "0") console.log("  no testnet workspace (pnpm testnet:setup creates it)");
+    else if (testnetRows.length === 0) console.log("  none yet");
+    for (const r of testnetRows) console.log(`  ${r.status.padEnd(9)} ${r.today} today (UTC), ${r.total} in total`);
+    const stuckTestnet = testnetRows.find((r) => r.status === "reserved");
+    if (stuckTestnet && stuckTestnet.total !== "0") warnings.push(`${stuckTestnet.total} testnet payment(s) still have an unknown outcome; the reconciler should resolve them.`);
+
     console.log(warnings.length === 0 ? "\nNothing needs attention." : `\nNeeds attention:\n${warnings.map((w) => `  - ${w}`).join("\n")}`);
     if (warnings.length > 0) process.exitCode = 1;
   } finally {
