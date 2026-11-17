@@ -129,6 +129,14 @@ function Row({ row, agentNames }: { row: FeedRow; agentNames: Record<string, str
             ))}
           </ul>
         )}
+        {row.payeeChange ? (
+          // payout-rails PO-12. References render as text, never as links.
+          <p className="mt-1 text-xs" data-testid="payee-change">
+            <span className="font-medium">{t("feed.payeeChanged")}</span>{" "}
+            <span className="font-mono">{row.payeeChange.oldRef ?? t("feed.payeeNone")}</span> {t("feed.payeeTo")}{" "}
+            <span className="font-mono">{row.payeeChange.newRef}</span>
+          </p>
+        ) : null}
       </td>
     </tr>
   );

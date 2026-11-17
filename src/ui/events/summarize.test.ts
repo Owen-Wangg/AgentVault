@@ -42,6 +42,25 @@ describe("advisory drift score on a decision", () => {
   });
 });
 
+describe("payee changes in the feed", () => {
+  const change = (decisionSeq: number, oldRef: string | null) =>
+    ev("payee_updated", { vendor: "acme-supplies", rail: "stripe", old_ref: oldRef, new_ref: "acct_1AttackerSandbox", decision_seq: decisionSeq });
+
+  it("PO-12: a payee_updated event attaches the old and new destinations to its decision row", () => {
+    const d = decision("allow", "0");
+    const [row] = feedRows([d, rail(d.seq, "settled"), change(d.seq, "acct_1AcmeSupplies")]);
+    expect(row?.payeeChange).toEqual({ rail: "stripe", oldRef: "acct_1AcmeSupplies", newRef: "acct_1AttackerSandbox" });
+    expect(row?.railStatus).toBe("settled");
+  });
+
+  it("PO-12: a first destination has no old reference, and a malformed event is skipped", () => {
+    const d = decision("allow", "0");
+    expect(feedRows([d, change(d.seq, null)])[0]?.payeeChange).toEqual({ rail: "stripe", oldRef: null, newRef: "acct_1AttackerSandbox" });
+    const d2 = decision("allow", "0");
+    expect(feedRows([d2, ev("payee_updated", { decision_seq: d2.seq, new_ref: 5 })])[0]).not.toHaveProperty("payeeChange");
+  });
+});
+
 describe("feed rows", () => {
   it("UI-6: one row per decision, newest first, with the rail outcome attached and amounts as exact micros", () => {
     const d1 = decision("allow", "1500");

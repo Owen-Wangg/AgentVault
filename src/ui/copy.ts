@@ -60,6 +60,9 @@ type UiKey =
   | "feed.decision"
   | "feed.reasons"
   | "feed.noReasons"
+  | "feed.payeeChanged"
+  | "feed.payeeNone"
+  | "feed.payeeTo"
   | "agents.title"
   | "agents.empty"
   | "agents.create"
@@ -263,6 +266,9 @@ const defaultCopy: CopyTable = {
   "feed.decision": "Decision",
   "feed.reasons": "Reasons",
   "feed.noReasons": "All checks passed.",
+  "feed.payeeChanged": "Payout account changed:",
+  "feed.payeeNone": "none",
+  "feed.payeeTo": "to",
   "agents.title": "Agents",
   "agents.empty": "No agents yet.",
   "agents.create": "Create agent",
@@ -428,6 +434,7 @@ const kiroweenCopy: CopyTable = {
   "overview.alerts": "Recent hauntings",
   "overview.noAlerts": "All quiet in the graveyard: no denials, holds, or freezes in this range.",
   "feed.empty": "Nothing stirs yet. Run a scenario or send a request with an agent key.",
+  "feed.payeeChanged": "A payout account changed hands:",
   "approvals.empty": "No souls await judgment. Nothing is waiting for approval.",
   "audit.verified": "The chain holds. No spirit has meddled with it.",
   "audit.broken": "The chain is cursed at seq",

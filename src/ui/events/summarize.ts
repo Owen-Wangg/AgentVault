@@ -56,6 +56,8 @@ export interface FeedRow {
   approvalId?: string;
   /** The live agent's advisory drift score, 0 to 100, when it sent one (AGT-16). */
   advisoryDriftScore?: number;
+  /** Set when this decision's payee.update changed a payout destination (payout-rails PO-12). */
+  payeeChange?: { rail: string; oldRef: string | null; newRef: string };
 }
 
 const DetailSchema = z
@@ -75,6 +77,13 @@ const RailResultPayload = z.looseObject({
   status: z.enum(["settled", "failed", "unknown"]),
   decision_seq: z.number().int(),
   settled_micros: MicrosSchema.optional(),
+});
+
+const PayeeUpdatedPayload = z.looseObject({
+  decision_seq: z.number().int(),
+  rail: z.string(),
+  old_ref: z.string().nullable(),
+  new_ref: z.string(),
 });
 
 const AgentPayload = z.looseObject({ agent_id: z.string() });
@@ -108,10 +117,15 @@ export function feedRows(events: readonly AuditEventMessage[]): FeedRow[] {
     if (row) rows.set(row.seq, row);
   }
   for (const e of events) {
-    if (e.type !== "rail_result") continue;
-    const p = RailResultPayload.safeParse(e.payload);
-    const row = p.success ? rows.get(p.data.decision_seq) : undefined;
-    if (row && p.success) row.railStatus = p.data.status;
+    if (e.type === "rail_result") {
+      const p = RailResultPayload.safeParse(e.payload);
+      const row = p.success ? rows.get(p.data.decision_seq) : undefined;
+      if (row && p.success) row.railStatus = p.data.status;
+    } else if (e.type === "payee_updated") {
+      const p = PayeeUpdatedPayload.safeParse(e.payload);
+      const row = p.success ? rows.get(p.data.decision_seq) : undefined;
+      if (row && p.success) row.payeeChange = { rail: p.data.rail, oldRef: p.data.old_ref, newRef: p.data.new_ref };
+    }
   }
   return [...rows.values()].sort((a, b) => b.seq - a.seq);
 }
