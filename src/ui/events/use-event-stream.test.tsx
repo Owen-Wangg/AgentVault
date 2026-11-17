@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { StreamStatusBadge } from "@/ui/components/StreamStatusBadge";
 import type { AuditEventMessage } from "./summarize";
@@ -10,11 +10,13 @@ afterEach(cleanup);
 /** A stand-in for the browser's EventSource that tests drive by hand. */
 class FakeSource extends EventTarget {
   static last: FakeSource | undefined;
+  static opened = 0;
   readyState = 0;
   closed = false;
   constructor(readonly url: string) {
     super();
     FakeSource.last = this;
+    FakeSource.opened += 1;
   }
   close() {
     this.closed = true;
@@ -28,12 +30,12 @@ class FakeSource extends EventTarget {
 const event = (seq: number): AuditEventMessage => ({ workspace_id: "w1", seq, type: "decision", created_at: "", payload: {}, prev_hash: "", hash: "" });
 
 function Probe({ workspaceId, options }: { workspaceId: string; options: EventStreamOptions }) {
-  const { events, status, ready } = useEventStream(workspaceId, options);
+  const { events, status, ready, resume } = useEventStream(workspaceId, options);
   return (
     <div>
       <p data-testid="seqs">{events.map((e) => e.seq).join(",")}</p>
       <p data-testid="ready">{String(ready)}</p>
-      <StreamStatusBadge status={status} />
+      <StreamStatusBadge status={status} onResume={resume} />
     </div>
   );
 }
@@ -134,5 +136,116 @@ describe("useEventStream", () => {
     expect(mergeEvents([event(1), event(2)], [event(4), event(2), event(3), event(3)]).map((e) => e.seq)).toEqual([1, 2, 3, 4]);
     const current = [event(1)];
     expect(mergeEvents(current, [event(1)])).toBe(current);
+  });
+});
+
+/** A document whose visibility the test sets. */
+class FakeDocument extends EventTarget {
+  visibilityState: DocumentVisibilityState = "visible";
+  set(state: DocumentVisibilityState) {
+    this.visibilityState = state;
+    this.dispatchEvent(new Event("visibilitychange"));
+  }
+}
+
+function mountWatched(extra: Partial<EventStreamOptions> = {}) {
+  const doc = new FakeDocument();
+  const options: EventStreamOptions = {
+    createEventSource: (url) => new FakeSource(url) as unknown as EventSource,
+    onRetired: vi.fn(),
+    doc: doc as unknown as Document,
+    ...extra,
+  };
+  render(<Probe workspaceId="w1" options={options} />);
+  return { doc };
+}
+
+describe("useEventStream: pausing when nobody is watching", () => {
+  it("TEL-6: hiding the page closes the stream; showing it opens one and adds only the missed events", async () => {
+    const { doc } = mountWatched();
+    const first = FakeSource.last!;
+    act(() => {
+      first.emit("open");
+      first.emit("audit", event(1));
+      first.emit("audit", event(2));
+      first.emit("ready", { seq: 2 });
+    });
+    await flush();
+    act(() => doc.set("hidden"));
+    expect(first.closed).toBe(true);
+    expect(screen.getByRole("status").textContent).toBe("Live updates paused");
+    const opened = FakeSource.opened;
+    act(() => doc.set("visible"));
+    expect(FakeSource.opened).toBe(opened + 1);
+    const second = FakeSource.last!;
+    expect(second).not.toBe(first);
+    expect(second.url).toBe("/api/v1/events?workspace_id=w1");
+    // A new EventSource can't send Last-Event-ID, so the backlog arrives again.
+    act(() => {
+      second.emit("open");
+      for (const seq of [1, 2, 3]) second.emit("audit", event(seq));
+      second.emit("ready", { seq: 3 });
+    });
+    await flush();
+    expect(screen.getByTestId("seqs").textContent).toBe("1,2,3");
+    expect(screen.getByRole("status").textContent).toBe("Live");
+  });
+
+  it("TEL-6: a page that loads hidden opens no stream until it's shown", () => {
+    const doc = new FakeDocument();
+    doc.visibilityState = "hidden";
+    const opened = FakeSource.opened;
+    render(<Probe workspaceId="w1" options={{ createEventSource: (url) => new FakeSource(url) as unknown as EventSource, onRetired: vi.fn(), doc: doc as unknown as Document }} />);
+    expect(FakeSource.opened).toBe(opened);
+    expect(screen.getByRole("status").textContent).toBe("Live updates paused");
+    act(() => doc.set("visible"));
+    expect(FakeSource.opened).toBe(opened + 1);
+  });
+
+  it("TEL-7: pauses after idleMs without input, and Resume reopens the stream", () => {
+    vi.useFakeTimers();
+    try {
+      mountWatched({ idleMs: 10_000 });
+      const first = FakeSource.last!;
+      act(() => first.emit("open"));
+      act(() => vi.advanceTimersByTime(9_999));
+      expect(first.closed).toBe(false);
+      act(() => vi.advanceTimersByTime(1));
+      expect(first.closed).toBe(true);
+      expect(screen.getByRole("status").textContent).toBe("Live updates paused");
+      const opened = FakeSource.opened;
+      fireEvent.click(screen.getByRole("button", { name: "Resume live updates" }));
+      expect(FakeSource.opened).toBe(opened + 1);
+      expect(screen.queryByRole("button", { name: "Resume live updates" })).toBeNull();
+      // Resuming restarts the idle timer, so the stream pauses again after another idleMs.
+      act(() => vi.advanceTimersByTime(10_000));
+      expect(FakeSource.last!.closed).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("TEL-7: input before the limit keeps the stream open, and any input after a pause resumes it", () => {
+    vi.useFakeTimers();
+    try {
+      mountWatched({ idleMs: 10_000 });
+      const first = FakeSource.last!;
+      act(() => vi.advanceTimersByTime(9_000));
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent("keydown", { key: "j" }));
+      });
+      act(() => vi.advanceTimersByTime(9_000));
+      expect(first.closed).toBe(false);
+      act(() => vi.advanceTimersByTime(1_000));
+      expect(first.closed).toBe(true);
+      const opened = FakeSource.opened;
+      act(() => {
+        window.dispatchEvent(new Event("pointermove"));
+      });
+      expect(FakeSource.opened).toBe(opened + 1);
+      expect(FakeSource.last!.closed).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

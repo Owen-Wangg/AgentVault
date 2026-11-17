@@ -21,6 +21,8 @@ type UiKey =
   | "state.retry"
   | "state.reconnecting"
   | "state.live"
+  | "state.paused"
+  | "state.resume"
   | "workspace.sandbox"
   | "workspace.sandboxNote"
   | "workspace.publicName"
@@ -231,6 +233,8 @@ const defaultCopy: CopyTable = {
   "state.retry": "Try again",
   "state.reconnecting": "Reconnecting…",
   "state.live": "Live",
+  "state.paused": "Live updates paused",
+  "state.resume": "Resume live updates",
   "workspace.sandbox": "Sandbox",
   "workspace.sandboxNote": "Sandbox: mock rails only. Anyone can approve, deny, and unfreeze here, and no real money moves. It starts fresh every night.",
   "workspace.publicName": "Public demo workspace",
@@ -432,6 +436,8 @@ const kiroweenCopy: CopyTable = {
   DENY_INTENT_DRIFT: "Denied: the agent wandered off the path of the task it was given.",
   "app.tagline": "Wards for AI agents that spend money: spend limits, taint tracking, and approvals.",
   "state.loading": "Summoning…",
+  "state.paused": "The spirits rest: live updates paused",
+  "state.resume": "Wake the spirits",
   "agents.frozen": "The Crypt",
   "agents.tainted": "Haunted",
   "agents.unfreeze": "Release from The Crypt",

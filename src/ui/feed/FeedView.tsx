@@ -19,7 +19,7 @@ const DECISION_TONE: Record<DecisionKind, "allow" | "hold" | "deny"> = { allow: 
 /** The live feed (UI-6): each decision with time, agent, vendor, amount, decision, and reasons in plain language. */
 export function FeedView({ workspaceId, agentNames, stream }: { workspaceId: string; agentNames: Record<string, string>; stream?: EventStreamOptions }) {
   const { t } = useCopy();
-  const { events, status, ready } = useEventStream(workspaceId, stream);
+  const { events, status, ready, resume } = useEventStream(workspaceId, stream);
   const [filter, setFilter] = useState<FeedFilter>({});
   const rows = useMemo(() => feedRows(events), [events]);
   const shown = useMemo(() => filterRows(rows, filter).slice(0, MAX_ROWS), [rows, filter]);
@@ -37,7 +37,7 @@ export function FeedView({ workspaceId, agentNames, stream }: { workspaceId: str
 
   return (
     <>
-      <PageTitle actions={<StreamStatusBadge status={status} />}>{t("feed.title")}</PageTitle>
+      <PageTitle actions={<StreamStatusBadge status={status} onResume={resume} />}>{t("feed.title")}</PageTitle>
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <FilterSelect label={t("feed.filterAgent")} value={filter.agentId ?? ""} onChange={set("agentId")}>
           {agentIds.map((id) => (

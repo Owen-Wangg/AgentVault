@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AuditEventMessage } from "./summarize";
 
 /**
@@ -12,19 +12,34 @@ import type { AuditEventMessage } from "./summarize";
  * - a reload when the server says the workspace is a retired sandbox
  *   (UI-3), so the page moves to the new sandbox;
  * - a guard that keeps each seq once and in order;
- * - the connection status for the "Reconnecting…" badge.
+ * - the connection status for the "Reconnecting…" badge;
+ * - no open stream while the page is hidden or idle (TEL-6, TEL-7), so a
+ *   forgotten tab doesn't keep a function and the database awake. A
+ *   reopened EventSource can't send Last-Event-ID, so it gets the backlog
+ *   again, and mergeEvents drops what's already shown.
  */
 
 /** How long backlog events wait for the server's `ready` before they render anyway. */
 export const BACKLOG_FLUSH_MS = 100;
+/** Pause after this long without input on a visible page (TEL-7). */
+export const IDLE_MS = 15 * 60_000;
+/** The inputs that count as someone watching. */
+export const ACTIVITY_EVENTS = ["pointerdown", "pointermove", "keydown", "wheel", "touchstart"] as const;
+/** Restart the idle timer at most this often, since pointermove fires constantly. */
+const ACTIVITY_THROTTLE_MS = 1_000;
 
-export type StreamStatus = "connecting" | "live" | "reconnecting" | "closed";
+export type StreamStatus = "connecting" | "live" | "reconnecting" | "closed" | "paused";
 
 export interface EventStreamState {
   events: AuditEventMessage[];
   status: StreamStatus;
   /** The backlog has arrived, so an empty list means there are no events. */
   ready: boolean;
+}
+
+export interface EventStreamResult extends EventStreamState {
+  /** Reopen a paused stream (the badge's Resume button). */
+  resume: () => void;
 }
 
 export interface EventStreamOptions {
@@ -34,6 +49,10 @@ export interface EventStreamOptions {
   onRetired?: () => void;
   /** For tests. Defaults to BACKLOG_FLUSH_MS. */
   backlogFlushMs?: number;
+  /** For tests. Defaults to IDLE_MS. */
+  idleMs?: number;
+  /** For tests: the document whose visibility counts. Defaults to `document`. */
+  doc?: Document;
 }
 
 /** Add events in seq order, keeping each seq once. Events arrive in order; this also survives a replay. */
@@ -45,12 +64,51 @@ export function mergeEvents(current: readonly AuditEventMessage[], incoming: rea
   return out.length === current.length ? (current as AuditEventMessage[]) : out;
 }
 
-export function useEventStream(workspaceId: string | null, options: EventStreamOptions = {}): EventStreamState {
+export function useEventStream(workspaceId: string | null, options: EventStreamOptions = {}): EventStreamResult {
   const [state, setState] = useState<EventStreamState>({ events: [], status: "connecting", ready: false });
-  const { createEventSource, onRetired, backlogFlushMs = BACKLOG_FLUSH_MS } = options;
+  const { createEventSource, onRetired, backlogFlushMs = BACKLOG_FLUSH_MS, idleMs = IDLE_MS, doc } = options;
+  const [visible, setVisible] = useState(() => (doc ?? globalThis.document)?.visibilityState !== "hidden");
+  const [idle, setIdle] = useState(false);
+  const wake = useRef<() => void>(() => setIdle(false));
+  const active = visible && !idle;
 
+  // TEL-6, TEL-7: track whether anyone is watching. Input restarts the idle timer; the page
+  // becoming visible counts as input.
   useEffect(() => {
     if (!workspaceId) return;
+    const d = doc ?? document;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let lastArmed = Number.NEGATIVE_INFINITY;
+    const arm = (force: boolean) => {
+      setIdle(false);
+      const now = Date.now();
+      if (!force && now - lastArmed < ACTIVITY_THROTTLE_MS) return;
+      lastArmed = now;
+      if (timer !== undefined) clearTimeout(timer);
+      timer = setTimeout(() => setIdle(true), idleMs);
+    };
+    const onInput = () => arm(false);
+    const onVisibility = () => {
+      const shown = d.visibilityState !== "hidden";
+      setVisible(shown);
+      if (shown) arm(true);
+    };
+    wake.current = () => arm(true);
+    arm(true);
+    for (const type of ACTIVITY_EVENTS) window.addEventListener(type, onInput, { passive: true });
+    d.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      if (timer !== undefined) clearTimeout(timer);
+      for (const type of ACTIVITY_EVENTS) window.removeEventListener(type, onInput);
+      d.removeEventListener("visibilitychange", onVisibility);
+      wake.current = () => setIdle(false);
+    };
+  }, [workspaceId, doc, idleMs]);
+
+  const resume = useCallback(() => wake.current(), []);
+
+  useEffect(() => {
+    if (!workspaceId || !active) return;
     const url = `/api/v1/events?workspace_id=${encodeURIComponent(workspaceId)}`;
     const source = createEventSource ? createEventSource(url) : new EventSource(url);
     // Batch events into as few renders as possible. Each SSE message is its own task, so the
@@ -107,8 +165,10 @@ export function useEventStream(workspaceId: string | null, options: EventStreamO
     return () => {
       if (backlogTimer !== undefined) clearTimeout(backlogTimer);
       source.close();
+      // The next stream starts as connecting, not with this one's status.
+      setState((s) => ({ ...s, status: "connecting" }));
     };
-  }, [workspaceId, createEventSource, onRetired, backlogFlushMs]);
+  }, [workspaceId, active, createEventSource, onRetired, backlogFlushMs]);
 
-  return state;
+  return { ...state, status: active ? state.status : "paused", resume };
 }

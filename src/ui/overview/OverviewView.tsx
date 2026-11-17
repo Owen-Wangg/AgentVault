@@ -25,7 +25,7 @@ export function OverviewView({
   stream?: EventStreamOptions;
 }) {
   const { t } = useCopy();
-  const { events, status, ready } = useEventStream(workspaceId, stream);
+  const { events, status, ready, resume } = useEventStream(workspaceId, stream);
   const [range, setRange] = useState<Range>("day");
   // Recomputed when events arrive or the range changes; `now` is read then.
   const overview = useMemo(() => summarize(events, range, now()), [events, range, now]);
@@ -35,7 +35,7 @@ export function OverviewView({
       <PageTitle
         actions={
           <div className="flex items-center gap-3">
-            <StreamStatusBadge status={status} />
+            <StreamStatusBadge status={status} onResume={resume} />
             <label className="flex items-center gap-2 text-sm">
               <span className="text-text-muted">{t("overview.range")}</span>
               <select

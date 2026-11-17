@@ -88,7 +88,7 @@ export function ScenarioRunner({
   const title = (name: ScenarioName) => t(titleKey(name));
   const description = (name: ScenarioName) => t(descriptionKey(name));
   const [run, setRun] = useState<Run | null>(null);
-  const { events, status } = useEventStream(workspaceId, stream);
+  const { events, status, resume } = useEventStream(workspaceId, stream);
   const running = run?.phase === "running";
   const liveOn = liveScenarios.length > 0;
 
@@ -113,7 +113,7 @@ export function ScenarioRunner({
 
   return (
     <>
-      <PageTitle actions={<StreamStatusBadge status={status} />}>{t("scenarios.title")}</PageTitle>
+      <PageTitle actions={<StreamStatusBadge status={status} onResume={resume} />}>{t("scenarios.title")}</PageTitle>
       <p className="mb-2 text-sm">{t("scenarios.intro")}</p>
       <p className={`${liveOn ? "mb-2" : "mb-6"} text-sm text-text-muted`} role="note">
         {t("scenarios.sandboxNote")}

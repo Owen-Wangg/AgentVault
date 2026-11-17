@@ -86,7 +86,7 @@ export function ApprovalsInbox({
   const [busy, setBusy] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const clock = useNow(now);
-  const { events, status: streamStatus } = useEventStream(workspaceId, stream);
+  const { events, status: streamStatus, resume } = useEventStream(workspaceId, stream);
 
   const load = useCallback(async () => {
     try {
@@ -124,7 +124,7 @@ export function ApprovalsInbox({
 
   return (
     <>
-      <PageTitle actions={<StreamStatusBadge status={streamStatus} />}>{t("approvals.title")}</PageTitle>
+      <PageTitle actions={<StreamStatusBadge status={streamStatus} onResume={resume} />}>{t("approvals.title")}</PageTitle>
       {isSandbox ? (
         <p className="mb-4 text-sm text-text-muted" role="note">
           {t("workspace.sandboxNote")}
