@@ -26,6 +26,8 @@ export const EVENT_TYPES = [
   "sandbox_created",
   "sandbox_retired",
   "mcp_agent_created",
+  // payout-rails PO-12: a payee's payout destination changed.
+  "payee_updated",
 ] as const;
 
 export type EventType = (typeof EVENT_TYPES)[number];
