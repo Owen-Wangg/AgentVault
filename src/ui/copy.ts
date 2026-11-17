@@ -23,6 +23,7 @@ type UiKey =
   | "state.live"
   | "state.paused"
   | "state.resume"
+  | "nav.pendingSuffix"
   | "workspace.sandbox"
   | "workspace.sandboxNote"
   | "workspace.publicName"
@@ -235,6 +236,7 @@ const defaultCopy: CopyTable = {
   "state.live": "Live",
   "state.paused": "Live updates paused",
   "state.resume": "Resume live updates",
+  "nav.pendingSuffix": "waiting for approval",
   "workspace.sandbox": "Sandbox",
   "workspace.sandboxNote": "Sandbox: mock rails only. Anyone can approve, deny, and unfreeze here, and no real money moves. It starts fresh every night.",
   "workspace.publicName": "Public demo workspace",
@@ -438,6 +440,7 @@ const kiroweenCopy: CopyTable = {
   "state.loading": "Summoning…",
   "state.paused": "The spirits rest: live updates paused",
   "state.resume": "Wake the spirits",
+  "nav.pendingSuffix": "awaiting judgment",
   "agents.frozen": "The Crypt",
   "agents.tainted": "Haunted",
   "agents.unfreeze": "Release from The Crypt",

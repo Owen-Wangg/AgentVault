@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import type { UiKey } from "@/ui/copy";
 import { useCopy } from "@/ui/ThemeProvider";
+import { PendingCount, usePendingCount } from "./PendingCount";
 import { cn } from "./primitives";
 
 export const NAV_ITEMS: readonly { href: string; label: UiKey; icon: LucideIcon }[] = [
@@ -28,6 +29,7 @@ export const isActive = (pathname: string, href: string): boolean => (href === "
 export function Sidebar({ footer }: { footer?: ReactNode }) {
   const pathname = usePathname();
   const { t } = useCopy();
+  const pending = usePendingCount(pathname);
   return (
     <>
       <nav aria-label={t("nav.label")} className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface p-4 md:flex">
@@ -47,6 +49,7 @@ export function Sidebar({ footer }: { footer?: ReactNode }) {
               >
                 <Icon aria-hidden="true" className="size-4" />
                 {t(label)}
+                {href === "/approvals" ? <PendingCount count={pending} className="ml-auto" /> : null}
               </Link>
             </li>
           ))}
@@ -60,10 +63,11 @@ export function Sidebar({ footer }: { footer?: ReactNode }) {
               <Link
                 href={href}
                 aria-current={isActive(pathname, href) ? "page" : undefined}
-                className={cn("flex min-h-14 flex-col items-center justify-center gap-1 text-xs", isActive(pathname, href) ? "font-medium text-accent" : "text-text-muted")}
+                className={cn("relative flex min-h-14 flex-col items-center justify-center gap-1 text-xs", isActive(pathname, href) ? "font-medium text-accent" : "text-text-muted")}
               >
                 <Icon aria-hidden="true" className="size-5" />
                 {t(label)}
+                {href === "/approvals" ? <PendingCount count={pending} className="absolute right-1 top-1" /> : null}
               </Link>
             </li>
           ))}
