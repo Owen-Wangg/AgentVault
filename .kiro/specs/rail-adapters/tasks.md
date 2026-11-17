@@ -57,3 +57,8 @@ Plan (`docs/PLAN.md`): **Phase 6** = tasks 1–2. **Phase 13** = tasks 3–5. **
   - The guarded flow passes the URL for the tool's rail (`paymentUrl()`); both real adapters refuse a missing or non-http URL as `RAIL_REJECTED` before contacting anyone, so the reservation is released
   - The `@live` x402 test's guarded payment now goes to the scene vendor's `x402_url` and settles on Base Sepolia. A real payment over HTTP needs a workspace outside the sandbox with vendors, which doesn't exist yet
   - _Requirements: RAIL-23, RAIL-24, RAIL-25_
+
+- [ ] 10. Serve `/llms.txt`
+  - A static route with the summary, built from the vendor constants, and a route test
+  - Run `/validate-mpp` again: the llms.txt suggestion should be gone
+  - _Requirements: RAIL-26_

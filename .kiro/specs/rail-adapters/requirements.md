@@ -47,6 +47,7 @@ This spec covers the adapters that turn an allowed decision into a real payment,
 - **RAIL-16** WHEN a Stripe payment succeeds, THE SYSTEM SHALL record the PaymentIntent ID in the `rail_result` event.
 - **RAIL-17** WHEN an allowed or approved `stripe.refund` runs, THE SYSTEM SHALL create a test-mode refund through the Refunds API and record the Refund ID.
 - **RAIL-18** THE SYSTEM SHALL pass the MPP validator (`npx mppx@latest validate`) for `/vendor/api/report`.
+- **RAIL-26** THE SYSTEM SHALL serve `/llms.txt`, a static plain-text summary for agents and their developers: what AgentVault checks, the agent API and MCP endpoints, the paid demo endpoint and its `/openapi.json` discovery document, and that every rail is a testnet, test mode, a sandbox, or mock. It SHALL name no secret, key, or account identifier.
 
 ## Requirement 6: Payment URLs for guarded payments
 **User story:** As a developer, I want an agent's allowed payment to reach the vendor's paid endpoint, so that real x402 and MPP payments run through AgentVault, not only through the adapters directly.
