@@ -24,8 +24,9 @@ import { type RunAgent, type ScenarioLock, runScenario } from "./runner";
  * always go to the current sandbox, which uses mock rails only, whoever
  * is signed in. It's human-only like the approval routes: any
  * Authorization header and any cross-site request are 403 before the
- * database opens. Each IP may start 10 runs a minute (security-standards
- * §8), because one run makes up to 100 requests.
+ * database opens. Each IP may start 10 runs a minute and all visitors
+ * together 60 (security-standards §8), because one run makes up to 100
+ * requests.
  *
  * With `agent: "gemini"` the live Gemini agent runs the scenario instead
  * of the scripted one (AGT-11 to AGT-16), under the same envelope and
@@ -50,6 +51,8 @@ export interface ScenarioRouteDeps {
   agentFetch?: typeof fetch;
   lock?: ScenarioLock;
   rateLimit?: RateLimit;
+  /** Runs started by everyone together. */
+  totalRateLimit?: RateLimit;
   /** The live agent's model, or null when GEMINI_API_KEY is unset (AGT-11). */
   geminiModel?: () => GeminiModel | null;
   liveRateLimit?: { perIp: RateLimit; total: RateLimit };
@@ -69,6 +72,9 @@ export function defaultScenarioRouteDeps(): ScenarioRouteDeps {
 
 /** Runs started per IP per minute. */
 export const SCENARIO_RUN_LIMIT: RateLimit = { limit: 10, windowMs: 60_000 };
+
+/** Runs started per minute by all visitors together. A run makes up to 100 requests, so this bounds what many IPs add up to. */
+export const SCENARIO_RUN_TOTAL_LIMIT: RateLimit = { limit: 60, windowMs: 60_000 };
 
 /**
  * Live runs share one free-tier Gemini quota (about 500 requests a day,
@@ -141,8 +147,10 @@ export function handleRunScenario(request: Request, name: string, deps: Scenario
     const ip = clientIp(request);
     const allowed = await hitRateLimit(db, { action: "scenario run", ip, now: deps.now(), ...(deps.rateLimit ?? SCENARIO_RUN_LIMIT) });
     if (!allowed) return json(429, { error: "RATE_LIMITED" });
-    if (agent.kind === "gemini") {
-      const limits = deps.liveRateLimit ?? LIVE_RUN_LIMITS;
+    // All visitors together, so many IPs can't add up to more runs than the sandbox should take.
+    const totalAllowed = await hitRateLimit(db, { action: "scenario run total", ip: ALL_VISITORS, now: deps.now(), ...(deps.totalRateLimit ?? SCENARIO_RUN_TOTAL_LIMIT) });
+    if (!totalAllowed) return json(429, { error: "RATE_LIMITED" });
+    if (agent.kind === "gemini") {      const limits = deps.liveRateLimit ?? LIVE_RUN_LIMITS;
       if (!(await hitRateLimit(db, { action: "scenario live run", ip, now: deps.now(), ...limits.perIp }))) return json(429, { error: "RATE_LIMITED" });
       if (!(await hitRateLimit(db, { action: "scenario live run total", ip: ALL_VISITORS, now: deps.now(), ...limits.total }))) {
         return json(429, { error: "LIVE_QUOTA_USED" });

@@ -35,6 +35,7 @@ export function scenarioRouteDeps(
     lock: database.driver === "postgres" ? advisoryScenarioLock : passthroughLock,
     // Every FakeClock starts in the same minute, so tests would share one rate-limit window.
     rateLimit: { limit: 1_000_000, windowMs: 60_000 },
+    totalRateLimit: { limit: 1_000_000, windowMs: 60_000 },
     liveRateLimit: { perIp: { limit: 1_000_000, windowMs: 60_000 }, total: { limit: 1_000_000, windowMs: 60_000 } },
     ...over,
   };

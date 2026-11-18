@@ -227,6 +227,17 @@ describe("POST /api/v1/scenarios/:name/run: access", () => {
     expect((await run("drift", deps, { "x-real-ip": "203.0.113.78" })).status).toBe(200);
   });
 
+  it("UI-4: runs are also limited across all visitors, and a refused run creates nothing", async () => {
+    // A window length no other test uses, so this count starts at zero.
+    const { deps } = routeDeps({ totalRateLimit: { limit: 2, windowMs: 61_000 } });
+    expect((await run("drift", deps, { "x-real-ip": "203.0.113.81" })).status).toBe(200);
+    expect((await run("drift", deps, { "x-real-ip": "203.0.113.82" })).status).toBe(200);
+    const before = await db().select({ id: agents.id }).from(agents);
+    const refused = await handleRunScenario(request("drift", undefined, { "x-real-ip": "203.0.113.83" }), "drift", deps);
+    expect([refused.status, await refused.json()]).toEqual([429, { error: "RATE_LIMITED" }]);
+    expect(await db().select({ id: agents.id }).from(agents)).toEqual(before);
+  });
+
   it.skipIf(!process.env.DATABASE_URL_TEST)("AGT-2: a second run of a scenario already in progress is 409 SCENARIO_BUSY; other scenarios still run", async () => {
     let release!: () => void;
     let reached!: () => void;
