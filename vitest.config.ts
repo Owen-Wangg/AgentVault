@@ -66,6 +66,10 @@ export default defineConfig(({ mode }) => {
     test: {
       include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.{ts,mjs}", "app/**/*.test.{ts,tsx}"],
       environment: "node",
+      // Each property test runs 1,000 generated cases. Alone they finish in a few seconds, but with
+      // every test file running at once they can pass Vitest's 5 s default. This only raises the
+      // ceiling for a hung test; it doesn't change what any test checks.
+      testTimeout: 30_000,
       // @x402/next's ESM build imports "next/server" without a file extension, which Node's
       // resolver refuses. Inlining it lets Vite resolve the import, as Next.js's bundler does.
       server: { deps: { inline: ["@x402/next"] } },
