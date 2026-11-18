@@ -363,7 +363,7 @@ const defaultCopy: CopyTable = {
   "approvals.notPending": "Someone already acted on this approval.",
   "nav.scenarios": "Scenarios",
   "scenarios.title": "Scenarios",
-  "scenarios.intro": "Run a scripted agent against AgentVault and watch each decision as it's made. Every run gets a fresh agent with its own API key.",
+  "scenarios.intro": "Run a scripted agent against AgentVault and watch each decision as it's made. Every run gets a fresh agent with its own API key. The vendors are demo APIs built into AgentVault, such as Nimbus Weather, which sells forecasts for $0.0015 a call. Weather is only a stand-in: the same checks apply to any API an agent pays for.",
   "scenarios.sandboxNote": "Scenarios run in the public sandbox on mock rails, even when you're signed in. No real money moves.",
   "scenario.normal.title": "Normal purchase",
   "scenario.normal.description": "The agent buys five weather forecasts at $0.0015 each, and every payment is allowed.",
