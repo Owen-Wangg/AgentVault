@@ -139,5 +139,7 @@ describe("hash chain properties", () => {
       ),
       RUNS,
     );
-  });
+    // Each run rebuilds and re-signs a whole chain, so this property takes about 4 s alone
+    // and can pass Vitest's 5 s default when every test file runs at once.
+  }, 30_000);
 });
