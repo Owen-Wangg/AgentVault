@@ -21,7 +21,9 @@ export const NAV_ITEMS: readonly { href: string; label: UiKey; icon: LucideIcon 
 export const isActive = (pathname: string, href: string): boolean => (href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`));
 
 /**
- * Navigation: a left sidebar from the md breakpoint up, and a bar fixed to
+ * Navigation: a left sidebar from the md breakpoint up, sticky and one
+ * screen tall so its footer (Settings, account) stays at the bottom left
+ * however long the page is, and a bar fixed to
  * the bottom of the screen below it, so every page is one tap away at
  * 375 px (UI-14). Plain links, so the keyboard order is the visual order
  * (UI-13).
@@ -32,7 +34,7 @@ export function Sidebar({ footer }: { footer?: ReactNode }) {
   const pending = usePendingCount(pathname);
   return (
     <>
-      <nav aria-label={t("nav.label")} className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface p-4 md:flex">
+      <nav aria-label={t("nav.label")} className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface p-4 md:flex">
         <Link href="/" className="brand mb-6 px-2 text-lg font-semibold">
           {t("app.name")}
         </Link>
