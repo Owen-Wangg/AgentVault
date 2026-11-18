@@ -75,7 +75,12 @@ export default defineConfig(({ mode }) => {
       server: { deps: { inline: ["@x402/next"] } },
       testNamePattern: mode === "live" ? /@live/ : /^(?!.*@live)/,
       // An empty value overrides one set in the shell; every reader treats it as unset.
-      env: { ...live, ...(databaseUrlTest !== undefined ? { DATABASE_URL_TEST: databaseUrlTest } : {}) },
+      env: {
+        // The integration tests send x-real-ip to pick a rate-limit bucket, which clientIp reads only when this is on.
+        TRUST_PROXY_HEADERS: "1",
+        ...live,
+        ...(databaseUrlTest !== undefined ? { DATABASE_URL_TEST: databaseUrlTest } : {}),
+      },
     },
   };
 });

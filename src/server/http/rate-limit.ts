@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 import type { Db, Tx } from "@/server/db/client";
 import { rateLimits } from "@/server/db/schema";
+import { env } from "@/server/env";
 
 /**
  * Postgres-backed fixed-window rate limits for public sandbox actions
@@ -19,11 +20,14 @@ export interface RateLimit {
 export const SANDBOX_ACTION_LIMIT: RateLimit = { limit: 30, windowMs: 60_000 };
 
 /**
- * The client IP. Vercel sets x-real-ip and overwrites x-forwarded-for, so
- * a client can't choose its own bucket there. Elsewhere (local dev) every
- * caller without the headers shares one bucket.
+ * The client IP, for per-IP rate limits. x-real-ip and x-forwarded-for are
+ * read only when TRUST_PROXY_HEADERS says a proxy sets them (on by default
+ * on Vercel, which sets x-real-ip and overwrites x-forwarded-for). Anywhere
+ * else a client could send any value and pick its own bucket, so every
+ * caller shares one bucket instead.
  */
 export function clientIp(request: Request): string {
+  if (!env.trustProxyHeaders()) return "unknown";
   const real = request.headers.get("x-real-ip")?.trim();
   if (real) return real;
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();

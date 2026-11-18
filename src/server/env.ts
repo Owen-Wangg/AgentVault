@@ -43,6 +43,14 @@ const SCHEMAS = {
     .string()
     .regex(/^gemini-[a-z0-9.-]{1,60}$/, "must be a Gemini model ID such as gemini-3.5-flash-lite")
     .default("gemini-3.5-flash-lite"),
+  /**
+   * Whether x-real-ip and x-forwarded-for come from a proxy that sets them,
+   * so per-IP rate limits can use them. Unset, it follows VERCEL, which
+   * Vercel sets to 1 and which overwrites both headers. Set it to 1 only
+   * behind a proxy that does the same; anywhere else a client picks its own
+   * rate-limit bucket.
+   */
+  TRUST_PROXY_HEADERS: z.enum(["0", "1"]).optional(),
 } as const;
 
 type Name = keyof typeof SCHEMAS;
@@ -103,6 +111,17 @@ export const env = {
       console.error(error instanceof Error ? error.message : "GEMINI_ variables are invalid", "The live agent is off.");
       return false;
     }
+  },
+  /**
+   * Whether the proxy headers can be trusted for the client IP. Read on
+   * every call, not cached. An invalid value counts as not trusted, so a
+   * typo can't open the headers to clients or take the routes down.
+   */
+  trustProxyHeaders: (): boolean => {
+    const raw = process.env.TRUST_PROXY_HEADERS;
+    const parsed = SCHEMAS.TRUST_PROXY_HEADERS.safeParse(raw === "" ? undefined : raw);
+    if (!parsed.success) return false;
+    return parsed.data === undefined ? process.env.VERCEL === "1" : parsed.data === "1";
   },
   githubAuthEnabled: (): boolean => {
     try {
