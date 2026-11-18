@@ -47,6 +47,7 @@ function deps(options: { user?: SessionUser | null; timing?: StreamTiming; realM
     // Every fake clock starts in the same minute, so tests would share one
     // rate-limit window. Only the rate-limit test sets a real limit.
     rateLimit: { limit: 1_000_000, windowMs: 60_000 },
+    totalRateLimit: { limit: 1_000_000, windowMs: 60_000 },
     timing: options.timing ?? SHORT,
     ...options.over,
   };
@@ -334,6 +335,26 @@ describe("GET /api/v1/events", () => {
       const user = await owned(own, "ui4-owner");
       const ownDeps = deps({ user, over: { rateLimit: { limit: 0, windowMs: 60_000 } } }).deps;
       const r = await handleEvents(get(`?workspace_id=${own.workspaceId}`, { "x-real-ip": "203.0.113.9" }), ownDeps);
+      expect(r.status).toBe(200);
+      await r.body!.cancel();
+    });
+    it("UI-4: sandbox streams are also limited across all visitors, and a private workspace's owner is not", async () => {
+      const sandbox = await createScene(db(), { isSandbox: true });
+      // A window length no other test uses, so this count starts at zero.
+      const limited = deps({ over: { totalRateLimit: { limit: 2, windowMs: 61_000 } } }).deps;
+      const open = (ip: string) => handleEvents(get(`?workspace_id=${sandbox.workspaceId}`, { "x-real-ip": ip }), limited);
+      for (const ip of ["203.0.113.21", "203.0.113.22"]) {
+        const r = await open(ip);
+        expect(r.status).toBe(200);
+        await r.body!.cancel();
+      }
+      const third = await open("203.0.113.23");
+      expect([third.status, await third.json()]).toEqual([429, { error: "RATE_LIMITED" }]);
+
+      const own = await createScene(db());
+      const user = await owned(own, "ui4-total-owner");
+      const ownDeps = deps({ user, over: { totalRateLimit: { limit: 0, windowMs: 61_000 } } }).deps;
+      const r = await handleEvents(get(`?workspace_id=${own.workspaceId}`, { "x-real-ip": "203.0.113.21" }), ownDeps);
       expect(r.status).toBe(200);
       await r.body!.cancel();
     });

@@ -25,8 +25,9 @@ import { RETRY_MS, type ReadBatch, type StreamClock, type StreamTiming, formatIn
  *   (`workspace_id`, `sandbox`, `retired`). Clients should reconnect with
  *   that `workspace_id`, so a `Last-Event-ID` is never applied to a
  *   different workspace's chain, and reload when `retired` is true.
- * - Opening a sandbox stream counts toward a per-IP rate limit, since the
- *   sandbox is public and each stream holds a function for up to 55 s.
+ * - Opening a sandbox stream counts toward a per-IP rate limit and an
+ *   all-visitor one, since the sandbox is public and each stream holds a
+ *   function for up to 55 s.
  */
 
 export interface EventsDeps {
@@ -35,8 +36,16 @@ export interface EventsDeps {
   sleep: StreamClock["sleep"];
   getUser: GetSessionUser;
   rateLimit?: RateLimit;
+  /** Sandbox streams opened by everyone together. */
+  totalRateLimit?: RateLimit;
   timing?: StreamTiming;
 }
+
+/** Sandbox streams opened per minute by all visitors together. */
+export const SANDBOX_STREAM_TOTAL_LIMIT: RateLimit = { limit: 120, windowMs: 60_000 };
+
+/** The rate-limit bucket every sandbox stream counts against. Not an IP, so no visitor can land in it. */
+const ALL_VISITORS = "all-visitors";
 
 /** setTimeout that resolves early on abort. */
 export function sleep(ms: number, signal: AbortSignal): Promise<void> {
@@ -110,6 +119,9 @@ export async function handleEvents(request: Request, deps: EventsDeps = defaultE
     if (workspace.isSandbox) {
       const allowed = await hitRateLimit(db, { action: "events", ip: clientIp(request), now: deps.now(), ...(deps.rateLimit ?? SANDBOX_ACTION_LIMIT) });
       if (!allowed) return json(429, { error: "RATE_LIMITED" });
+      // All visitors together: each open stream holds a database connection for up to 55 s.
+      const totalAllowed = await hitRateLimit(db, { action: "events total", ip: ALL_VISITORS, now: deps.now(), ...(deps.totalRateLimit ?? SANDBOX_STREAM_TOTAL_LIMIT) });
+      if (!totalAllowed) return json(429, { error: "RATE_LIMITED" });
     }
     const response = streamResponse(request, database, workspace, after, deps);
     handedOff = true;
