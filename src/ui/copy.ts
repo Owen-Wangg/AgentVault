@@ -271,7 +271,7 @@ const defaultCopy: CopyTable = {
   "workspace.none": "There's no workspace to show yet. Run pnpm db:seed to create the sandbox.",
   "auth.signIn": "Sign in with GitHub",
   "auth.signOut": "Sign out",
-  "auth.notConfigured": "GitHub sign-in isn't set up on this deployment.",
+  "auth.notConfigured": "Public demo. No sign-in needed.",
   "auth.signedInAs": "Signed in as",
   "overview.title": "Overview",
   "overview.spend": "Total spend",
