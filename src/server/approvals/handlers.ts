@@ -135,6 +135,8 @@ export function handleListApprovals(request: Request, deps: HumanRouteDeps = def
 
     const workspace = await defaultWorkspace(db, await deps.getUser(request));
     if (!workspace) return json(404, { error: "NO_WORKSPACE" });
+    // Listing applies expiry, which writes, and the sandbox is public.
+    if (workspace.isSandbox && !(await underRateLimit(db, request, "approvals list", deps))) return json(429, { error: "RATE_LIMITED" });
 
     const list = await listApprovals(serviceDeps(db, deps), workspace.id, query.data.status ? { status: query.data.status } : {});
     return json(200, { workspace_id: workspace.id, sandbox: workspace.isSandbox, approvals: list });

@@ -238,6 +238,22 @@ describe("HITL-11: who may approve", () => {
     expect(JSON.stringify(stored)).not.toContain("203.0.113.7");
   });
 
+  it("security §8: listing the sandbox's approvals is rate-limited per IP; a private workspace's owner is not", async () => {
+    await billingScene({ isSandbox: true });
+    const h = harness();
+    const deps = h.human({ rateLimit: { limit: 2, windowMs: 60_000 } });
+    const list = (ip: string, d = deps) => handleListApprovals(new Request("https://agentvault.example/api/v1/approvals", { headers: { "x-real-ip": ip } }), d);
+    expect([(await list("203.0.113.31")).status, (await list("203.0.113.31")).status]).toEqual([200, 200]);
+    expect(await read(await list("203.0.113.31"))).toEqual({ status: 429, body: { error: "RATE_LIMITED" } });
+    // Another IP has its own bucket.
+    expect((await list("203.0.113.32")).status).toBe(200);
+
+    const own = await billingScene();
+    const user = await ownWorkspace(own, "list-limit-owner");
+    const ownDeps = harness({ user }).human({ rateLimit: { limit: 0, windowMs: 60_000 } });
+    expect((await list("203.0.113.31", ownDeps)).status).toBe(200);
+  });
+
   it("returns 404 for an unknown or malformed approval ID and 400 for a bad action", async () => {
     const scene = await billingScene({ isSandbox: true });
     const h = harness();
