@@ -1,5 +1,6 @@
 import { type IncomingHttpHeaders, createServer } from "node:http";
 import type { AddressInfo } from "node:net";
+import { basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport, getDefaultEnvironment } from "@modelcontextprotocol/sdk/client/stdio.js";
@@ -9,6 +10,18 @@ import { copy } from "@/ui/copy";
 import { optionsFromEnv } from "./stdio";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
+
+/**
+ * The pnpm that is running this test, so the test also works when pnpm comes
+ * from Corepack and isn't on PATH. pnpm sets npm_execpath to its own binary
+ * (or to its script, for pnpm versions shipped as JavaScript). Anything else,
+ * such as npm's path under npx, falls back to `pnpm` on PATH.
+ */
+function pnpmCommand(): { command: string; args: string[] } {
+  const execPath = process.env.npm_execpath;
+  if (!execPath || !/^pnpm/i.test(basename(execPath))) return { command: "pnpm", args: [] };
+  return /\.[cm]?js$/i.test(execPath) ? { command: process.execPath, args: [execPath] } : { command: execPath, args: [] };
+}
 
 describe("stdio settings", () => {
   it("MCP-6: takes the origin from AGENTVAULT_URL and the key from AGENTVAULT_API_KEY", () => {
@@ -43,9 +56,10 @@ describe("pnpm --silent mcp", () => {
     const { port } = api.address() as AddressInfo;
 
     // Only the default environment and the two settings: no database URL or other secret reaches it.
+    const pnpm = pnpmCommand();
     const transport = new StdioClientTransport({
-      command: "pnpm",
-      args: ["--silent", "mcp"],
+      command: pnpm.command,
+      args: [...pnpm.args, "--silent", "mcp"],
       cwd: ROOT,
       env: { ...getDefaultEnvironment(), AGENTVAULT_URL: `http://127.0.0.1:${port}`, AGENTVAULT_API_KEY: "av_test_stdio_key" },
       stderr: "pipe",
