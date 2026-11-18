@@ -8,6 +8,9 @@ import pg from "pg";
 import { guardConnectionErrors, isNeonUrl } from "@/server/db/client";
 import { accounts, authSessions, users, verificationTokens } from "@/server/db/schema";
 import { env } from "@/server/env";
+import { withoutProviderTokens } from "./adapter";
+
+const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
 
 /**
  * Auth.js with GitHub (telemetry-dashboard UI-2). Auth.js reads
@@ -30,14 +33,17 @@ function adapterDb() {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
-  adapter: DrizzleAdapter(adapterDb(), {
-    usersTable: users,
-    accountsTable: accounts,
-    sessionsTable: authSessions,
-    verificationTokensTable: verificationTokens,
-  }),
+  adapter: withoutProviderTokens(
+    DrizzleAdapter(adapterDb(), {
+      usersTable: users,
+      accountsTable: accounts,
+      sessionsTable: authSessions,
+      verificationTokensTable: verificationTokens,
+    }),
+  ),
   providers: env.githubAuthEnabled() ? [GitHub] : [],
-  session: { strategy: "jwt" },
+  // A JWT can't be revoked before it expires, so it expires after a working day instead of Auth.js's 30 days.
+  session: { strategy: "jwt", maxAge: SESSION_MAX_AGE_SECONDS },
   callbacks: {
     // The user ID is the JWT subject. Workspace ownership is matched against it.
     session({ session, token }) {
