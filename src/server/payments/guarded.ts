@@ -281,6 +281,8 @@ export async function decideGuarded(tx: Tx, req: GuardedRequest, deps: GuardedDe
   const counted = tool ? chargeableMicros(body.amountMicros, tool.rail ?? "mock", tool.direction) : body.amountMicros;
 
   let decision: Decision;
+  // The branches that refuse a request without evaluating it still owe a frozen agent AGENT_FROZEN (ENV-5).
+  let evaluated = false;
   if (!tool) {
     decision = { decision: "deny", reasons: [{ code: "TOOL_NOT_ALLOWED", detail: { tool: body.tool, reason: "not in the tool registry" } }] };
   } else if (tool.operation === "refund" && !body.args?.payment_ref) {
@@ -293,6 +295,7 @@ export async function decideGuarded(tx: Tx, req: GuardedRequest, deps: GuardedDe
     // A session that doesn't exist or belongs to another agent can't be evaluated: fail closed.
     decision = invalid("session_id");
   } else {
+    evaluated = true;
     const spend = await loadWindowSpend(tx, agent.id, body.vendor, body.tool, now);
     const input: EvaluateInput = {
       request: {
@@ -332,6 +335,9 @@ export async function decideGuarded(tx: Tx, req: GuardedRequest, deps: GuardedDe
       ...(body.advisoryDriftScore !== undefined ? { advisoryDriftScore: body.advisoryDriftScore } : {}),
     };
     decision = evaluate(input);
+  }
+  if (!evaluated && agentRow.frozenAt !== null) {
+    decision = { decision: "deny", reasons: [{ code: "AGENT_FROZEN" }, ...decision.reasons] };
   }
 
   // Step 6: the decision is audited before anything executes (PXY-5).

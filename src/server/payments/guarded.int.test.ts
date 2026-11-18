@@ -127,6 +127,23 @@ describe("deny and hold", () => {
     const response = await runGuardedRequest({ agent: scene.agent, idempotencyKey: key(), body: scene.body({ tool: "drain_wallet" }) }, deps);
     expect(response.body.reasons).toEqual([{ code: "TOOL_NOT_ALLOWED", detail: { tool: "drain_wallet", reason: "not in the tool registry" } }]);
   });
+
+  it("ENV-5: a frozen agent gets AGENT_FROZEN even for an unknown tool or a bad session, which keep their own reason", async () => {
+    const scene = await createScene(db());
+    await db().update(agents).set({ frozenAt: new Date() }).where(eq(agents.id, scene.agent.id));
+    const { deps, mocks } = testDeps(db());
+
+    const unknownTool = await runGuardedRequest({ agent: scene.agent, idempotencyKey: key(), body: scene.body({ tool: "drain_wallet" }) }, deps);
+    expect(unknownTool.status).toBe(403);
+    expect(unknownTool.body.reasons).toEqual([
+      { code: "AGENT_FROZEN" },
+      { code: "TOOL_NOT_ALLOWED", detail: { tool: "drain_wallet", reason: "not in the tool registry" } },
+    ]);
+
+    const badSession = await runGuardedRequest({ agent: scene.agent, idempotencyKey: key(), body: scene.body({ sessionId: "not-a-uuid" }) }, deps);
+    expect(badSession.body.reasons).toEqual([{ code: "AGENT_FROZEN" }, { code: "INVALID_REQUEST", detail: { field: "session_id" } }]);
+    expect(mocks.x402.calls).toBe(0);
+  });
 });
 
 describe("INT-2 to INT-6: intent scope through the database", () => {
