@@ -132,6 +132,32 @@ describe("POST /api/v1/fetch", () => {
     expect(event?.payload).toMatchObject({ url: "https://docs.stripe.com/x", redirected_from: ["https://short.example/x"] });
   });
 
+  it("TAINT-4: a fetched URL's query and credentials never reach the audit log or the session", async () => {
+    const scene = await createScene(db());
+    const raw = "https://user:hunter2@docs.example.net/guide?token=s3cr3t#frag";
+    const { fetch } = fetchDeps(async () => page(raw, POISON_BODY, ["https://short.example/go?key=abc", raw]));
+    const r = await read(await handleFetch(request(scene, { url: "https://short.example/go?key=abc" }), fetch));
+    expect(r.status).toBe(200);
+
+    const [event] = await eventsOf(db(), scene.workspaceId);
+    const rawSha = createHash("sha256").update(raw, "utf8").digest("hex");
+    expect(event?.payload).toMatchObject({ url: "https://docs.example.net/guide", url_sha256: rawSha, redirected_from: ["https://short.example/go"] });
+    const stored = JSON.stringify(event?.payload) + (await sessionRow(scene.sessionId)).taintSourceUrl;
+    for (const secret of ["hunter2", "s3cr3t", "key=abc"]) expect(stored).not.toContain(secret);
+    expect((await sessionRow(scene.sessionId)).taintSourceUrl).toBe("https://docs.example.net/guide");
+  });
+
+  it("TAINT-4: a failed fetch records the requested URL without its query or credentials", async () => {
+    const scene = await createScene(db());
+    const { fetch } = fetchDeps(async () => {
+      throw new FetchError("FETCH_BLOCKED", "credentials in the URL");
+    });
+    await handleFetch(request(scene, { url: "https://user:hunter2@docs.example.net/a?token=s3cr3t" }), fetch);
+    const [event] = await eventsOf(db(), scene.workspaceId);
+    expect(event).toMatchObject({ type: "fetch_failed", payload: { url: "https://docs.example.net/a", code: "FETCH_BLOCKED" } });
+    expect(JSON.stringify(event?.payload)).not.toMatch(/hunter2|s3cr3t/);
+  });
+
   it("TAINT-1: an untrusted vendor on the deployment's own origin stays untrusted", async () => {
     // createScene registers nimbus-weather at https://agentvault.example with trusted = false.
     const scene = await createScene(db());

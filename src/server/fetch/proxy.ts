@@ -6,6 +6,7 @@ import type { AuthenticatedAgent } from "@/server/auth/agent-keys";
 import type { Db } from "@/server/db/client";
 import { sessions, vendors } from "@/server/db/schema";
 import { type FetchErrorCode, FetchError, type FetchedPage } from "./fetcher";
+import { recordUrl } from "./redact-url";
 
 /**
  * The proxied fetch (TAINT-1 to TAINT-4). The page is fetched outside any
@@ -79,13 +80,14 @@ export async function proxyFetch(req: ProxyRequest, deps: ProxyDeps): Promise<Pr
   } catch (error) {
     if (!(error instanceof FetchError)) throw error;
     // No content reached the agent, so the session is not tainted.
+    const requested = recordUrl(req.url);
     const event = await deps.db.transaction((tx) =>
       appendEvent(
         tx,
         {
           workspaceId: agent.workspaceId,
           type: "fetch_failed",
-          payload: { agent_id: agent.id, session_id: session.id, url: req.url, code: error.code, reason: error.reason },
+          payload: { agent_id: agent.id, session_id: session.id, url: requested.url, url_sha256: requested.sha256, code: error.code, reason: error.reason },
         },
         { key: deps.key, now: deps.now() },
       ),
@@ -98,6 +100,7 @@ export async function proxyFetch(req: ProxyRequest, deps: ProxyDeps): Promise<Pr
   if (label === "trusted") return { status: 200, body: ok };
 
   const contentSha256 = sha256(page.body);
+  const source = recordUrl(page.url);
   const seq = await deps.db.transaction(async (tx) => {
     const now = deps.now();
     const [row] = await tx
@@ -107,7 +110,7 @@ export async function proxyFetch(req: ProxyRequest, deps: ProxyDeps): Promise<Pr
       .for("update");
     if (!row) throw new Error("Session vanished during fetch");
     const before = { taintedAt: row.taintedAt?.toISOString() ?? null, taintSourceUrl: row.taintSourceUrl, taintContentSha256: row.taintContentSha256 };
-    const after = afterFetch(before, { ok: true, label, url: page.url, contentSha256, at: now.toISOString() });
+    const after = afterFetch(before, { ok: true, label, url: source.url, contentSha256, at: now.toISOString() });
     const first = after !== before;
     if (first) {
       await tx
@@ -124,8 +127,9 @@ export async function proxyFetch(req: ProxyRequest, deps: ProxyDeps): Promise<Pr
         payload: {
           agent_id: agent.id,
           session_id: session.id,
-          url: page.url,
-          ...(page.hops.length > 1 ? { redirected_from: page.hops.slice(0, -1) } : {}),
+          url: source.url,
+          url_sha256: source.sha256,
+          ...(page.hops.length > 1 ? { redirected_from: page.hops.slice(0, -1).map((hop) => recordUrl(hop).url) } : {}),
           content_sha256: contentSha256,
           first_taint: first,
         },
