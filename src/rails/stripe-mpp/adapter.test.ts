@@ -66,6 +66,32 @@ describe("Stripe MPP adapter: paying", () => {
     expect(await pay(rail, { amount: "0.500001" })).toMatchObject({ ok: true, settledMicros: 510_000n });
   });
 
+  it("RAIL-23: never follows a redirect, on the price check, the unpaid request, or the paid one", async () => {
+    const account = new FakeStripeAccount(() => secondsOf(at(5)()));
+    const vendor = fakeMppVendor(account);
+    const seen: (RequestInit | undefined)[] = [];
+    const spy = ((url: string, init?: RequestInit) => {
+      seen.push(init);
+      return vendor.fetchFn(url, init);
+    }) as typeof fetch;
+    const rail = new StripeMppRail({ api: account.api(), profileId: PROFILE, fetch: spy, now: at(5) });
+    await rail.quote({ vendorUrl: VENDOR_URL, approvedMicros: fromDecimalString("0.50"), idempotencyKey: "res-1" });
+    await pay(rail);
+    expect(seen).toHaveLength(3);
+    for (const init of seen) expect(init?.redirect).toBe("manual");
+  });
+
+  it("RAIL-23: a redirect on the unpaid request is refused, and no SPT is created", async () => {
+    const { account, rail } = setup({ unpaid: () => new Response(null, { status: 302, headers: { location: "https://elsewhere.example/pay" } }) });
+    expect(await pay(rail)).toMatchObject({ ok: false });
+    expect(account.spts.size).toBe(0);
+  });
+
+  it("RAIL-5, RAIL-23: a redirect on the paid request is unknown, since the SPT was presented", async () => {
+    const { rail } = setup({ paid: () => new Response(null, { status: 307, headers: { location: "https://elsewhere.example/pay" } }) });
+    expect(await pay(rail)).toMatchObject({ ok: false, code: "INVALID_RAIL_RESPONSE" });
+  });
+
   it("RAIL-13: a challenge for a different amount is CHALLENGE_MISMATCH, and no SPT is created", async () => {
     for (const cents of [49n, 51n, 5000n]) {
       const { account, rail } = setup({ cents });

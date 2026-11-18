@@ -3,6 +3,7 @@ import { z } from "zod";
 import { fromRailUnits, toRailUnits } from "@/core/money";
 import type { DestinationCheck, PayoutRequest, RailAdapter, RailContext, RailLookup, RailQuote, RailRequest, RailResult, RefundRequest } from "../types";
 import { NO_PAYMENT_URL, isPaymentUrl } from "../url";
+import { readVendorJson } from "../vendor-body";
 import { STRIPE_SPT_MINIMUM_CENTS, stripeDashboardUrl } from "./constants";
 import type { StripeConnectPayouts } from "./payouts";
 import { type StripeApi, StripeApiError, StripeResponseError } from "./stripe-api";
@@ -37,7 +38,14 @@ const MIN_SECONDS_LEFT = 60n;
 const CLOCK_MARGIN_SECONDS = 120n;
 /** Pages of 100 lookup() reads before giving up as unknown. */
 const MAX_LIST_PAGES = 10;
-const MAX_VENDOR_BODY_BYTES = 64 * 1024;
+
+/**
+ * Requests to the vendor never follow a redirect. The vendor's payment URL
+ * is the one registered for it (RAIL-23), and a redirect would send the
+ * request, and the credential with it, somewhere else. A 3xx answer is then
+ * handled like any other answer that isn't the expected one.
+ */
+const NO_REDIRECT = { redirect: "manual" } as const;
 
 export const sptIdempotencyKey = (key: string) => `agentvault-spt-v1:${key}`;
 export const refundIdempotencyKey = (key: string) => `agentvault-refund-v1:${key}`;
@@ -113,7 +121,7 @@ export class StripeMppRail implements RailAdapter {
 
   /** Read the vendor's price without paying. */
   async quote(req: RailRequest, ctx: RailContext = {}): Promise<RailQuote> {
-    const response = await this.fetchFn(req.vendorUrl, { method: "GET", headers: { accept: "application/json" }, ...(ctx.signal ? { signal: ctx.signal } : {}) });
+    const response = await this.fetchFn(req.vendorUrl, { method: "GET", headers: { accept: "application/json" }, ...NO_REDIRECT, ...(ctx.signal ? { signal: ctx.signal } : {}) });
     const parsed = this.parseChallenge(response);
     if ("failure" in parsed) throw new Error(`MPP quote failed: ${parsed.failure.code}`);
     return { units: parsed.units, micros: fromRailUnits(parsed.units, "stripe") };
@@ -126,7 +134,7 @@ export class StripeMppRail implements RailAdapter {
     // The SPT's expiry comes from the reservation time, so retries send identical parameters. Nothing has been sent.
     if (!ctx.reservedAt) return { ok: false, code: "RAIL_REJECTED", detail: "no reservation time was given; nothing was sent" };
     if (!isPaymentUrl(req.vendorUrl)) return NO_PAYMENT_URL;
-    const init = ctx.signal ? { signal: ctx.signal } : {};
+    const init = { ...NO_REDIRECT, ...(ctx.signal ? { signal: ctx.signal } : {}) };
 
     // 1. The unpaid request. No SPT exists yet, so a failure here can't have moved money.
     let unpaid: Response;
@@ -158,7 +166,7 @@ export class StripeMppRail implements RailAdapter {
             "usage_limits[max_amount]": units.toString(),
             "usage_limits[expires_at]": expiresAt.toString(),
           },
-          { idempotencyKey: sptIdempotencyKey(req.idempotencyKey), ...init },
+          { idempotencyKey: sptIdempotencyKey(req.idempotencyKey), ...(ctx.signal ? { signal: ctx.signal } : {}) },
         ),
       );
       if (BigInt(token.usage_limits.max_amount) !== units || token.usage_limits.currency !== "usd") {
@@ -193,7 +201,7 @@ export class StripeMppRail implements RailAdapter {
       ref: receipt.reference,
       explorerUrl: stripeDashboardUrl(receipt.reference),
       settledMicros: fromRailUnits(units, "stripe"),
-      vendorBody: await readJsonBody(paid),
+      vendorBody: await readVendorJson(paid),
     };
   }
 
@@ -335,14 +343,4 @@ function refundResult(refund: z.infer<typeof Refund>): RailResult {
   }
   if (refund.status === "failed" || refund.status === "canceled") return { ok: false, code: "RAIL_REJECTED", detail: `the refund ${refund.status}` };
   return { ok: false, code: "INVALID_RAIL_RESPONSE", detail: `the refund is ${refund.status ?? "in an unknown state"}` };
-}
-
-async function readJsonBody(response: Response): Promise<unknown> {
-  if (!(response.headers.get("content-type") ?? "").includes("application/json")) return undefined;
-  try {
-    const text = await response.text();
-    return text.length > MAX_VENDOR_BODY_BYTES ? undefined : (JSON.parse(text) as unknown);
-  } catch {
-    return undefined;
-  }
 }

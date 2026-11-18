@@ -8,6 +8,7 @@ import { fromRailUnits, toRailUnits } from "@/core/money";
 import { BASE_SEPOLIA } from "../config";
 import type { DestinationCheck, RailAdapter, RailContext, RailLookup, RailQuote, RailRequest, RailResult } from "../types";
 import { NO_PAYMENT_URL, isPaymentUrl } from "../url";
+import { readVendorJson } from "../vendor-body";
 import { BaseSepoliaReader, type ChainBlock, usdcTransferredFrom } from "./chain";
 import { BASE_SEPOLIA_CHAIN_ID, MAX_LOG_BLOCKS, USDC_BASE_SEPOLIA, USDC_EIP712, explorerTxUrl } from "./constants";
 
@@ -37,7 +38,14 @@ export const AUTHORIZATION_WINDOW_SECONDS = 300n;
 const MIN_SECONDS_LEFT = 30n;
 /** Search for a settlement from this long before the reservation, in case the server's clock is behind the chain's. */
 const CLOCK_MARGIN_SECONDS = 120n;
-const MAX_VENDOR_BODY_BYTES = 64 * 1024;
+
+/**
+ * Requests to the vendor never follow a redirect. The vendor's payment URL
+ * is the one registered for it (RAIL-23), and a redirect would send the
+ * request, and the signed payment header with it, somewhere else. A 3xx
+ * answer is then handled like any other answer that isn't the expected one.
+ */
+const NO_REDIRECT = { redirect: "manual" } as const;
 
 export function authorizationNonce(idempotencyKey: string): Hex {
   return `0x${createHash("sha256").update(NONCE_DOMAIN + idempotencyKey, "utf8").digest("hex")}`;
@@ -110,7 +118,7 @@ export class X402Rail implements RailAdapter {
 
   /** Read the vendor's price without paying. */
   async quote(req: RailRequest, ctx: RailContext = {}): Promise<RailQuote> {
-    const response = await this.fetchFn(req.vendorUrl, { method: "GET", headers: { accept: "application/json" }, ...(ctx.signal ? { signal: ctx.signal } : {}) });
+    const response = await this.fetchFn(req.vendorUrl, { method: "GET", headers: { accept: "application/json" }, ...NO_REDIRECT, ...(ctx.signal ? { signal: ctx.signal } : {}) });
     const parsed = parseChallenge(response);
     if ("failure" in parsed) throw new Error(`x402 quote failed: ${parsed.failure.code}`);
     const units = BigInt(parsed.requirement.amount);
@@ -124,7 +132,7 @@ export class X402Rail implements RailAdapter {
     // Without the reservation time, lookup() could never prove what happened. Nothing has been sent.
     if (!ctx.reservedAt) return { ok: false, code: "RAIL_REJECTED", detail: "no reservation time was given; nothing was signed" };
     if (!isPaymentUrl(req.vendorUrl)) return NO_PAYMENT_URL;
-    const init = ctx.signal ? { signal: ctx.signal } : {};
+    const init = { ...NO_REDIRECT, ...(ctx.signal ? { signal: ctx.signal } : {}) };
 
     // 1. The unpaid request. No payment exists yet, so a failure here can't have moved money.
     let unpaid: Response;
@@ -219,7 +227,7 @@ export class X402Rail implements RailAdapter {
       ref: settlement.transaction,
       explorerUrl: explorerTxUrl(settlement.transaction),
       settledMicros: fromRailUnits(units, "x402"),
-      vendorBody: await readJsonBody(paid),
+      vendorBody: await readVendorJson(paid),
     };
   }
 
@@ -348,14 +356,4 @@ function parseChallenge(response: Response): ParsedChallenge {
     return { failure: { ok: false, code: "CHALLENGE_MISMATCH", detail: "the challenge's token details don't match Base Sepolia USDC" } };
   }
   return { challenge, requirement };
-}
-
-async function readJsonBody(response: Response): Promise<unknown> {
-  if (!(response.headers.get("content-type") ?? "").includes("application/json")) return undefined;
-  try {
-    const text = await response.text();
-    return text.length > MAX_VENDOR_BODY_BYTES ? undefined : (JSON.parse(text) as unknown);
-  } catch {
-    return undefined;
-  }
 }

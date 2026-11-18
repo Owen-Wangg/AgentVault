@@ -55,6 +55,30 @@ describe("x402 adapter: execute", () => {
     expect(vendor.requests.filter((r) => r.paid)).toEqual([]);
   });
 
+  it("RAIL-23: never follows a redirect, on the price check, the unpaid request, or the paid one", async () => {
+    const vendor = fakeVendor(1500n);
+    const seen: (RequestInit | undefined)[] = [];
+    const spy = ((url: string, init?: RequestInit) => {
+      seen.push(init);
+      return vendor.fetchFn(url, init);
+    }) as typeof fetch;
+    await rail(spy).quote(req(1500n));
+    await rail(spy).execute(req(1500n), ctx);
+    expect(seen).toHaveLength(3);
+    for (const init of seen) expect(init?.redirect).toBe("manual");
+  });
+
+  it("RAIL-23: a redirect on the unpaid request is refused before anything is signed", async () => {
+    const vendor = fakeVendor(1500n, { unpaid: () => new Response(null, { status: 302, headers: { location: "https://elsewhere.example/pay" } }) });
+    expect(await rail(vendor.fetchFn).execute(req(1500n), ctx)).toMatchObject({ ok: false, code: "RAIL_REJECTED" });
+    expect(vendor.requests.filter((r) => r.paid)).toEqual([]);
+  });
+
+  it("RAIL-5, RAIL-23: a redirect on the paid request is unknown, since the payment may have been used", async () => {
+    const vendor = fakeVendor(1500n, { paid: () => new Response(null, { status: 307, headers: { location: "https://elsewhere.example/pay" } }) });
+    expect(await rail(vendor.fetchFn).execute(req(1500n), ctx)).toMatchObject({ ok: false, code: "INVALID_RAIL_RESPONSE" });
+  });
+
   it("RAIL-5: a 402 without a readable challenge is INVALID_RAIL_RESPONSE, and nothing is signed", async () => {
     for (const header of [null, "not-base64!", Buffer.from(JSON.stringify({ x402Version: 1, accepts: [] })).toString("base64")]) {
       const vendor = fakeVendor(1500n, { unpaid: () => new Response("{}", { status: 402, headers: header ? { "PAYMENT-REQUIRED": header } : {} }) });
