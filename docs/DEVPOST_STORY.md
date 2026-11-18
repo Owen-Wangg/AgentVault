@@ -10,7 +10,7 @@ Paste into the Devpost "About the project" fields. The Kiro section is in `docs/
 - Category: **Frankenstein** (one category only). Bonus prizes to tick: Best Student Project (Frankenstein), Best Demo (automatic), Bonus Blog Prize, Social Blitz.
 - Best Student Project needs your LinkedIn profile, student email, year and degree, and school name. Proof of enrollment may be requested.
 - Public GitHub repo URL, live app URL, public YouTube video URL (under 3 minutes), the Kiro write-up, and the blog and social post URLs.
-- No login is needed for judging; say so in the credentials field. Sign-in with GitHub is optional and only gives a personal workspace.
+- No login is needed for judging; say so in the credentials field. The hosted site runs as a public sandbox, and GitHub sign-in is turned off there.
 - The rules say the app must stay available, free and unrestricted, **until the Judging Period ends on January 29, 2027**.
 - Pre-existing code must be disclosed. Everything here was written during the Submission Period (it opened Oct 30; the first commit is Nov 14), using open-source libraries.
 - Image gallery: upload a few screenshots, since Design is a fifth of the score. For example: the live feed after a Payee hijack run (`docs/images/payee-hijack-feed.png`), the approvals inbox with both hijack cards, "Chain verified." on Audit, the testnet card with its BaseScan link, and the overview in Kiroween mode. Crop out any third-party logos.
