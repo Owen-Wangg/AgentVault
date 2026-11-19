@@ -12,6 +12,18 @@ describe("<DataState>", () => {
     expect(screen.getByRole("status").getAttribute("aria-busy")).toBe("true");
   });
 
+  it("UI-15, UI-19: loading is a skeleton hidden from screen readers, with the words for screen readers only", () => {
+    render(<DataState status="loading" empty="Nothing here" />);
+    const status = screen.getByRole("status");
+    const skeleton = screen.getByTestId("skeleton");
+    expect(skeleton.getAttribute("aria-hidden")).toBe("true");
+    expect(skeleton.children.length).toBeGreaterThan(1);
+    // The pulse is a CSS animation, which globals.css stops under reduced motion.
+    expect(skeleton.className).toContain("animate-pulse");
+    expect(status.querySelector(".sr-only")?.textContent).toBe("Loading…");
+    expect(status.className).not.toContain("border-dashed");
+  });
+
   it("UI-15: shows the empty message", () => {
     render(<DataState status="empty" empty="Nothing here" />);
     expect(screen.getByText("Nothing here")).toBeTruthy();
