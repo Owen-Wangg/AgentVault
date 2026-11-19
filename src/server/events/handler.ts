@@ -41,8 +41,15 @@ export interface EventsDeps {
   timing?: StreamTiming;
 }
 
-/** Sandbox streams opened per minute by all visitors together. */
-export const SANDBOX_STREAM_TOTAL_LIMIT: RateLimit = { limit: 120, windowMs: 60_000 };
+/**
+ * Sandbox streams opened per minute by all visitors together. A stream
+ * lasts about 55 s and holds one database connection, so this is also
+ * about how many can be open at once. A direct (unpooled) Neon connection
+ * string on the smallest compute allows roughly 100 connections, and the
+ * rest of the app needs some of them, so the cap stays well below that.
+ * One dashboard tab opens about one stream a minute.
+ */
+export const SANDBOX_STREAM_TOTAL_LIMIT: RateLimit = { limit: 40, windowMs: 60_000 };
 
 /** The rate-limit bucket every sandbox stream counts against. Not an IP, so no visitor can land in it. */
 const ALL_VISITORS = "all-visitors";
