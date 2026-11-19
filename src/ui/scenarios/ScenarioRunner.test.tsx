@@ -85,6 +85,9 @@ describe("<ScenarioRunner>", () => {
       expect(within(card).getByRole("button", { name: `Run: ${title}` })).toBeTruthy();
     }
     expect(FakeSource.last.url).toBe("/api/v1/events?workspace_id=sandbox-1");
+    // Payee hijack first, as the tour's first step, whatever order the page passes.
+    const order = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    expect(order).toEqual(["Payee hijack", "Normal purchase", "Runaway loop", "Prompt injection", "Intent drift"]);
     // One sentence above the cards, which still says the runs use mock rails.
     const intro = screen.getByText(/^Run an agent through AgentVault/);
     expect(intro.textContent).toContain("mock rails");

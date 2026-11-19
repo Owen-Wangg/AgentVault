@@ -45,6 +45,13 @@ const DECISION_TONE = { allow: "allow", hold: "hold", deny: "deny" } as const;
 const SUMMARY_NOTE: Partial<Record<ScenarioName, UiKey>> = { hijack: "scenario.hijack.summaryNote" };
 
 /**
+ * The cards' order (AGT-1): Payee hijack first, as the overview tour's
+ * first step (UI-23). A rank per scenario, so none can be left out.
+ */
+const CARD_ORDER: Record<ScenarioName, number> = { hijack: 0, normal: 1, runaway: 2, injection: 3, drift: 4 };
+const inCardOrder = (names: readonly ScenarioName[]) => [...names].sort((a, b) => CARD_ORDER[a] - CARD_ORDER[b]);
+
+/**
  * Why each scenario without a live version is scripted only (AGT-11).
  * Typed over those scenarios, so a new one can't be added without a reason.
  */
@@ -135,7 +142,7 @@ export function ScenarioRunner({
 
       {featured ? <div className="mb-6">{featured}</div> : null}
       <ul className="grid gap-4 sm:grid-cols-2">
-        {scenarios.map((name) => (
+        {inCardOrder(scenarios).map((name) => (
           <li key={name}>
             <Card aria-labelledby={`scenario-${name}`} className="flex h-full flex-col gap-3">
               <h2 id={`scenario-${name}`} className="text-base font-semibold">

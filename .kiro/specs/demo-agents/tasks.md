@@ -38,6 +38,6 @@ Plan (`docs/PLAN.md`): **Phase 11** = tasks 1–4. **Phase 17** (optional, cut f
   - The runaway loop and the payee hijack cards each say why they have no live run, in both themes
   - _Requirements: AGT-11_
 
-- [ ] 9. Put the Payee hijack card first
+- [x] 9. Put the Payee hijack card first
   - `CARD_ORDER` in `ScenarioRunner.tsx`, matching the tour's first step
   - _Requirements: AGT-1_
