@@ -28,3 +28,8 @@ Plan (`docs/PLAN.md`): **Phase 11** = tasks 1–4. **Phase 17** (optional, cut f
   - Second Gemini call; pass the score to the policy as advisory
   - Property 3 with recorded responses
   - _Requirements: AGT-16, INT-7, INT-8, INT-9_
+
+- [x] 7. Show the latest decision as a path through the checks
+  - `decisionPath` in `src/ui/scenarios/decision-path.ts`, with property 4
+  - `DecisionPath` above the step list, with copy in both themes
+  - _Requirements: AGT-17_

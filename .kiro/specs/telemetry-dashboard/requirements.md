@@ -57,6 +57,7 @@ TEL-6 and TEL-7 keep the hosted app inside its free plans until judging ends (`d
 
 ### Acceptance criteria
 - **UI-16** WHEN a user turns on Kiroween mode in Settings, THE SYSTEM SHALL switch colors, fonts, and copy (for example "The Crypt" for frozen tools, "Haunted" for tainted sessions).
+- **UI-27** THE workspace header SHALL show a one-sentence tagline saying what AgentVault is, on every dashboard page, in both themes.
 - **UI-24** THE workspace header SHALL offer the Kiroween mode switch on every dashboard page, with the same effect as the Settings switch (UI-16, UI-17, UI-18).
 - **UI-17** THE SYSTEM SHALL save the choice in the browser and restore it on the next visit without a flash of the other theme.
 - **UI-18** THE SYSTEM SHALL produce identical policy decisions, API responses, and audit events in both themes.

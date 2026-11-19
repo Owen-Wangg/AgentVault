@@ -78,14 +78,31 @@ Code: `src/agents/scripted/scenarios.ts` (data), `agent.ts` (runs the steps thro
 - Route: the same `POST /api/v1/scenarios/:name/run` with `agent: "gemini"`. 404 `LIVE_AGENT_OFF` without `GEMINI_API_KEY`, 400 `LIVE_NOT_OFFERED` for the runaway loop. Live runs share one quota, so beyond the 10 runs per IP per minute they allow 3 per IP per 10 minutes and 40 a day in total (429 `LIVE_QUOTA_USED`). A Gemini failure is still a 200 whose `stop` says why (`finished`, `tool_call_cap`, `turn_cap`, `time_limit`, `gemini_rate_limited`, `gemini_failed`, `api_error`), so the page can offer the scripted run. The response adds `agent`, `stop`, `tool_calls`, `rejected_calls`, `gemini_requests`, `timings_ms` (agent turns, scoring, API, total), and each step's `advisory_drift_score`; `scenario_started` records `agent` and `model` for live runs only. Only stop codes are logged, never a prompt, a page, or the key.
 - Never enabled in tests; tests replay recorded Gemini responses through the real SDK. One `@live` test runs the injection and drift scenarios on real Gemini.
 
+## Decision path (AGT-17)
+The step list says what happened in words; a judge watching a video needs to see in one frame which check stopped the request. `decisionPath(row)` in `src/ui/scenarios/decision-path.ts` (pure) turns a `FeedRow` into five stages, and `DecisionPath` renders them above the step list for the run's latest decision.
+
+| Stage | Reason codes |
+|---|---|
+| Agent | `AGENT_FROZEN`, `INVALID_REQUEST` |
+| Spend limits | `OVER_TX_MAX`, `OVER_WINDOW_CAP`, `VELOCITY_EXCEEDED`, `VENDOR_NOT_ALLOWED`, `TOOL_NOT_ALLOWED`, `NEEDS_APPROVAL` |
+| Task scope | `DENY_INTENT_DRIFT`, `OVER_TASK_BUDGET`, `ADVISORY_DRIFT` |
+| Untrusted input | `HELD_TAINTED` |
+| Payment rail | reached when the decision is `allow` |
+
+- A check is `denied` if any of its codes is a deny reason, else `held` if any is a hold reason, else `passed`. A code this table doesn't know goes to Agent with the decision's own outcome, so a deny never shows every check passing.
+- `evaluate()` runs every rule, so the other checks did run and their `passed` is true. `INVALID_REQUEST` is the exception (it is decided before `evaluate()`), so with it the other checks are `not_checked`.
+- Rendered as an ordered list with arrows between stages (a column at 375 px, a row from `sm` up). Each stage has an icon and its state in words, and the colors are the existing allow, hold, and deny tokens. Copy in both themes.
+
 ## Correctness properties
 1. **Determinism** (AGT-5): each scripted scenario's decision sequence equals its `expected` list across 20 runs.
 2. **Theme neutrality** (UI-18): the same scenario under both themes yields identical decisions.
 3. **Advisory can't loosen** (INT-9): with mocked Gemini returning any score, no decision is looser than the scripted run's decision for the same step.
+4. **Path consistency** (AGT-17): for any set of reason codes and the decision they produce (deny beats hold beats allow), each known code marks exactly one check; the rail is reached exactly when the decision is `allow`; a deny has a denied check, a hold has a held check and no denied one, and an allow has neither.
 
 ## Testing strategy
 - Integration tests run each scenario against a test database and the mock rail. The agent's requests go through the real pay, tool, and fetch route handlers, and the fetcher returns the real poisoned docs route.
 - Example tests per requirement: the scripted agent's unit tests and the per-scenario integration tests (AGT-1, AGT-2, AGT-4, AGT-6 to AGT-9), and the scenarios page's UI tests (AGT-1 to AGT-3, AGT-10).
 - Property 1 runs on in-memory PGlite even when `DATABASE_URL_TEST` is set (`createTestDb({ driver: "pglite" })`): 10 cases, each running all four scenarios twice in random orders with random gaps, so 20 runs of each. That is about 1,000 agent requests, minutes on Neon and about 15 s in memory. It needs no concurrency, and the per-scenario tests and the busy-lock test run on Postgres.
 - Gemini agent tests use recorded responses, including a 429: unit tests of the agent loop and tools (AGT-12 to AGT-15), route tests through the real handlers (AGT-11, AGT-14, AGT-16, the live limits), and UI tests for the live buttons, scores, and stop messages (AGT-11, AGT-14, AGT-16).
+- Property 4 in `src/ui/scenarios/decision-path.prop.test.ts` (1,000 runs), plus component tests that the path follows the latest decision, names each state in text, and marks later checks not checked after `INVALID_REQUEST` (AGT-17).
 - Property 3 runs on PGlite, like property 1: 8 cases, each running all four scripted scenarios with every pay and tool request carrying a generated score read through the real scorer from a recorded reply.

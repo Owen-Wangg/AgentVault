@@ -59,7 +59,8 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
   - `HeaderThemeSwitch` in the workspace header, sharing `setTheme` with Settings
   - `FeedRow.requestedPayee` from a `payee.update` decision's `payee_ref`, shown in the feed and the scenario steps as text
   - Copy in both themes
-  - _Requirements: UI-23, UI-24, UI-25_
+  - The tagline in the workspace header
+  - _Requirements: UI-23, UI-24, UI-25, UI-27_
 
 - [x] 13. Let visitors watch the chain check fail
   - `verifySegment` in `src/core/audit/chain.ts`, with property 4
