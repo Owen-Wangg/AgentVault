@@ -18,7 +18,7 @@ Commands are for Windows PowerShell.
 ```powershell
 pnpm install
 ```
-pnpm doesn't run package install scripts unless they're approved. `pnpm-workspace.yaml` approves only `esbuild`, which Vitest and tsx need for their platform binary. If a new dependency needs a script, pnpm stops with `ERR_PNPM_IGNORED_BUILDS`. Check what the package is, then approve it by name: `pnpm approve-builds <package>`.
+pnpm doesn't run package install scripts unless they're approved. `pnpm-workspace.yaml` approves none: it lists `esbuild` and `protobufjs` with their scripts off, because neither script is needed (pnpm already installs esbuild's platform binary). If a new dependency needs a script, pnpm stops with `ERR_PNPM_IGNORED_BUILDS`. Check what the package is, then approve it by name: `pnpm approve-builds <package>`.
 
 ## 3. Environment variables
 ```powershell
@@ -103,7 +103,7 @@ pnpm audit:verify
 
 ### Integration tests
 
-Files named `*.int.test.ts` need Postgres. With `DATABASE_URL_TEST` set, each test file creates its own throwaway database on that server and drops it afterwards. Without it, they run on [PGlite](https://pglite.dev), a real Postgres compiled to WebAssembly that runs in memory, so `pnpm test` works with no setup. PGlite has a single connection, so the concurrency tests in later phases need `DATABASE_URL_TEST`.
+Files named `*.int.test.ts` need Postgres. With `DATABASE_URL_TEST` set, each test file creates its own throwaway database on that server and drops it afterwards. Without it, they run on [PGlite](https://pglite.dev), a real Postgres compiled to WebAssembly that runs in memory, so `pnpm test` works with no setup. PGlite has a single connection, so the tests that need real concurrent connections skip without `DATABASE_URL_TEST`.
 
 `pnpm test` reads `DATABASE_URL_TEST` from `.env.local`, and loads no other variable from that file. A value set in the terminal takes priority, so you can point one run at another server:
 
@@ -276,11 +276,11 @@ You can also paste an address into <https://sepolia.basescan.org> to see its bal
 
 ```powershell
 pnpm x402:probe 1500
-pnpm test:live
+pnpm test:live x402-live testnet-live
 ```
 
 - `pnpm x402:probe 1500` runs the weather endpoint inside the command, with the real CDP facilitator, and pays it $0.0015 from the agent wallet. It prints the transaction's explorer link, then looks the payment up on-chain the way the reconciler does. Give it other amounts in USDC units to try them; anything under 1000 is refused by the facilitator and moves nothing.
-- `pnpm test:live` runs the `@live` tests: the endpoint's 402 challenge, a refused overcharge, the facilitator's minimum, and a full guarded payment recorded in a test database's audit log. It spends $0.0025 of test USDC per run. `pnpm test` never runs them and never reads the agent key.
+- `pnpm test:live x402-live testnet-live` runs the x402 `@live` tests: the endpoint's 402 challenge, a refused overcharge, the facilitator's minimum, a full guarded payment recorded in a test database's audit log, and one press of the Real testnet payment button. It spends $0.004 of test USDC per run. The names after `test:live` pick the test files; without them it also runs the Stripe, Connect, PayPal, and Gemini tests, which fail until those are set up (sections 7 to 9). `pnpm test` never runs them and never reads the agent key.
 
 With `pnpm dev` running, <http://localhost:3000/vendor/api/weather> answers `402 Payment Required`; the price is in the `PAYMENT-REQUIRED` header. Without the vendor's x402 variables it answers `503`.
 
@@ -395,11 +395,11 @@ The public sandbox's scenario never touches this payment: it runs on mock rails,
 
 ```powershell
 pnpm stripe:probe
-pnpm test:live
+pnpm test:live stripe-live
 ```
 
 - `pnpm stripe:probe` runs the report endpoint inside the command, with the real Stripe test-mode API. It pays it $0.50 through the Stripe adapter, looks the payment up the way the reconciler does, tries the same idempotency key again (Stripe refuses the used SPT, so nothing is charged twice), then refunds the 50 cents and looks the refund up. `--record <dir>` saves the exchanges as test fixtures. `--refund-seed 480` instead refunds $480 of the seeded billing payment, as an approved `stripe.refund` would. A payment can't be refunded past its amount, so run that only once, for the demo.
-- `pnpm test:live` runs the `@live` tests for both rails. For Stripe: the endpoint's 402 challenge, a refused overcharge, and a guarded $0.50 `mpp.pay` and its refund, recorded in a test database's audit log and found again by `lookup()`. Stripe's part uses test cards and costs nothing. `pnpm test` never runs them and never reads the Stripe key.
+- `pnpm test:live stripe-live` runs the Stripe `@live` tests: the endpoint's 402 challenge, a refused overcharge, and a guarded $0.50 `mpp.pay` and its refund, recorded in a test database's audit log and found again by `lookup()`. Stripe's part uses test cards and costs nothing. `pnpm test` never runs them and never reads the Stripe key.
 
 You'll see each payment and refund in the Dashboard under **Payments**.
 
@@ -440,7 +440,7 @@ So the deployed `/vendor/api/report` can charge, add these under **Project → S
 - `STRIPE_SECRET_KEY` (the sandbox's `sk_test_` key; mark it **Sensitive**)
 - `STRIPE_PROFILE_ID`
 
-The deployed app keeps `RAIL_MODE=mock`, so its agents still pay on mock rails. Only the demo vendor endpoint uses the key.
+With `RAIL_MODE=real` (section 6, Vercel), the Stripe adapter uses the key too, for `mpp.pay`, `stripe.refund`, and `payout.create` in non-sandbox workspaces. The public sandbox still pays on mock rails.
 
 `APP_ORIGIN` must be the production origin (`https://<your-app>.vercel.app`). The endpoint uses its hostname as the MPP challenge's realm. Otherwise mppx would use each deployment's own hostname, and the validator's "Realm matches server hostname" check fails. Check the deployment with `pnpm mpp:validate https://<your-app>.vercel.app`. It makes one $0.50 test payment.
 
@@ -547,7 +547,7 @@ To see a payout arrive, log in at <https://www.sandbox.paypal.com/signin> with a
 
 ### Vercel
 
-Leave the PayPal variables off Vercel. The hosted site runs mock rails only.
+Leave the PayPal variables off Vercel. The public sandbox runs mock rails, and without `PAYPAL_CLIENT_ID` a `paypal.payout` in any other workspace fails closed, even with `RAIL_MODE=real`.
 
 ### If the secret leaks
 
@@ -558,8 +558,8 @@ In **Apps & Credentials**, open the app and generate a new secret (or delete the
 |---|---|
 | `pnpm dev` | Starts the app at <http://localhost:3000>. It keeps running; stop it with Ctrl+C. |
 | `pnpm test` | Runs the tests in watch mode. `pnpm test --run` runs them once. |
-| `pnpm test:live` | Runs only tests tagged `@live`, which use real testnets or Stripe test mode. |
-| `pnpm test:e2e` | Runs the Playwright test in a real browser: it opens the sandbox signed out, runs the prompt-injection scenario, approves the held refund, checks the feed, and verifies the audit chain. It creates a throwaway database on the `DATABASE_URL_TEST` server and drops it afterwards, so it never touches `DATABASE_URL`. It starts its own `next dev` on port 3100. The first time, download the browser with `pnpm exec playwright install chromium`. |
+| `pnpm test:live [files]` | Runs only tests tagged `@live`, which use Base Sepolia, Stripe test mode, the PayPal sandbox, and real Gemini. Every rail must be set up for a full run; name files (`x402-live`, `testnet-live`, `stripe-live`, `connect-live`, `paypal-live`, `live-gemini`) to run some of them. |
+| `pnpm test:e2e` | Runs the Playwright tests in a real browser, signed out: a first visit (the tour, the theme switch, and the tamper simulation on Audit), the prompt injection with its approval and the chain check, both endings of the Payee hijack, and keyboard use of the layout. It creates a throwaway database on the `DATABASE_URL_TEST` server and drops it afterwards, so it never touches `DATABASE_URL`. It starts its own `next dev` on port 3100. The first time, download the browser with `pnpm exec playwright install chromium`. |
 | `pnpm typecheck` | Type-checks the whole project. |
 | `pnpm lint` | Runs ESLint, including the layering rules that keep `src/core` free of I/O. |
 | `pnpm verify` | Typecheck, lint, and tests together. Run this before committing. |
