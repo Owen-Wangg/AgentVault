@@ -16,6 +16,7 @@
   --text-muted: #475569;
   --accent: #4338ca;
   --accent-text: #ffffff;
+  --accent-soft: #6366f1;
   --allow: #166534;
   --hold: #92400e;
   --deny: #b91c1c;
@@ -38,6 +39,7 @@
   --text-muted: #b9b0c9;
   --accent: #ff8c1a;
   --accent-text: #120d05;
+  --accent-soft: #ffb35c;
   --allow: #7fe35a;
   --hold: #f5c84b;
   --deny: #ff7a7a;
@@ -95,6 +97,7 @@
   --color-text-muted: var(--text-muted);
   --color-accent: var(--accent);
   --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
   --color-allow: var(--allow);
   --color-hold: var(--hold);
   --color-deny: var(--deny);

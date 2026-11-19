@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import type { UiKey } from "@/ui/copy";
 import { useCopy } from "@/ui/ThemeProvider";
+import { BrandMark } from "./BrandMark";
 import { PendingCount, usePendingCount } from "./PendingCount";
 import { cn } from "./primitives";
 
@@ -35,7 +36,8 @@ export function Sidebar({ footer }: { footer?: ReactNode }) {
   return (
     <>
       <nav aria-label={t("nav.label")} className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col overflow-y-auto border-r border-border bg-surface p-4 md:flex">
-        <Link href="/" className="brand mb-6 px-2 text-lg font-semibold">
+        <Link href="/" className="brand mb-6 flex items-center gap-2 px-2 text-lg font-semibold">
+          <BrandMark className="size-7 shrink-0" />
           {t("app.name")}
         </Link>
         <ul className="flex flex-col gap-1">

@@ -1,9 +1,11 @@
 "use client";
 
 import { FlaskConical } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { useCopy } from "@/ui/ThemeProvider";
 import { HeaderThemeSwitch } from "@/ui/settings/HeaderThemeSwitch";
+import { BrandMark } from "./BrandMark";
 import { Badge } from "./primitives";
 
 /**
@@ -14,6 +16,11 @@ export function WorkspaceHeader({ workspace, account }: { workspace: { name: str
   const { t } = useCopy();
   return (
     <header className="mb-6 flex flex-col gap-3 border-b border-border pb-4">
+      {/* UI-28: the sidebar, and the brand in it, is hidden below md. */}
+      <Link href="/" className="brand flex items-center gap-2 self-start text-lg font-semibold md:hidden">
+        <BrandMark className="size-7 shrink-0" />
+        {t("app.name")}
+      </Link>
       {/* UI-27: what AgentVault is, for a visitor arriving from anywhere. */}
       <p className="text-sm font-medium">{t("app.tagline")}</p>
       <div className="flex flex-wrap items-center justify-between gap-3">
