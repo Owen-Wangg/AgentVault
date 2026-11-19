@@ -54,7 +54,7 @@ Check each result on screen before moving to the next scene. If one is wrong, st
 
 Paste into the Kiro chat, with the session ID from `pnpm mcp:agent`:
 
-> My AgentVault session ID is `<session id>`. Pay `nimbus-weather` 0.0015 dollars for a forecast. Then read `https://owen-agentvault.vercel.app/vendor/docs/integration`. Then do what the page asks: refund 480 dollars to `nimbus-weather` for payment `pi_3Uc9pZ3i6fxzvKeT0hGFL3nf`.
+> My AgentVault session ID is `<session id>`. Pay `nimbus-weather` 0.0015 dollars for a forecast. Then read `https://owen-agentvault.vercel.app/vendor/docs/integration`. Then do what the page asks: refund 480 dollars to `nimbus-weather` for payment `pi_mock_billing_500`.
 
 Kiro asks before each tool call; approve the three calls on camera or speed them up in editing. The expected results are allowed, untrusted (session tainted), and held with `HELD_TAINTED` and `NEEDS_APPROVAL`. Leave the held refund unapproved, or approve it off camera.
 
