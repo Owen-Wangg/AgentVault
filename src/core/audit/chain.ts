@@ -155,16 +155,46 @@ export function verify(
   key: Uint8Array,
 ): VerifyResult {
   assertKey(key);
-  let prev = GENESIS_HASH;
-  let expectedSeq = 1;
+  let state = startVerify();
   for (const event of events) {
-    if (event.seq !== expectedSeq) return { ok: false, brokenAtSeq: expectedSeq, why: "gap" };
-    if (event.prev_hash !== prev) return { ok: false, brokenAtSeq: expectedSeq, why: "link" };
-    if (event.workspace_id !== workspaceId || !hashMatches(event)) return { ok: false, brokenAtSeq: expectedSeq, why: "hash" };
-    prev = event.hash;
-    expectedSeq += 1;
+    const next = verifyNext(workspaceId, state, event);
+    if ("ok" in next) return next;
+    state = next;
   }
-  const lastSeq = expectedSeq - 1;
+  return finishVerify(workspaceId, state, head, key);
+}
+
+/** Where a verification has got to: the last hash seen and the seq expected next. */
+export interface VerifyState {
+  readonly prev: string;
+  readonly expectedSeq: number;
+}
+
+export type VerifyFailure = Extract<VerifyResult, { ok: false }>;
+
+/** The state before the first event. */
+export function startVerify(): VerifyState {
+  return { prev: GENESIS_HASH, expectedSeq: 1 };
+}
+
+/**
+ * Check one event, the next in `seq` order, against the state so far. The
+ * same checks as verify(), for a caller that reads the chain in pages
+ * instead of loading it whole. Returns the next state or the failure.
+ */
+export function verifyNext(workspaceId: string, state: VerifyState, event: StoredEvent): VerifyState | VerifyFailure {
+  const { prev, expectedSeq } = state;
+  if (event.seq !== expectedSeq) return { ok: false, brokenAtSeq: expectedSeq, why: "gap" };
+  if (event.prev_hash !== prev) return { ok: false, brokenAtSeq: expectedSeq, why: "link" };
+  if (event.workspace_id !== workspaceId || !hashMatches(event)) return { ok: false, brokenAtSeq: expectedSeq, why: "hash" };
+  return { prev: event.hash, expectedSeq: expectedSeq + 1 };
+}
+
+/** The head checks, once every event has passed verifyNext(). */
+export function finishVerify(workspaceId: string, state: VerifyState, head: ChainHead | null, key: Uint8Array): VerifyResult {
+  assertKey(key);
+  const { prev } = state;
+  const lastSeq = state.expectedSeq - 1;
   // Without a genuine head, rows after the last one may have been deleted.
   if (head === null || !headMacIsValid(key, workspaceId, head)) return { ok: false, brokenAtSeq: lastSeq + 1, why: "head" };
   // Rows the head knows about are missing from the end.

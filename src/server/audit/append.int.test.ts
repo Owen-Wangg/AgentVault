@@ -169,4 +169,24 @@ describe("AUD-4, AUD-8: tampering with the triggers dropped", () => {
     await database.db.delete(auditHeads).where(eq(auditHeads.workspaceId, ws));
     expect(await verifyChain(database.db, ws, opts)).toEqual({ ok: false, brokenAtSeq: 3, why: "head", headSeq: null });
   });
+
+  it("AUD-4: verifying in pages gives the same results as one page, at and across page boundaries", async () => {
+    const ws = await chainOf(7);
+    for (const pageSize of [1, 2, 3, 7, 8]) {
+      expect(await verifyChain(database.db, ws, { ...opts, pageSize })).toEqual({ ok: true, count: 7, headSeq: 7 });
+    }
+    // seq 4 is the first row of the second page of 3, and the last of the second page of 2.
+    await database.db.update(auditEvents).set({ payload: { n: 0 } }).where(sql`${auditEvents.workspaceId} = ${ws} AND ${auditEvents.seq} = 4`);
+    for (const pageSize of [1, 2, 3, 7, 8]) {
+      expect(await verifyChain(database.db, ws, { ...opts, pageSize })).toEqual({ ok: false, brokenAtSeq: 4, why: "hash", headSeq: 7 });
+    }
+    await database.db.delete(auditEvents).where(sql`${auditEvents.workspaceId} = ${ws} AND ${auditEvents.seq} >= 6`);
+    expect(await verifyChain(database.db, ws, { ...opts, pageSize: 3 })).toEqual({ ok: false, brokenAtSeq: 4, why: "hash", headSeq: 7 });
+  });
+
+  it("AUD-8: a tail deleted at a page boundary is caught", async () => {
+    const ws = await chainOf(6);
+    await database.db.delete(auditEvents).where(sql`${auditEvents.workspaceId} = ${ws} AND ${auditEvents.seq} > 3`);
+    expect(await verifyChain(database.db, ws, { ...opts, pageSize: 3 })).toEqual({ ok: false, brokenAtSeq: 4, why: "head", headSeq: 6 });
+  });
 });

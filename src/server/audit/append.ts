@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, asc, eq, gt } from "drizzle-orm";
 import {
   type AuditEventBody,
   type ChainHead,
@@ -9,8 +9,10 @@ import {
   canonicalJson,
   chainHash,
   headMac,
+  finishVerify,
   headMacIsValid,
-  verify,
+  startVerify,
+  verifyNext,
 } from "@/core/audit";
 import type { Db, Tx } from "@/server/db/client";
 import { auditEvents, auditHeads } from "@/server/db/schema";
@@ -102,31 +104,64 @@ export async function loadChain(db: Db | Tx, workspaceId: string): Promise<{ eve
     .select({ seq: auditHeads.seq, hash: auditHeads.hash, mac: auditHeads.mac })
     .from(auditHeads)
     .where(eq(auditHeads.workspaceId, workspaceId));
-  const events = rows.map(
-    (r): StoredEvent => ({
-      workspace_id: r.workspaceId,
-      seq: r.seq,
-      type: r.type as EventType,
-      created_at: r.createdAt.toISOString(),
-      payload: r.payload,
-      prev_hash: r.prevHash,
-      hash: r.hash,
-    }),
-  );
-  return { events, head: head ?? null };
+  return { events: rows.map(storedEvent), head: head ?? null };
 }
+
+/** Rows read per page when verifying, so a long chain is never loaded whole. */
+export const VERIFY_PAGE_SIZE = 1_000;
 
 /**
  * Verify a workspace's chain against its signed head (AUD-4, AUD-8).
  * Also returns the head's seq, which the dashboard shows so that a head
  * rolled back to an older signed value is visible to anyone comparing.
+ * Rows are read in pages of `pageSize` by seq, inside one read-only
+ * repeatable-read transaction, so the rows and the head come from the
+ * same snapshot even while other requests append.
  */
 export async function verifyChain(
-  db: Db | Tx,
+  db: Db,
   workspaceId: string,
-  options: Pick<AppendOptions, "key"> = {},
+  options: Pick<AppendOptions, "key"> & { pageSize?: number } = {},
 ): Promise<VerifyResult & { headSeq: number | null }> {
   const key = options.key ?? env.auditHeadKey();
-  const { events, head } = await loadChain(db, workspaceId);
-  return { ...verify(workspaceId, events, head, key), headSeq: head?.seq ?? null };
+  const pageSize = options.pageSize ?? VERIFY_PAGE_SIZE;
+  return db.transaction(
+    async (tx) => {
+      const [head] = await tx
+        .select({ seq: auditHeads.seq, hash: auditHeads.hash, mac: auditHeads.mac })
+        .from(auditHeads)
+        .where(eq(auditHeads.workspaceId, workspaceId));
+      let state = startVerify();
+      let after = 0;
+      for (;;) {
+        const rows = await tx
+          .select()
+          .from(auditEvents)
+          .where(and(eq(auditEvents.workspaceId, workspaceId), gt(auditEvents.seq, after)))
+          .orderBy(asc(auditEvents.seq))
+          .limit(pageSize);
+        for (const row of rows) {
+          const next = verifyNext(workspaceId, state, storedEvent(row));
+          if ("ok" in next) return { ...next, headSeq: head?.seq ?? null };
+          state = next;
+          after = row.seq;
+        }
+        if (rows.length < pageSize) break;
+      }
+      return { ...finishVerify(workspaceId, state, head ?? null, key), headSeq: head?.seq ?? null };
+    },
+    { isolationLevel: "repeatable read", accessMode: "read only" },
+  );
+}
+
+function storedEvent(r: typeof auditEvents.$inferSelect): StoredEvent {
+  return {
+    workspace_id: r.workspaceId,
+    seq: r.seq,
+    type: r.type as EventType,
+    created_at: r.createdAt.toISOString(),
+    payload: r.payload,
+    prev_hash: r.prevHash,
+    hash: r.hash,
+  };
 }
