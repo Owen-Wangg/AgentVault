@@ -116,6 +116,31 @@ describe("<ScenarioRunner>", () => {
     expect((screen.getByRole("button", { name: "Run: Normal purchase" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
+  it("AGT-17: the decision path follows the run's latest decision and names each state in text", async () => {
+    const { api } = pendingApi();
+    mount(api);
+    fireEvent.click(screen.getByRole("button", { name: "Run: Prompt injection" }));
+    expect(screen.queryByTestId("decision-path")).toBeNull();
+    await act(async () => {
+      FakeSource.last.emit("audit", started("run-1", "agent-run"));
+      FakeSource.last.emit("audit", decision("agent-run", "x402.pay", "1500", "allow", []));
+    });
+    await screen.findByRole("region", { name: "How AgentVault decided" });
+    const states = () => within(screen.getByRole("region", { name: "How AgentVault decided" })).getAllByTestId("path-state").map((s) => s.textContent);
+    expect(states()).toEqual(["Passed", "Passed", "Passed", "Passed", "Sent"]);
+
+    await act(async () => {
+      FakeSource.last.emit("audit", taint("agent-run"));
+      FakeSource.last.emit("audit", decision("agent-run", "stripe.refund", "480000000", "hold", ["HELD_TAINTED", "NEEDS_APPROVAL"]));
+    });
+    const region = screen.getByRole("region", { name: "How AgentVault decided" });
+    await within(region).findByText("stripe.refund");
+    expect(region.textContent).toContain("stripe.refund");
+    expect(region.textContent).toContain("$480.00");
+    // Agent, spend limits, task scope, untrusted input, then the rail.
+    expect(states()).toEqual(["Passed", "Held", "Passed", "Held", "Not sent"]);
+  });
+
   it("UI-25: a held payee change step shows the account the agent asked to switch to, as text", async () => {
     const { api } = pendingApi();
     mount(api);

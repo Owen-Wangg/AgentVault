@@ -10,6 +10,7 @@ import { Badge, Button, Card, CardTitle, PageTitle } from "@/ui/components/primi
 import type { UiKey } from "@/ui/copy";
 import { useCopy } from "@/ui/ThemeProvider";
 import { type EventStreamOptions, useEventStream } from "@/ui/events/use-event-stream";
+import { DecisionPath } from "./DecisionPath";
 import { type LiveStop, type RunResult, type RunStep, parseRunResult, runAgentId, runSteps } from "./run-view";
 
 export type RunAgentKind = "scripted" | "gemini";
@@ -98,6 +99,8 @@ export function ScenarioRunner({
   // The response names the agent too, but the stream's scenario_started arrives first.
   const agentId = run ? (run.phase === "done" ? run.result.agentId : runAgentId(events, run.runId)) : null;
   const steps = agentId ? runSteps(events, agentId) : [];
+  // AGT-17: the path shows the run's newest decision.
+  const latestDecision = steps.findLast((s): s is Extract<RunStep, { kind: "decision" }> => s.kind === "decision")?.row;
 
   async function start(name: ScenarioName, agent: RunAgentKind = "scripted") {
     const runId = newRunId();
@@ -172,6 +175,11 @@ export function ScenarioRunner({
               </Button>
             ) : null}
           </div>
+          {latestDecision ? (
+            <Card className="mb-4">
+              <DecisionPath row={latestDecision} />
+            </Card>
+          ) : null}
           <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
             <Card>
               <CardTitle>{t("scenarios.steps")}</CardTitle>
