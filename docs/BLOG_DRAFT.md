@@ -64,11 +64,13 @@ Then I connected Kiro to AgentVault's own MCP server and let Kiro be the agent. 
 
 ## Try it
 
-1. Open Scenarios and run **Payee hijack**.
+The overview's "Start here" card walks through this in about a minute.
+
+1. Open Scenarios and run **Payee hijack**. A diagram shows the latest decision passing through each check: the payout is held at spend limits (it's over the approval threshold) and at untrusted input (the session read the invoice).
 2. Follow the link to Approvals. Deny the payout account change and approve the payout. AgentVault re-runs every check first.
 3. Open the Live feed: the payout went to the supplier's account on file.
-4. Open Audit and click **Verify chain**.
+4. Open Audit and click **Verify chain**. Then click **Rewrite an event**: your browser turns the held payout into an "allow" in a copy of the log, rechecks it with the same chain code the server uses, and shows the chain breaking at exactly that event. The stored log can't be changed at all; the database rejects every edit.
 
-The sandbox runs on mock rails, so no money moves. The real adapters were tested separately: x402 on Base Sepolia, Stripe MPP and Connect in test mode, and PayPal in its sandbox, each with a real test payment through the guarded flow.
+The scenarios run on mock rails, so no money moves. One button on the Scenarios page is real: it makes a $0.0015 x402 payment on Base Sepolia, with test USDC, through the same checks, and links the transaction. The other real adapters were tested separately: Stripe MPP and Connect in test mode, and PayPal in its sandbox, each with a real test payment through the guarded flow.
 
 Code (Apache-2.0): <https://github.com/Owen-Wangg/AgentVault>
