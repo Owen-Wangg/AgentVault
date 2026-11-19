@@ -67,3 +67,9 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
   - `src/ui/audit/tamper.ts`: target choice, rewrite and delete on a copy
   - A "Try to tamper with it" card on the audit page, with copy in both themes; no request, nothing stored
   - _Requirements: UI-26_
+
+- [ ] 14. Show the brand mark in the app and in link previews
+  - `accent-soft` token in both themes, with its contrast pairs
+  - `BrandMark` from theme variables, beside the name in the sidebar and in the workspace header below `md`
+  - A dark-scheme style in `app/icon.svg`; `app/opengraph-image.png` with alt text, `app/apple-icon.png`, and Open Graph and Twitter metadata in the layout
+  - _Requirements: UI-28, UI-29_

@@ -51,6 +51,8 @@ TEL-6 and TEL-7 keep the hosted app inside its free plans until judging ends (`d
 - **UI-13** THE SYSTEM SHALL be usable with a keyboard alone, with visible focus states.
 - **UI-14** THE SYSTEM SHALL work at widths from 375 px to 1920 px.
 - **UI-15** THE SYSTEM SHALL show empty, loading, and error states for every data view.
+- **UI-28** THE dashboard SHALL show the AgentVault mark beside the app name on every page: in the sidebar from the `md` breakpoint up, and at the top of the workspace header below it. The mark SHALL be decorative (hidden from screen readers), so the link's name stays the app name, and SHALL take its colors from the theme tokens, so Kiroween mode recolors it and changes nothing else (UI-18).
+- **UI-29** THE site SHALL publish a 1200 × 630 social preview image with alt text, and a 180 × 180 Apple touch icon. THE tab icon SHALL switch to a lighter palette WHEN the browser prefers a dark color scheme, so it stays visible on dark tabs.
 
 ## Requirement 5: Kiroween mode
 **User story:** As a presenter, I want a spooky theme for the demo, without changing how the product behaves.
