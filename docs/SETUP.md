@@ -411,7 +411,7 @@ With the app running (`pnpm dev` in its own terminal):
 pnpm mpp:validate
 ```
 
-It runs `npx mppx@latest validate http://localhost:3000`, Stripe's MPP checker. It finds `/vendor/api/report` through `/openapi.json`, checks the challenge and the error handling, and makes a $0.50 test payment. The command gives the validator your `sk_test_` key through its environment, without printing it; without the key, the validator skips the payment. A missing `/llms.txt` shows as a suggestion, not a failure.
+It runs `mppx validate http://localhost:3000`, Stripe's MPP checker, from the `mppx` version pinned in `package.json`. It finds `/vendor/api/report` through `/openapi.json`, checks the challenge and the error handling, and makes a $0.50 test payment. The command gives the validator your `sk_test_` key through its environment, without printing it; without the key, the validator skips the payment. A missing `/llms.txt` shows as a suggestion, not a failure.
 
 With `pnpm dev` running, <http://localhost:3000/vendor/api/report> answers `402 Payment Required`, with the challenge in the `WWW-Authenticate` header. Without the Stripe variables it answers `503`.
 
@@ -575,7 +575,7 @@ In **Apps & Credentials**, open the app and generate a new secret (or delete the
 | `pnpm stripe:profile` | Prints the Stripe profile ID of the sandbox your key belongs to (section 7). Only reads. |
 | `pnpm stripe:seed` | Creates the $500 test payment the refund scenario targets, or finds the existing one (section 7). |
 | `pnpm stripe:probe` | Pays the MPP report endpoint $0.50 in Stripe test mode, refunds it, and looks both up. `--record <dir>` saves the exchanges as test fixtures; `--refund-seed <dollars>` refunds part of the seeded billing payment instead. |
-| `pnpm mpp:validate [origin]` | Runs Stripe's MPP validator (`npx mppx@latest validate`) against the app, default `http://localhost:3000`, including a test payment. Needs the app running. |
+| `pnpm mpp:validate [origin]` | Runs Stripe's MPP validator (`mppx validate`, the pinned version) against the app, default `http://localhost:3000`, including a test payment. Needs the app running. |
 | `pnpm wallet:new` | Prints a new Base Sepolia test wallet's address and private key (section 6). The only command that prints a key. |
 | `pnpm x402:status` | Prints the agent and vendor wallet addresses and their test USDC and ETH balances. Never prints the key. |
 | `pnpm x402:probe [units...]` | Pays the weather endpoint on Base Sepolia at each price, in USDC units, and looks each payment up. `--record <dir>` saves the exchanges as test fixtures; `--lookup <file>` only looks up a recorded payment again. Spends test USDC. |

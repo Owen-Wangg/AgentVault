@@ -13,6 +13,6 @@ Run this as the `/validate-mpp` slash command after changing anything under `app
    ```powershell
    pnpm mpp:validate
    ```
-   It runs `npx mppx@latest validate http://localhost:3000`. The validator is given the origin, not `/vendor/api/report`: it finds the endpoint through `/openapi.json` and resolves its path against the URL it's given. The wrapper passes the `sk_test_` key to the validator as `MPPX_STRIPE_SECRET_KEY`, without printing it, so the validator completes a real $0.50 test-mode payment. Without the key it skips that step.
+   It runs `mppx validate http://localhost:3000` with the `mppx` version pinned in `package.json`, never `@latest`, since the validator gets the Stripe key. The validator is given the origin, not `/vendor/api/report`: it finds the endpoint through `/openapi.json` and resolves its path against the URL it's given. The wrapper passes the `sk_test_` key to the validator as `MPPX_STRIPE_SECRET_KEY`, without printing it, so the validator completes a real $0.50 test-mode payment. Without the key it skips that step.
 4. Report each check that passed or failed. A missing `/llms.txt` is only a suggestion. For a failure, find the cause in our code and propose a fix.
 5. Add a line to `docs/KIRO_LOG.md` with the date and the result.
