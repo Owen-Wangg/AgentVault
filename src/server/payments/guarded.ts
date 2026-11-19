@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { canonicalJson } from "@/core/audit";
 import { type Micros, type Rail, chargeableMicros, micros } from "@/core/money";
-import { type Decision, type EvaluateInput, type HoldReason, type ReasonDetail, type Window, evaluate } from "@/core/policy";
+import { type Decision, type EvaluateInput, type HoldReason, type ReasonDetail, type Window, evaluate, velocityReasons } from "@/core/policy";
 import { type PayoutRail, isDestinationFor, isPayoutRail } from "@/rails/destination";
 import type { DestinationCheck, RailAdapter, RailResult } from "@/rails/types";
 import { RAIL_TIMEOUT_MS } from "@/rails/types";
@@ -336,8 +336,18 @@ export async function decideGuarded(tx: Tx, req: GuardedRequest, deps: GuardedDe
     };
     decision = evaluate(input);
   }
-  if (!evaluated && agentRow.frozenAt !== null) {
-    decision = { decision: "deny", reasons: [{ code: "AGENT_FROZEN" }, ...decision.reasons] };
+  if (!evaluated) {
+    // ENV-3, ENV-5: a request refused before evaluate() still owes a frozen agent AGENT_FROZEN, and
+    // still counts toward velocity, so a flood of malformed requests freezes the agent like any other.
+    const early: ReasonDetail[] = agentRow.frozenAt !== null ? [{ code: "AGENT_FROZEN" }] : [];
+    early.push(
+      ...velocityReasons({
+        request: { vendor: body.vendor, tool: body.tool },
+        envelope: decodeEnvelope(agent.id, envelopeRow),
+        callsLastMinute: await loadCallsLastMinute(tx, agent.id, req.idempotencyKey, now),
+      }),
+    );
+    if (early.length > 0) decision = { decision: "deny", reasons: [...early, ...decision.reasons] };
   }
 
   // Step 6: the decision is audited before anything executes (PXY-5).

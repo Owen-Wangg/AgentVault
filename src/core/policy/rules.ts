@@ -1,5 +1,5 @@
 import { type Micros, cmp, sub, toMicrosString } from "@/core/money";
-import type { EvaluateInput, Limits, ReasonDetail, Rule, Window } from "./types";
+import type { Envelope, Limits, ReasonDetail, Rule, Window } from "./types";
 import { WINDOWS } from "./types";
 
 /**
@@ -15,13 +15,19 @@ interface LevelLimits {
   limits: Limits;
 }
 
+/** What picking the limits for a request needs: its vendor and tool names, and the envelope. */
+interface LevelInput {
+  request: { vendor: string; tool: string };
+  envelope: Envelope;
+}
+
 /** Own-property lookup, so a vendor named "constructor" or "__proto__" can't pick up Object.prototype. */
 function own(map: Record<string, Limits>, key: string): Limits | undefined {
   return Object.hasOwn(map, key) ? map[key] : undefined;
 }
 
 /** The agent-level limits, plus the vendor- and tool-level limits for this request if configured (ENV-9). */
-function levels({ request, envelope }: EvaluateInput): LevelLimits[] {
+function levels({ request, envelope }: LevelInput): LevelLimits[] {
   const out: LevelLimits[] = [{ level: "agent", limits: envelope.limits }];
   const vendor = own(envelope.vendorLimits, request.vendor);
   if (vendor) out.push({ level: "vendor", limits: vendor });
@@ -32,7 +38,7 @@ function levels({ request, envelope }: EvaluateInput): LevelLimits[] {
 
 /** The strictest (smallest) configured value across levels. Ties go to the first level listed. */
 function strictest<T extends bigint | number>(
-  input: EvaluateInput,
+  input: LevelInput,
   pick: (limits: Limits) => T | undefined,
 ): { value: T; level: Level } | undefined {
   let best: { value: T; level: Level } | undefined;
@@ -92,11 +98,21 @@ export const windowCapRule: Rule = (input) => {
  * is checked against that total. That can only deny more, never less.
  * Freezing the agent (ENV-4) is the server's job when it sees this code.
  */
-export const velocityRule: Rule = (input) => {
+export const velocityRule: Rule = (input) =>
+  velocityReasons({ request: input.request, envelope: input.envelope, callsLastMinute: input.window.callsLastMinute });
+
+/**
+ * The ENV-3 check on its own, for requests the server refuses before
+ * evaluate() runs (an unknown tool, a missing argument, a bad session).
+ * Those still count toward velocity and still freeze the agent (ENV-4),
+ * so a flood of malformed requests can't avoid the limit. The envelope is
+ * assumed valid, as the server decodes it with a strict schema.
+ */
+export function velocityReasons(input: LevelInput & { callsLastMinute: number }): ReasonDetail[] {
   const limit = strictest(input, (l) => l.callsPerMinute);
-  if (limit === undefined || input.window.callsLastMinute + 1 <= limit.value) return [];
+  if (limit === undefined || input.callsLastMinute + 1 <= limit.value) return [];
   return [{ code: "VELOCITY_EXCEEDED", detail: { level: limit.level, limit: String(limit.value) } }];
-};
+}
 
 /** ENV-6, ENV-7: the vendor and the tool must be on the envelope's allow-lists. "*" allows any. */
 export const allowListRule: Rule = ({ request, envelope }) => {

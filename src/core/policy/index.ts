@@ -1,4 +1,5 @@
 export { combine, evaluate } from "./evaluate";
+export { velocityReasons } from "./rules";
 export {
   DENY_REASONS,
   HOLD_REASONS,

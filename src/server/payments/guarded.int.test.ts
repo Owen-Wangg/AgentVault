@@ -400,6 +400,29 @@ describe("PXY-10, PXY-11: velocity freezes the agent", () => {
     const response = await runGuardedRequest({ agent: scene.agent, idempotencyKey: key(), body: scene.body() }, deps);
     expect(response.body.reasons).toEqual([{ code: "AGENT_FROZEN" }]);
   });
+
+  it("ENV-3, ENV-4: a flood of requests refused before evaluation is denied for velocity and freezes the agent", async () => {
+    const scene = await createScene(db(), {
+      envelope: { limits: { callsPerMinute: 3 }, vendorLimits: {}, toolLimits: {}, allowedVendors: "*", allowedTools: "*" },
+    });
+    const { deps, mocks } = testDeps(db());
+    const unknown = { code: "TOOL_NOT_ALLOWED", detail: { tool: "drain_wallet", reason: "not in the tool registry" } };
+    const velocity = { code: "VELOCITY_EXCEEDED", detail: { level: "agent", limit: "3" } };
+    const seen = [];
+    for (let i = 0; i < 5; i += 1) {
+      const r = await runGuardedRequest({ agent: scene.agent, idempotencyKey: key(), body: scene.body({ tool: "drain_wallet" }) }, deps);
+      seen.push(r.body.reasons);
+    }
+    expect(seen).toEqual([[unknown], [unknown], [unknown], [velocity, unknown], [{ code: "AGENT_FROZEN" }, velocity, unknown]]);
+
+    const badSession = await runGuardedRequest({ agent: scene.agent, idempotencyKey: key(), body: scene.body({ sessionId: "not-a-uuid" }) }, deps);
+    expect(badSession.body.reasons?.map((r) => r.code)).toEqual(["AGENT_FROZEN", "VELOCITY_EXCEEDED", "INVALID_REQUEST"]);
+
+    const [row] = await db().select().from(agents).where(eq(agents.id, scene.agent.id));
+    expect(row?.frozenAt).toBeInstanceOf(Date);
+    expect((await eventsOf(db(), scene.workspaceId)).filter((e) => e.type === "agent_frozen")).toHaveLength(1);
+    expect(mocks.x402.calls).toBe(0);
+  });
 });
 
 describe("RES-2: trailing windows", () => {

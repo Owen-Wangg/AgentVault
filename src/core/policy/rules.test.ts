@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MAX_MICROS, micros } from "@/core/money";
 import { baseInput, usd, withLimits } from "@/core/testing/policy-fixtures";
-import { allowListRule, approvalThresholdRule, frozenRule, txMaxRule, velocityRule, windowCapRule } from "./rules";
+import { allowListRule, approvalThresholdRule, frozenRule, txMaxRule, velocityReasons, velocityRule, windowCapRule } from "./rules";
 import type { EvaluateInput } from "./types";
 
 const m = micros;
@@ -78,6 +78,14 @@ describe("ENV-3: calls per minute", () => {
 
   it("ENV-3: a limit of zero denies every call", () => {
     expect(codes(velocityRule(withLimits({ agent: { callsPerMinute: 0 } })))).toEqual(["VELOCITY_EXCEEDED"]);
+  });
+
+  it("ENV-3: velocityReasons gives the same result as the rule, for requests refused before evaluation", () => {
+    for (const calls of [0, 29, 30, 31]) {
+      const input = withLimits({ agent: { callsPerMinute: 30 } });
+      input.window.callsLastMinute = calls;
+      expect(velocityReasons({ request: input.request, envelope: input.envelope, callsLastMinute: calls })).toEqual(velocityRule(input));
+    }
   });
 });
 
