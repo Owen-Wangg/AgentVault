@@ -15,10 +15,9 @@ Agents can now pay for APIs on their own: they answer an HTTP `402 Payment Requi
 1. Open [Scenarios](https://owen-agentvault.vercel.app/scenarios) and click **Run** on **Prompt injection**. The scripted agent reads a vendor docs page with a hidden instruction to refund $480. The read taints the session, and the refund is held with `HELD_TAINTED` and `NEEDS_APPROVAL`.
 2. Follow the summary's link to [Approvals](https://owen-agentvault.vercel.app/approvals) and click **Approve**. AgentVault re-runs every check with the approval attached, and the refund runs once on the mock rail ("Approved. The request ran.").
 3. Open [Audit](https://owen-agentvault.vercel.app/audit) and click **Verify chain**. Every decision, taint, and approval is in a hash-chained log, and the check reports "Chain verified." Then click **Rewrite an event**: your browser rewrites the newest held decision (here, the $480 refund) as allowed in a copy of the page, rechecks it with the same chain code, and shows the chain breaking at that event. The stored log never changes.
-
 4. On Scenarios, click **Make a real testnet payment**. That's the one thing on the site that isn't a mock: AgentVault's demo agent pays the weather vendor $0.0015 over x402 on Base Sepolia, through the same checks, and the card links the transaction on BaseScan. It's test USDC with no real value, limited to 2 payments per visitor an hour and 20 a day for everyone.
 
-Each run also shows its latest decision as a path through the checks (agent, spend limits, task scope, untrusted input) to the payment rail, so you can see which check stopped it. The other scenarios on the same page are below. Their vendors are demo APIs built into AgentVault (under `app/vendor/`), such as Nimbus Weather, which sells forecasts for $0.0015 a call. Weather is only a stand-in: the same checks apply to any API an agent pays for.
+The Scenarios page has five scripted scenarios. Their vendors are demo APIs built into AgentVault (under `app/vendor/`), such as Nimbus Weather, which sells forecasts for $0.0015 a call. Weather is only a stand-in: the same checks apply to any API an agent pays for.
 
 | Scenario | What the agent does | Decision |
 |---|---|---|
@@ -27,6 +26,8 @@ Each run also shows its latest decision as a path through the checks (agent, spe
 | Prompt injection | Reads the poisoned docs page, then asks for the $480 refund | `hold` with `HELD_TAINTED`, `NEEDS_APPROVAL` |
 | Intent drift | Its task is weather data, but it pays a GPU vendor | `allow`, then `deny` with `DENY_INTENT_DRIFT` |
 | Payee hijack | Its task is paying a supplier's $900 invoice. The invoice hides an instruction to switch the supplier's payout account to an attacker's first, and the agent obeys | `payee.update` → `hold` with `HELD_TAINTED`; the $900 `payout.create` → `hold` with `HELD_TAINTED`, `NEEDS_APPROVAL` |
+
+Each run shows its latest decision as a path through the checks (agent, spend limits, task scope, untrusted input) to the payment rail, so you can see which check stopped it.
 
 In the Payee hijack, deny the account change and approve the payout: the payout reads the supplier's account on file when it runs, and the live feed shows "Paid out to acct_1AcmeSupplies". Approve both, and it would go to the attacker. Each run gets its own supplier row, so one visitor's approvals can't redirect another visitor's payout.
 
@@ -63,11 +64,10 @@ agent ──► /api/v1/pay, /tool, /fetch  (bearer API key, Zod-validated)
           append the result: settled, failed, or unknown
 ```
 
-- **Payouts** (`payout.create` on Stripe Connect, `paypal.payout` on PayPal) send money to the vendor's payout destination stored in AgentVault, read when the payout runs, never one from the agent's request. Only `payee.update` can change it, and that change is checked against the rail (an open, test-mode Stripe recipient account, or a PayPal sandbox address) before it's stored. Payouts are credits: the payee's amount rounds down to the cent, and the envelope counts the full amount.
-
 - Money is `bigint` micros everywhere (1 USD = 1,000,000), so sub-cent charges are exact. Floats never touch an amount.
 - An unknown rail outcome keeps the reservation counted until the reconciler (run after requests and by a daily cron) looks it up. Only a confirmed failure releases money.
 - `src/core` (policy, money, taint, intent, audit math) has no I/O, so it is covered by fast-check property tests.
+- **Payouts** (`payout.create` on Stripe Connect, `paypal.payout` on PayPal) send money to the vendor's payout destination stored in AgentVault, read when the payout runs, never one from the agent's request. Only `payee.update` can change it, and that change is checked against the rail (an open, test-mode Stripe recipient account, or a PayPal sandbox address) before it's stored. Payouts are credits: the payee's amount rounds down to the cent, and the envelope counts the full amount.
 
 Stack: Next.js (App Router) on Vercel, Neon Postgres with Drizzle, Zod, Auth.js (GitHub), Tailwind, Recharts, the official MCP SDK, and `@google/genai`.
 
@@ -81,7 +81,7 @@ Windows PowerShell, Node 22+, pnpm 12:
 
 ```powershell
 pnpm install
-Copy-Item .env.example .env.local   # then set DATABASE_URL, AUDIT_HEAD_KEY, and CRON_SECRET
+Copy-Item .env.example .env.local   # then set DATABASE_URL, AUDIT_HEAD_KEY, and CRON_SECRET (docs/SETUP.md, sections 3 and 4)
 pnpm db:migrate
 pnpm db:seed
 pnpm dev
@@ -93,7 +93,7 @@ Checks:
 
 | Command | What it runs |
 |---|---|
-| `pnpm verify` | Typecheck, lint, and about 1,580 Vitest unit, property, and integration tests. Integration tests use PGlite unless `DATABASE_URL_TEST` is set |
+| `pnpm verify` | Typecheck, lint, and about 1,580 Vitest unit, property, and integration tests. Integration tests use PGlite unless `DATABASE_URL_TEST` is set; `pnpm verify:local` always uses PGlite |
 | `pnpm check:money` | Flags float operations on money |
 | `pnpm test:e2e` | Playwright: the prompt-injection and payee-hijack paths, a first visit (the tour, the header theme switch, the decision path, and the tamper demo), plus layout at 375 and 1920 px and keyboard navigation in both themes |
 | `pnpm test:live` | `@live` tests against Base Sepolia, Stripe test mode (MPP and Connect), the PayPal sandbox, and Gemini (needs their keys) |
@@ -101,7 +101,9 @@ Checks:
 ## Limits
 
 - **Testnets, test mode, and sandboxes only.** Rail settings are checked on every payment: an `sk_live_` Stripe key, an x402 network other than Base Sepolia (`eip155:84532`), or a `PAYPAL_ENV` set to anything but `sandbox` fails the check and nothing is paid, even in mock mode. The PayPal host is a fixed sandbox URL, and any Stripe object returned with `livemode: true` is treated as an invalid response.
-- **The live sandbox uses mock rails; the testnet button is real.** The scenarios, approvals, and MCP agents run on mock rails. The **Real testnet payment** button runs in a separate public testnet workspace with `RAIL_MODE=real`: the visitor chooses nothing about the payment, which is always one $0.0015 x402 payment on Base Sepolia, and limits are checked before anything is created. An allowed payment goes to the vendor's registered payment URL, never one the agent sends. In the `@live` tests, a $0.0015 x402 payment through the full guarded flow settles on Base Sepolia, a guarded $1.00 `payout.create` settles as a Stripe Connect test-mode transfer, and a guarded $1.00 `paypal.payout` reaches `SUCCESS` in the PayPal sandbox; the Stripe MPP adapter is tested against Stripe test mode. Real rails run only outside the public sandbox. The only other workspace with vendors is the testnet one, whose agent has no key anyone holds, so an outside agent can't make a real payment over the HTTP API yet.
+- **The live sandbox uses mock rails; the testnet button is real.** The scenarios, approvals, and MCP agents run on mock rails. The **Real testnet payment** button runs in a separate public testnet workspace with `RAIL_MODE=real`: the visitor chooses nothing about the payment, which is always one $0.0015 x402 payment on Base Sepolia, and limits are checked before anything is created. An allowed payment goes to the vendor's registered payment URL, never one the agent sends.
+- **Real rails run only outside the public sandbox.** The only other workspace with vendors is the testnet one, whose agent has no key anyone holds, so an outside agent can't make a real payment over the HTTP API yet.
+- **The other real rails are covered by the `@live` tests.** A $0.0015 x402 payment through the full guarded flow settles on Base Sepolia, a guarded $1.00 `payout.create` settles as a Stripe Connect test-mode transfer, and a guarded $1.00 `paypal.payout` reaches `SUCCESS` in the PayPal sandbox; the Stripe MPP adapter is tested against Stripe test mode.
 - **Payout minimums are 1 cent on both payout rails** (measured). A PayPal sandbox payout costs the sender a $0.25 fee and usually takes 15 to 30 seconds to settle.
 - The mock rail keeps its records in one process's memory.
 
