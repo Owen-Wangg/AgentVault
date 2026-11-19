@@ -74,6 +74,30 @@ describe("<AgentsTable>", () => {
     }
   });
 
+  it("UI-7: shows each agent's last decision, with no $0.00 for a tool that moves no money, and None yet without one", () => {
+    render(
+      <AgentsTable
+        canUnfreeze
+        agents={[
+          agent({ lastDecision: { decision: "hold", tool: "payout.create", amountMicros: "900000000", at: "2026-11-24T11:00:00.000Z" } }),
+          agent({ id: "22222222-2222-4222-8222-222222222222", lastDecision: { decision: "hold", tool: "payee.update", amountMicros: "0", at: "2026-11-24T11:00:00.000Z" } }),
+          agent({ id: "33333333-3333-4333-8333-333333333333" }),
+        ]}
+      />,
+    );
+    expect(screen.getByRole("columnheader", { name: "Last decision" })).toBeTruthy();
+    expect(screen.queryByRole("columnheader", { name: "Created" })).toBeNull();
+    const [payout, payee, fresh] = within(screen.getByRole("table")).getAllByRole("row").slice(1);
+    const cell = (row: HTMLElement) => within(row).getAllByRole("cell")[2]!;
+    expect(cell(payout!).textContent).toContain("Held");
+    expect(cell(payout!).textContent).toContain("payout.create");
+    expect(cell(payout!).textContent).toContain("$900.00");
+    expect(cell(payout!).querySelector("time")?.getAttribute("datetime")).toBe("2026-11-24T11:00:00.000Z");
+    expect(cell(payee!).textContent).toContain("payee.update");
+    expect(cell(payee!).textContent).not.toContain("$0.00");
+    expect(cell(fresh!).textContent).toBe("None yet");
+  });
+
   it("UI-7: hides unfreeze from someone who may not use it", () => {
     render(<AgentsTable canUnfreeze={false} agents={[agent({ frozenAt: "2026-11-24T11:00:00.000Z" })]} />);
     expect(screen.queryByRole("button", { name: /Unfreeze/ })).toBeNull();

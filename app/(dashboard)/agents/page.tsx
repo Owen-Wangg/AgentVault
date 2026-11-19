@@ -4,10 +4,14 @@ import { CreateAgentDialog } from "@/ui/agents/CreateAgentDialog";
 import { DataState } from "@/ui/components/DataState";
 import { PageTitle } from "@/ui/components/primitives";
 import { getCopy } from "@/ui/server-copy";
-import { getAgents } from "../agent-names";
+import type { AgentSummary, LastDecision } from "@/server/dashboard/agents";
+import { getAgents, getLastDecisions } from "../agent-names";
 import { getDashboardContext } from "../dashboard-context";
 
 export const metadata: Metadata = { title: "Agents" };
+
+const withLastDecisions = (agents: AgentSummary[], last: Record<string, LastDecision>) =>
+  agents.map((a) => (Object.hasOwn(last, a.id) ? { ...a, lastDecision: last[a.id] } : a));
 
 export default async function AgentsPage() {
   const [{ workspace, user }, { t }] = await Promise.all([getDashboardContext(), getCopy()]);
@@ -20,7 +24,7 @@ export default async function AgentsPage() {
     <>
       <PageTitle actions={owner ? <CreateAgentDialog /> : null}>{t("agents.title")}</PageTitle>
       {!owner ? <p className="mb-4 text-sm text-text-muted">{t("agents.signInToEdit")}</p> : null}
-      <AgentsTable agents={await getAgents(workspace.id)} canUnfreeze={canUnfreeze} />
+      <AgentsTable agents={withLastDecisions(...(await Promise.all([getAgents(workspace.id), getLastDecisions(workspace.id)])))} canUnfreeze={canUnfreeze} />
     </>
   );
 }

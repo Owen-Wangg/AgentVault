@@ -4,6 +4,8 @@ import { Ghost, Skull } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { MicrosSchema } from "@/core/money";
+import { Amount } from "@/ui/components/Amount";
 import { DataState } from "@/ui/components/DataState";
 import { Badge, Button } from "@/ui/components/primitives";
 import type { UiKey } from "@/ui/copy";
@@ -18,6 +20,28 @@ export interface AgentRow {
   createdAt: string;
   tainted: boolean;
   taintSourceUrl: string | null;
+  /** The agent's newest decision (UI-7), from the server's lastDecisions. The amount is a decimal string of micros. */
+  lastDecision?: { decision: "allow" | "hold" | "deny"; tool: string; amountMicros: string; at: string } | undefined;
+}
+
+function LastDecisionCell({ last }: { last: AgentRow["lastDecision"] }) {
+  const { t } = useCopy();
+  const amount = last ? MicrosSchema.safeParse(last.amountMicros) : null;
+  if (!last) return <span className="text-text-muted">{t("agents.noDecision")}</span>;
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="flex flex-wrap items-center gap-2">
+        <Badge tone={last.decision}>{t(`decision.${last.decision}`)}</Badge>
+        <span className="font-mono">{last.tool}</span>
+        {/* payee.update moves no money, so no $0.00. */}
+        {amount?.success && amount.data > 0n ? <Amount value={amount.data} /> : null}
+      </span>
+      {/* Local time differs between the server render and the browser, so React may not compare it. */}
+      <time dateTime={last.at} suppressHydrationWarning className="text-xs text-text-muted">
+        {new Date(last.at).toLocaleString()}
+      </time>
+    </div>
+  );
 }
 
 export type Unfreeze = (agentId: string) => Promise<number>;
@@ -69,7 +93,7 @@ export function AgentsTable({ agents, canUnfreeze, unfreeze = postUnfreeze, onCh
                 {t("agents.status")}
               </th>
               <th scope="col" className="px-3 py-2 font-medium">
-                {t("agents.created")}
+                {t("agents.lastDecision")}
               </th>
               <th scope="col" className="px-3 py-2">
                 <span className="sr-only">{t("agents.actions")}</span>
@@ -99,8 +123,8 @@ export function AgentsTable({ agents, canUnfreeze, unfreeze = postUnfreeze, onCh
                     {!agent.frozenAt && !agent.tainted && !agent.revokedAt ? <Badge tone="allow">{t("agents.active")}</Badge> : null}
                   </div>
                 </td>
-                <td className="whitespace-nowrap px-3 py-2">
-                  <time dateTime={agent.createdAt}>{agent.createdAt.slice(0, 10)}</time>
+                <td className="px-3 py-2">
+                  <LastDecisionCell last={agent.lastDecision} />
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap justify-end gap-2">
