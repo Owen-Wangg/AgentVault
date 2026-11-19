@@ -1,5 +1,7 @@
 "use client";
 
+// First, so zod is jitless before any client code parses (see the module).
+import "./zod-browser";
 import { useRouter } from "next/navigation";
 import { type ReactNode, createContext, useCallback, useContext, useMemo, useState } from "react";
 import { type Copy, copyFor } from "./copy";

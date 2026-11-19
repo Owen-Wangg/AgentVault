@@ -61,6 +61,15 @@ Chromium against a production build: all seven dashboard pages hydrate
 with no CSP violation, and client-side navigation works. The end-to-end
 suite passes.
 
+Found on 2026-11-19 by Lighthouse on the live overview (best practices
+96, "Issues logged in the Chrome DevTools Issues panel"): one
+`script-src` violation per page load, `blocked=eval`, from zod 4's
+one-time `Function("")` probe in a client chunk. Nothing broke, since zod
+falls back to interpreting, but the violation was logged.
+`src/ui/zod-browser.ts`, imported first by `ThemeProvider`, sets
+`z.config({ jitless: true })` in the browser only, so zod never makes
+the call. The policy is unchanged; no `'unsafe-eval'` was added.
+
 ## N6
 A `stripe.refund` outside the sandbox that would be allowed is denied with
 `INVALID_REQUEST` unless its `payment_ref` is a payment this workspace
