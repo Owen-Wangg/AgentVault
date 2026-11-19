@@ -112,7 +112,7 @@ The `satisfies` check makes a missing string a compile error.
 
 ## Error handling
 - Every data view uses a shared `<DataState>` wrapper for loading, empty, and error states (UI-15). Loading is a skeleton: a few bars in the `border` color at 60% in the card shape (`surface-muted` is too close to `surface` in Kiroween to see), hidden from screen readers, with the loading text kept as screen-reader-only text in the `status` region. The bars pulse, and stop under reduced motion like every other animation (UI-19).
-- The live feed shows a "Reconnecting…" badge while `EventSource` is down.
+- The live feed shows a "Connecting…" badge before the stream's first `open`, and a "Reconnecting…" badge while `EventSource` is down after that.
 
 ## Correctness properties
 1. **Cursor completeness** (TEL-2): for any sequence of inserts and any reconnect points, the client receives each `seq` exactly once, in order.

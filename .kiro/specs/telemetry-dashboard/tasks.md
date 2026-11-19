@@ -82,3 +82,7 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
 - [x] 16. Show a skeleton while data loads
   - `DataState`'s loading state draws muted bars instead of a dashed box with text; the text stays for screen readers
   - _Requirements: UI-15, UI-19_
+
+- [ ] 17. Say Connecting before the first connection
+  - `StreamStatusBadge` shows "Connecting…" for the hook's `connecting` status, in both themes
+  - _Requirements: UI-6_
