@@ -46,7 +46,9 @@ This spec covers the adapters that turn an allowed decision into a real payment,
 - **RAIL-15** WHEN the Stripe MPP adapter executes an allowed payment, THE SYSTEM SHALL obtain a test SPT scoped to the approved amount and present it to the vendor's challenge.
 - **RAIL-16** WHEN a Stripe payment succeeds, THE SYSTEM SHALL record the PaymentIntent ID in the `rail_result` event.
 - **RAIL-17** WHEN an allowed or approved `stripe.refund` runs, THE SYSTEM SHALL create a test-mode refund through the Refunds API and record the Refund ID.
-- **RAIL-18** THE SYSTEM SHALL pass the MPP validator (`npx mppx@latest validate`) for `/vendor/api/report`.
+- **RAIL-27** WHEN a `stripe.refund` outside the sandbox would otherwise be allowed, THE SYSTEM SHALL deny it with `INVALID_REQUEST` unless its `payment_ref` is the rail reference of a payment this workspace settled through `mpp.pay`, and the counted amount is no more than that payment's settled amount minus the counted amounts of earlier allowed refunds of it whose outcome is not a confirmed failure. A refund that is held is checked when its approved re-run would be allowed. The sandbox refunds on the mock rail only and is not checked.
+- **RAIL-28** THE demo vendor's paid endpoints, `/vendor/api/weather` and `/vendor/api/report`, SHALL accept at most 60 requests per IP per minute and answer 429 `RATE_LIMITED` past that without running the handler. IF the count can't be made, THEN THE endpoint SHALL answer 503.
+- **RAIL-18** THE SYSTEM SHALL pass the MPP validator (`mppx validate`, run by `pnpm mpp:validate` from the pinned `mppx`) for `/vendor/api/report`.
 - **RAIL-26** THE SYSTEM SHALL serve `/llms.txt`, a static plain-text summary for agents and their developers: what AgentVault checks, the agent API and MCP endpoints, the paid demo endpoint and its `/openapi.json` discovery document, and that every rail is a testnet, test mode, a sandbox, or mock. It SHALL name no secret, key, or account identifier.
 
 ## Requirement 6: Payment URLs for guarded payments

@@ -33,7 +33,7 @@ TEL-6 and TEL-7 keep the hosted app inside its free plans until judging ends (`d
 ### Acceptance criteria
 - **UI-5** THE overview page SHALL show total spend, blocked spend, decisions by outcome, and spend over time for the selected range.
 - **UI-6** THE live feed SHALL show each event with time, agent, vendor, amount, decision, and reasons in plain language, and SHALL update without a page reload.
-- **UI-7** THE agents page SHALL list agents with frozen and tainted status, allow creating an agent (showing the API key once), and allow unfreezing.
+- **UI-7** THE agents page SHALL list agents with frozen and tainted status, allow creating an agent (showing the API key once), and allow unfreezing. A workspace SHALL hold at most 25 agents; a create past that SHALL answer 409 `AGENT_LIMIT_REACHED` and add nothing.
 - **UI-8** THE envelope editor SHALL validate every limit before saving, accept amounts as decimal dollars, and store them as micros.
 - **UI-9** THE approvals inbox SHALL show pending approvals with the request, reasons, taint source, and time left, with approve and deny buttons.
 - **UI-10** THE audit page SHALL list events with `seq` and hash, and SHALL offer a "Verify chain" button showing the result.

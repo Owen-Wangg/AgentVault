@@ -34,7 +34,7 @@ The public sandbox keeps using mock rails for all of these (rail-adapters RAIL-2
 **User story:** As a security engineer, I want changes to where payouts go treated as high-privilege, so that a prompt-injected agent can't redirect money to an attacker's account.
 
 ### Acceptance criteria
-- **PO-10** `payee.update` SHALL take `vendor`, `payee_ref`, and an optional `rail` (`stripe` by default, or `paypal`). `payee_ref` SHALL match the rail's format: `acct_` followed by letters and digits for Stripe, or an email address for PayPal.
+- **PO-10** `payee.update` SHALL take `vendor`, `payee_ref`, and an optional `rail` (`stripe` by default, or `paypal`). `payee_ref` SHALL match the rail's format: `acct_` followed by letters and digits for Stripe, or a PayPal sandbox account address (`@personal.example.com` or `@business.example.com`) for PayPal.
 - **PO-11** WHEN `payee.update` is allowed or approved, THE SYSTEM SHALL commit the decision first, then verify the new destination with `checkDestination` outside the envelope lock, and only then store it on the vendor row, in the same transaction as the `rail_result` event. In real mode, a Stripe destination SHALL pass the PO-6 capability check; in the sandbox, the mock rail accepts any well-formed reference.
 - **PO-12** WHEN a payee's destination changes, THE SYSTEM SHALL append a `payee_updated` audit event with the vendor, the rail, the old and new references, and the decision's `seq`.
 - **PO-13** IF verification fails, THEN THE SYSTEM SHALL leave the vendor row unchanged and record `RAIL_REJECTED`.
