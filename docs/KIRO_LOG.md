@@ -540,3 +540,6 @@ Raw notes for the Devpost "How Kiro was used" write-up. The `devlog` hook (Stop 
   - Kiro features: the demo-agents spec first (requirement, design note, task), the spec-trace hook (17 AGT IDs traced; AGT-7, AGT-8, and AGT-13 through the design's ranges).
   - Checks: the new tests fail with the old single key. `pnpm verify:local`: 1,596 passed, 1 failed, then fixed (below); lint and typecheck passed; the scenarios tests (29) pass.
   - Kiro got wrong: the revert after that failing-test check read the file with PowerShell 5's default encoding and wrote it back as UTF-8, which turned `×` and `§` in `ScenarioRunner.tsx` into mojibake and failed the AGT-10 summary test. Both characters were put back by hand.
+- **Agents table rows line up (telemetry-dashboard UI-7).** The rows were top-aligned, and the Unfreeze button and Envelope link are 40 px tall (`min-h-10`), so the name, status, and date sat at the top of each row while the actions sat lower. The rows are now vertically centered. A screenshot of the live Agents page showed the offset before the change.
+  - Kiro features: a UI-7 test that fails with the old `align-top` row and passes with the fix.
+  - Checks: the agents tests (20), lint, and typecheck passed. Not yet seen in a browser after the change: this machine can't run the app locally.
