@@ -42,6 +42,22 @@ describe("<HeaderThemeSwitch>", () => {
     expect(document.documentElement.dataset.theme).toBe("default");
   });
 
+  it("UI-27: the workspace header says what AgentVault is, in each theme", () => {
+    const { unmount } = render(
+      <ThemeProvider initial="default">
+        <WorkspaceHeader workspace={{ name: "sandbox-1", isSandbox: true }} />
+      </ThemeProvider>,
+    );
+    expect(screen.getByText("A security proxy that checks every payment an AI agent makes before any money moves.")).toBeTruthy();
+    unmount();
+    render(
+      <ThemeProvider initial="kiroween">
+        <WorkspaceHeader workspace={null} />
+      </ThemeProvider>,
+    );
+    expect(screen.getByText(/^Wards for AI agents that spend money/)).toBeTruthy();
+  });
+
   it("UI-24: the workspace header carries the switch on every page", () => {
     render(
       <ThemeProvider initial="kiroween">

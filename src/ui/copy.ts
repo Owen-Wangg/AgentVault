@@ -178,6 +178,20 @@ type UiKey =
   | "scenarios.liveNote"
   | "scenarios.liveBadge"
   | "scenarios.liveScriptedOnly"
+  | "path.title"
+  | "path.latest"
+  | "path.note"
+  | "path.check.agent"
+  | "path.check.limits"
+  | "path.check.scope"
+  | "path.check.taint"
+  | "path.rail"
+  | "path.state.passed"
+  | "path.state.held"
+  | "path.state.denied"
+  | "path.state.not_checked"
+  | "path.railReached"
+  | "path.railNotReached"
   | "scenarios.liveRateLimited"
   | "scenarios.liveFailed"
   | "scenarios.liveQuotaUsed"
@@ -258,7 +272,7 @@ const defaultCopy: CopyTable = {
   HELD_TAINTED: "Held: this session read untrusted content, so refunds and payouts need approval.",
   ADVISORY_DRIFT: "Held: the drift check thinks this may be off-task, so a person should look.",
   "app.name": "AgentVault",
-  "app.tagline": "Spend limits, taint tracking, and approvals for AI agents that pay.",
+  "app.tagline": "A security proxy that checks every payment an AI agent makes before any money moves.",
   "nav.label": "Main",
   "nav.overview": "Overview",
   "nav.feed": "Live feed",
@@ -432,6 +446,20 @@ const defaultCopy: CopyTable = {
     "The live AI agent is Gemini on its free tier. The model chooses what to ask for, and AgentVault's rules still decide every request. A real model may not fall for the attack, and then there is nothing to stop.",
   "scenarios.liveBadge": "Live AI agent",
   "scenarios.liveScriptedOnly": "Scripted only: the loop comes from a retry bug in agent code, not from a model's choice.",
+  "path.title": "How AgentVault decided",
+  "path.latest": "Latest decision",
+  "path.note": "Every check runs on every request, and the strictest result decides: a deny beats a hold, and a hold beats an allow.",
+  "path.check.agent": "Agent",
+  "path.check.limits": "Spend limits",
+  "path.check.scope": "Task scope",
+  "path.check.taint": "Untrusted input",
+  "path.rail": "Payment rail",
+  "path.state.passed": "Passed",
+  "path.state.held": "Held",
+  "path.state.denied": "Denied",
+  "path.state.not_checked": "Not checked",
+  "path.railReached": "Sent",
+  "path.railNotReached": "Not sent",
   "scenarios.liveRateLimited": "The live AI agent hit Gemini's free-tier rate limit, so the run stopped. Run the scripted agent, or try again in a minute.",
   "scenarios.liveFailed": "The live AI agent couldn't get an answer from Gemini, so the run stopped. Run the scripted agent instead.",
   "scenarios.liveQuotaUsed": "Today's live AI runs are used up. The scripted runs still work.",
@@ -537,6 +565,8 @@ const kiroweenCopy: CopyTable = {
     "Haunted sandbox: mock rails only. Anyone can approve, deny, and release agents from The Crypt here, and no real money moves. It rises fresh every night.",
   "workspace.publicName": "Public haunted workspace",
   "overview.frozen": "Agents in The Crypt",
+  "path.title": "How the wards decided",
+  "path.check.taint": "Haunted pages",
   "overview.tourTitle": "Start here, if you dare: the 60-second tour",
   "overview.tourIntro": "This is a haunted sandbox on mock rails, so nothing you click here moves real money. The scripted agent makes the same choices every run.",
   "overview.tourStep.testnet": "Click Make a real offering: $0.0015 over x402 on Base Sepolia, through the same wards, etched on BaseScan.",

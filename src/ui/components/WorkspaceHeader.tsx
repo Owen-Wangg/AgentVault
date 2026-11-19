@@ -14,6 +14,8 @@ export function WorkspaceHeader({ workspace, account }: { workspace: { name: str
   const { t } = useCopy();
   return (
     <header className="mb-6 flex flex-col gap-3 border-b border-border pb-4">
+      {/* UI-27: what AgentVault is, for a visitor arriving from anywhere. */}
+      <p className="text-sm font-medium">{t("app.tagline")}</p>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           {/* The sandbox's stored name is a timestamp; people see a plain label, and the name stays in the tooltip. */}
