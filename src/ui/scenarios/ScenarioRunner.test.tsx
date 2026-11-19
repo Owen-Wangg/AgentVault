@@ -73,9 +73,9 @@ const statusText = () => screen.getAllByRole("status").map((s) => s.textContent)
 const mount = (api: ScenariosApi) => render(<ScenarioRunner workspaceId="sandbox-1" scenarios={SCENARIO_NAMES} api={api} stream={stream} newRunId={() => "run-1"} />);
 
 describe("<ScenarioRunner>", () => {
-  it("AGT-1: offers the four scenarios, each with a one-sentence description, and streams the sandbox", () => {
+  it("AGT-1: offers the five scenarios, each with a one-sentence description, and streams the sandbox", () => {
     mount(pendingApi().api);
-    for (const title of ["Normal purchase", "Runaway loop", "Prompt injection", "Intent drift"]) {
+    for (const title of ["Normal purchase", "Runaway loop", "Prompt injection", "Intent drift", "Payee hijack"]) {
       const card = screen.getByRole("region", { name: title });
       const text = card.querySelector("p")!.textContent!;
       expect(text).toMatch(/^[A-Z][^]*\.$/);

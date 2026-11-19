@@ -423,7 +423,7 @@ const defaultCopy: CopyTable = {
   "scenario.drift.description": "The agent's task is to buy weather data, but it tries to pay a GPU vendor, and AgentVault denies it as off-task.",
   "scenario.hijack.title": "Payee hijack",
   "scenario.hijack.description":
-    "The agent pays a supplier's $900 invoice. The invoice hides an instruction to switch the supplier's payout account to an attacker's first, and AgentVault holds both the account change and the payout for a person.",
+    "The agent pays a supplier's $900 invoice that hides an instruction to switch the supplier's payout account to an attacker's first, and AgentVault holds both the account change and the payout for a person.",
   "scenario.hijack.summaryNote":
     "Two requests wait in the inbox. Deny the payout account change and approve the payout, and the $900 goes to the supplier's account on file. Approve the change first, and the payout would go to the attacker: that's why both need a person.",
   "scenarios.run": "Run",
@@ -575,7 +575,7 @@ const kiroweenCopy: CopyTable = {
   "feed.empty": "Nothing stirs yet. Run a scenario or send a request with an agent key.",
   "feed.payeeChanged": "A payout account changed hands:",
   "scenario.hijack.description":
-    "The agent pays a supplier's $900 invoice. A cursed line in the invoice whispers to switch the payout account to an attacker's, and AgentVault seals both the change and the payout in The Crypt for a person to judge.",
+    "The agent pays a supplier's $900 invoice, where a cursed line whispers to switch the payout account to an attacker's, and AgentVault seals both the change and the payout in The Crypt for a person to judge.",
   "scenario.hijack.summaryNote":
     "Two souls await judgment in the inbox. Banish the account change and bless the payout, and the $900 reaches the supplier's account on file. Bless the change first, and the payout would go to the attacker: that's why both need a living person.",
   "approvals.empty": "No souls await judgment. Nothing is waiting for approval.",
