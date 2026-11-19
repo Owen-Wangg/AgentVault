@@ -78,7 +78,8 @@ export function AgentsTable({ agents, canUnfreeze, unfreeze = postUnfreeze, onCh
           </thead>
           <tbody className="divide-y divide-border">
             {agents.map((agent) => (
-              <tr key={agent.id} className="align-top">
+              // Centered, not top-aligned: the actions are 40 px tall (min-h-10), so top-aligned text sat above them.
+              <tr key={agent.id} className="align-middle">
                 <td className="px-3 py-2 font-medium">{agent.name}</td>
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap gap-1">

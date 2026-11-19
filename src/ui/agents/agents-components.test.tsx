@@ -66,6 +66,14 @@ describe("<AgentsTable>", () => {
     expect(refresh).not.toHaveBeenCalled();
   });
 
+  it("UI-7: centers each row's cells vertically, so the name, status, and date line up with the actions", () => {
+    render(<AgentsTable canUnfreeze agents={[agent(), agent({ id: "22222222-2222-4222-8222-222222222222", frozenAt: "2026-11-24T11:00:00.000Z" })]} />);
+    for (const row of within(screen.getByRole("table")).getAllByRole("row").slice(1)) {
+      expect(row.className).toContain("align-middle");
+      expect(row.className).not.toContain("align-top");
+    }
+  });
+
   it("UI-7: hides unfreeze from someone who may not use it", () => {
     render(<AgentsTable canUnfreeze={false} agents={[agent({ frozenAt: "2026-11-24T11:00:00.000Z" })]} />);
     expect(screen.queryByRole("button", { name: /Unfreeze/ })).toBeNull();
