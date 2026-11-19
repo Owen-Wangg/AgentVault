@@ -2,6 +2,16 @@
 
 Draft for the Devpost write-up. Every example below comes from `docs/KIRO_LOG.md`, which has the seeds and numbers.
 
+## At a glance
+
+- **Specs.** Nine specs, each with EARS requirements that have IDs, a design with numbered correctness properties, and a task list. Writing them caught design bugs before any code, such as a row lock held across a blockchain payment and a payout that read its destination too early. Every test name starts with the requirement ID it covers.
+- **Steering.** Eight files. What worked best was pairing each rule with a check: "no floats for money" with a hook, "the core does no I/O" with an ESLint rule, and "Kiroween mode is cosmetic" with a property test.
+- **Hooks.** Seven. A shell guard applies AgentVault's own idea to Kiro and blocked it several times. A traceability check found 29 requirement IDs that no design or task named.
+- **Property-based tests.** 19 files, written from the designs' properties. They found real bugs, such as a vendor named `__proto__` whose $0 daily cap disappeared during parsing. Each safeguard was also broken on purpose to prove a test catches it.
+- **MCP, both directions.** Kiro paid through AgentVault's own MCP server, fell for the poisoned page, and was held, with no tool to approve itself. Vercel's and Neon's MCP servers let Kiro read deployment logs and free-plan usage, read-only.
+- **Custom agent and the CLI.** A least-privilege security-reviewer agent, built in the Kiro CLI, ran two full reviews, and every finding was fixed or decided in its own commits.
+- **Powers.** Stripe (account and API data during testing, its docs, and the Connect payout design) and Neon (usage checks against the free plan).
+
 The Official Rules (section 4) list eight questions the write-up should answer. Where each is answered:
 
 | Rules question | Section below |
@@ -140,4 +150,4 @@ The optional Gemini agent (`gemini-3.5-flash-lite`, free tier) runs three scenar
 
 ## Numbers
 
-Nine specs, eight steering files, seven hooks, one custom agent, and about 360 commits. About 1,580 Vitest tests (unit, property, and integration), with 19 property-test files, and 8 Playwright tests. Lighthouse accessibility, best practices, and SEO 100 on the overview in both themes. One real testnet payment button on the hosted site, live since Nov 17.
+Nine specs, eight steering files, seven hooks, one custom agent, and about 360 commits. About 1,580 Vitest tests (unit, property, and integration), with 19 property-test files, and 10 Playwright tests. Lighthouse accessibility, best practices, and SEO 100 on the overview in both themes. One real testnet payment button on the hosted site, live since Nov 17.
