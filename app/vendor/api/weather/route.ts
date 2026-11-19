@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { withVendorRateLimit } from "@/server/vendor/rate-limit";
 import { weatherRoute } from "@/server/vendor/weather";
 
 // The demo vendor's x402-paid weather API (rail-adapters task 4, RAIL-10).
@@ -6,5 +7,5 @@ import { weatherRoute } from "@/server/vendor/weather";
 export const dynamic = "force-dynamic";
 
 export function GET(request: NextRequest): Promise<Response> {
-  return weatherRoute(request);
+  return withVendorRateLimit(request, "vendor weather", () => weatherRoute(request));
 }

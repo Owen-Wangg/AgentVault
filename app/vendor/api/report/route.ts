@@ -1,3 +1,4 @@
+import { withVendorRateLimit } from "@/server/vendor/rate-limit";
 import { reportRoute } from "@/server/vendor/report";
 
 // The demo vendor's MPP-paid report API (rail-adapters task 7, RAIL-14).
@@ -5,5 +6,5 @@ import { reportRoute } from "@/server/vendor/report";
 export const dynamic = "force-dynamic";
 
 export function GET(request: Request): Promise<Response> {
-  return reportRoute(request);
+  return withVendorRateLimit(request, "vendor report", () => reportRoute(request));
 }
