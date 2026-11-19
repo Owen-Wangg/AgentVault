@@ -53,3 +53,10 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
 - [x] 11. Show the pending approvals count in the navigation
   - `PendingCount` on the Approvals link in both navigation bars, read on navigation and on return to the tab, with copy in both themes
   - _Requirements: UI-22_
+
+- [x] 12. Point first-time visitors at the demo
+  - `TourCard` on the sandbox overview, with the testnet step only where the testnet card is shown
+  - `HeaderThemeSwitch` in the workspace header, sharing `setTheme` with Settings
+  - `FeedRow.requestedPayee` from a `payee.update` decision's `payee_ref`, shown in the feed and the scenario steps as text
+  - Copy in both themes
+  - _Requirements: UI-23, UI-24, UI-25_

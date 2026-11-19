@@ -38,6 +38,8 @@ TEL-6 and TEL-7 keep the hosted app inside its free plans until judging ends (`d
 - **UI-9** THE approvals inbox SHALL show pending approvals with the request, reasons, taint source, and time left, with approve and deny buttons.
 - **UI-10** THE audit page SHALL list events with `seq` and hash, and SHALL offer a "Verify chain" button showing the result.
 - **UI-11** THE SYSTEM SHALL display amounts exactly, with up to 6 decimal places (for example `$0.0015`).
+- **UI-23** WHILE the workspace is the public sandbox, THE overview page SHALL show a "Start here" card above the KPI cards with the guided tour in order: run Payee hijack, deny the payout account change and approve the payout, verify the chain, and (only where the real testnet payment card is shown, testnet-demo TN-1) make the real testnet payment. Each step SHALL link to the page where it happens. Outside the sandbox the card SHALL NOT appear.
+- **UI-25** WHEN a `payee.update` decision's arguments name a requested payee (`payee_ref`), THE live feed and the scenario steps SHALL show that account as text, never as a link, so a held change shows where the agent tried to redirect money before anyone decides it.
 - **UI-22** WHILE the workspace has pending approvals, THE navigation SHALL show their count on the Approvals link, read when the visitor moves to another page or returns to the tab, after expiry is applied (audit-and-approvals HITL-12). With none pending, it SHALL show no count. It SHALL NOT open another event stream or poll.
 
 ## Requirement 4: Design quality
@@ -54,6 +56,7 @@ TEL-6 and TEL-7 keep the hosted app inside its free plans until judging ends (`d
 
 ### Acceptance criteria
 - **UI-16** WHEN a user turns on Kiroween mode in Settings, THE SYSTEM SHALL switch colors, fonts, and copy (for example "The Crypt" for frozen tools, "Haunted" for tainted sessions).
+- **UI-24** THE workspace header SHALL offer the Kiroween mode switch on every dashboard page, with the same effect as the Settings switch (UI-16, UI-17, UI-18).
 - **UI-17** THE SYSTEM SHALL save the choice in the browser and restore it on the next visit without a flash of the other theme.
 - **UI-18** THE SYSTEM SHALL produce identical policy decisions, API responses, and audit events in both themes.
 - **UI-19** WHILE the user's system requests reduced motion, THE SYSTEM SHALL disable decorative animations.

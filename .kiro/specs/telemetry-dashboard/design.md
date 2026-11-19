@@ -59,6 +59,12 @@ Built in Phase 10: `/`, `/feed`, `/agents`, `/agents/[id]`, `/approvals`. Phase 
 
 `POST /api/v1/audit/verify` takes `{ workspace_id? }` and has the event stream's read access: any sandbox is public, other workspaces need their owner. It's human-only (403 for any `Authorization` header or a cross-site POST, before the database opens), and sandbox calls are limited to 30 per IP per minute because each reads the whole chain. It returns `{ ok: true, count, head_seq }` or `{ ok: false, broken_at_seq, why, head_seq }`. The approvals count badge in the sidebar isn't built; it would open a second event stream on every page.
 
+### First visit (UI-23, UI-24, UI-25)
+Most visitors to the hosted site are judges who land on `/` right after a nightly reset, when every card reads zero. These three changes point them at the demo and make its key moment readable.
+- **Start here card (UI-23).** `TourCard` in `src/ui/overview/`, rendered by `OverviewView` above the KPI cards when the page passes `tour`. The overview page passes `tour` only for a sandbox workspace, with `testnet` computed the same way as on `/scenarios` (`testnetRailReady()` and the testnet workspace exists), so step 4 never points at a button that isn't there. The steps are an ordered list of plain links (`/scenarios`, `/approvals`, `/audit`, `/scenarios`), with copy in both themes. It stays while the sandbox has events, so a judge who comes back to the overview can see the next step.
+- **Header theme switch (UI-24).** `HeaderThemeSwitch` in `src/ui/settings/`: a `button` with `role="switch"` and `aria-checked`, a ghost icon, and the visible label "Kiroween mode". It calls the same `setTheme` as the Settings switch, so the cookie, `data-theme`, and `router.refresh()` behave the same, and UI-18 still holds: no request depends on the theme.
+- **Requested payee (UI-25).** `decisionRow` reads `request.args.payee_ref` for a `payee.update` decision, as a string of 1 to 200 characters (anything else is dropped), into `FeedRow.requestedPayee`. The feed row and the scenario step show "Requested payout account: acct_…" as monospace text. Once the change is applied, the feed shows the existing `payeeChange` line (PO-12) instead.
+
 ## Reason explanations
 `src/ui/copy.ts` maps each reason code to a plain-language sentence per theme:
 ```ts
@@ -105,5 +111,6 @@ The `satisfies` check makes a missing string a compile error.
 - Contrast (UI-12) is checked from the theme tokens in `src/ui/theme.test.ts`: text at 4.5:1 on every background, and focus rings and form-control borders (`control-border`) at 3:1 (WCAG 1.4.11). The lighter `border` token is decorative only.
 - Lighthouse accessibility score ≥ 95 on the overview page in both themes (manual check, task 9).
 - Example tests, named by requirement ID, cover the rest: TEL-1, TEL-3 to TEL-5 (stream and handler), UI-1 to UI-10 and UI-15 (pages, sandbox access, rate limits, nightly reset), and UI-16, UI-17, UI-19, UI-20 (theme, motion, licensing).
+- UI-23: component tests: the card's steps in order with their links, step 4 only with `testnet`, and no card without `tour`. UI-24: the header switch reflects and flips the theme through the provider. UI-25: `decisionRow` keeps a valid `payee_ref` only on `payee.update` and drops a non-string or oversized one; the feed and the scenario steps render it as text, not a link. The layout and keyboard end-to-end test covers the header switch at 375 px and 1920 px.
 - UI-22: component tests with a fake fetch: the count and its screen-reader text, `99+` at 100, nothing for 0 or a failed request, and one new request per pathname change or return to the tab.
 - TEL-6 and TEL-7: hook tests with the fake event source and fake timers. Hiding the page closes the stream; showing it opens one stream, and a replayed backlog adds only the missed events. Fifteen minutes without input closes it and shows the paused badge; input just before the limit keeps it open; Resume and any input reopen it.
