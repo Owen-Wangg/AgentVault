@@ -2,12 +2,14 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SCENARIO_NAMES } from "@/agents/scripted/scenarios";
+import { ThemeProvider } from "@/ui/ThemeProvider";
+import { copy } from "@/ui/copy";
 import type { EventStreamOptions } from "@/ui/events/use-event-stream";
 import type { AuditEventMessage } from "@/ui/events/summarize";
 import { type ScenariosApi, ScenarioRunner } from "./ScenarioRunner";
 import { parseRunResult, runAgentId, runSteps } from "./run-view";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/scenarios" }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }), usePathname: () => "/scenarios" }));
 
 afterEach(cleanup);
 
@@ -231,9 +233,29 @@ describe("<ScenarioRunner> with the live agent", () => {
       expect(within(screen.getByRole("region", { name: title })).getByRole("button", { name: `Run with live AI agent: ${title}` })).toBeTruthy();
     }
     const runaway = screen.getByRole("region", { name: "Runaway loop" });
-    expect(within(runaway).queryByRole("button", { name: /live/ })).toBeNull();
-    expect(runaway.textContent).toContain("Scripted only");
+    const hijack = screen.getByRole("region", { name: "Payee hijack" });
+    for (const card of [runaway, hijack]) {
+      expect(within(card).queryByRole("button", { name: /live/ })).toBeNull();
+      expect(card.textContent).toContain("Scripted only");
+    }
+    expect(runaway.textContent).toContain(copy.default["scenario.runaway.scriptedOnly"]);
+    expect(hijack.textContent).toContain(copy.default["scenario.hijack.scriptedOnly"]);
+    expect(hijack.textContent).not.toContain("runaway loop");
     expect(screen.getAllByRole("note").map((n) => n.textContent).join(" ")).toContain("Gemini on its free tier");
+  });
+  it("AGT-11: each scripted-only reason has its own Kiroween wording", () => {
+    render(
+      <ThemeProvider initial="kiroween">
+        <ScenarioRunner workspaceId="sandbox-1" scenarios={SCENARIO_NAMES} liveScenarios={LIVE} api={pendingApi().api} stream={stream} newRunId={() => "run-1"} />
+      </ThemeProvider>,
+    );
+    for (const [title, key] of [
+      ["Runaway loop", "scenario.runaway.scriptedOnly"],
+      ["Payee hijack", "scenario.hijack.scriptedOnly"],
+    ] as const) {
+      expect(copy.kiroween[key]).not.toBe(copy.default[key]);
+      expect(screen.getByRole("region", { name: title }).textContent).toContain(copy.kiroween[key]);
+    }
   });
 
   it("AGT-16: a live run is labeled, and each step shows its drift score next to the decision", async () => {

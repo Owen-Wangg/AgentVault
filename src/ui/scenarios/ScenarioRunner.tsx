@@ -3,6 +3,7 @@
 import { Bot, Play, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { type ReactNode, useState } from "react";
+import { type LiveScenarioName, isLiveScenario } from "@/agents/gemini/scenarios";
 import type { ScenarioName } from "@/agents/scripted/scenarios";
 import { Amount } from "@/ui/components/Amount";
 import { StreamStatusBadge } from "@/ui/components/StreamStatusBadge";
@@ -42,6 +43,16 @@ const DECISION_TONE = { allow: "allow", hold: "hold", deny: "deny" } as const;
 
 /** What to do next, for scenarios whose outcome depends on how the holds are decided (payout-rails PO-24). */
 const SUMMARY_NOTE: Partial<Record<ScenarioName, UiKey>> = { hijack: "scenario.hijack.summaryNote" };
+
+/**
+ * Why each scenario without a live version is scripted only (AGT-11).
+ * Typed over those scenarios, so a new one can't be added without a reason.
+ */
+const SCRIPTED_ONLY: Record<Exclude<ScenarioName, LiveScenarioName>, UiKey> = {
+  runaway: "scenario.runaway.scriptedOnly",
+  hijack: "scenario.hijack.scriptedOnly",
+};
+const scriptedOnlyKey = (name: ScenarioName): UiKey | undefined => (isLiveScenario(name) ? undefined : SCRIPTED_ONLY[name]);
 
 /** Why a run didn't start or didn't return, as a copy key. */
 function failureOf(status: number, body: unknown): UiKey {
@@ -151,7 +162,7 @@ export function ScenarioRunner({
                   </Button>
                 ) : null}
               </div>
-              {liveOn && !liveScenarios.includes(name) ? <p className="text-xs text-text-muted">{t("scenarios.liveScriptedOnly")}</p> : null}
+              {liveOn && !liveScenarios.includes(name) ? <ScriptedOnlyNote name={name} /> : null}
             </Card>
           </li>
         ))}
@@ -191,6 +202,12 @@ export function ScenarioRunner({
       ) : null}
     </>
   );
+}
+
+function ScriptedOnlyNote({ name }: { name: ScenarioName }) {
+  const { t } = useCopy();
+  const key = scriptedOnlyKey(name);
+  return key ? <p className="text-xs text-text-muted">{t(key)}</p> : null;
 }
 
 function StepList({ steps, running }: { steps: RunStep[]; running: boolean }) {

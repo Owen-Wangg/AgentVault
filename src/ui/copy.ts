@@ -177,7 +177,8 @@ type UiKey =
   | "scenarios.runLive"
   | "scenarios.liveNote"
   | "scenarios.liveBadge"
-  | "scenarios.liveScriptedOnly"
+  | "scenario.runaway.scriptedOnly"
+  | "scenario.hijack.scriptedOnly"
   | "path.title"
   | "path.latest"
   | "path.note"
@@ -445,7 +446,8 @@ const defaultCopy: CopyTable = {
   "scenarios.liveNote":
     "The live AI agent is Gemini on its free tier. The model chooses what to ask for, and AgentVault's rules still decide every request. A real model may not fall for the attack, and then there is nothing to stop.",
   "scenarios.liveBadge": "Live AI agent",
-  "scenarios.liveScriptedOnly": "Scripted only: a runaway loop is a retry bug in the agent's code, not something a model chooses, so a live model wouldn't make it more real.",
+  "scenario.runaway.scriptedOnly": "Scripted only: a runaway loop is a retry bug in the agent's code, not something a model chooses, so a live model wouldn't make it more real.",
+  "scenario.hijack.scriptedOnly": "Scripted only: the hijack shows its two holds only if the agent obeys the poisoned invoice, and a live model might not, leaving nothing to hold.",
   "path.title": "How AgentVault decided",
   "path.latest": "Latest decision",
   "path.note": "Every check runs on every request, and the strictest result decides: a deny beats a hold, and a hold beats an allow.",
@@ -578,6 +580,8 @@ const kiroweenCopy: CopyTable = {
     "The agent pays a supplier's $900 invoice, where a cursed line whispers to switch the payout account to an attacker's, and AgentVault seals both the change and the payout in The Crypt for a person to judge.",
   "scenario.hijack.summaryNote":
     "Two souls await judgment in the inbox. Banish the account change and bless the payout, and the $900 reaches the supplier's account on file. Bless the change first, and the payout would go to the attacker: that's why both need a living person.",
+  "scenario.runaway.scriptedOnly": "Scripted only: a runaway loop is a cursed retry bug in the agent's code, not something a model chooses, so a summoned agent wouldn't make it more real.",
+  "scenario.hijack.scriptedOnly": "Scripted only: the hijack seals two requests in The Crypt only if the agent heeds the cursed invoice, and a summoned agent might not, leaving nothing to seal.",
   "approvals.empty": "No souls await judgment. Nothing is waiting for approval.",
   "audit.verified": "The chain holds. No spirit has meddled with it.",
   "audit.broken": "The chain is cursed at seq",
