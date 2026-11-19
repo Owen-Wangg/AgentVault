@@ -445,7 +445,7 @@ const defaultCopy: CopyTable = {
   "scenarios.liveNote":
     "The live AI agent is Gemini on its free tier. The model chooses what to ask for, and AgentVault's rules still decide every request. A real model may not fall for the attack, and then there is nothing to stop.",
   "scenarios.liveBadge": "Live AI agent",
-  "scenarios.liveScriptedOnly": "Scripted only: the loop comes from a retry bug in agent code, not from a model's choice.",
+  "scenarios.liveScriptedOnly": "Scripted only: a runaway loop is a retry bug in the agent's code, not something a model chooses, so a live model wouldn't make it more real.",
   "path.title": "How AgentVault decided",
   "path.latest": "Latest decision",
   "path.note": "Every check runs on every request, and the strictest result decides: a deny beats a hold, and a hold beats an allow.",
