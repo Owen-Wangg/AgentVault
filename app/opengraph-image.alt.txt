@@ -1,0 +1,1 @@
+AgentVault: a security proxy for AI agents that spend money. Spend limits, taint tracking, human approval, and a tamper-evident audit log.

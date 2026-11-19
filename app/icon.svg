@@ -1,6 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <!-- AgentVault's tab icon: a two-tone shield with an agent's eyes. Drawn for this project; Apache-2.0 like the repo. -->
-  <path d="M16 3.5 5 7.6v6.7c0 6.5 4.6 11.9 11 13.9 6.4-2 11-7.4 11-13.9V7.6L16 3.5Z" fill="#6366f1"/>
-  <path d="M16 3.5 5 7.6v6.7c0 6.5 4.6 11.9 11 13.9Z" fill="#4338ca"/>
-  <path d="M12 12.5v3.4M20 12.5v3.4" stroke="#ffffff" stroke-width="2.7" stroke-linecap="round"/>
+  <!-- UI-29: the browser loads this apart from the page, so it follows the system's dark mode, not the in-app theme. -->
+  <style>
+    .soft { fill: #6366f1; }
+    .deep { fill: #4338ca; }
+    .eyes { stroke: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .soft { fill: #a5b4fc; }
+      .deep { fill: #818cf8; }
+      .eyes { stroke: #1e1b4b; }
+    }
+  </style>
+  <path class="soft" d="M16 3.5 5 7.6v6.7c0 6.5 4.6 11.9 11 13.9 6.4-2 11-7.4 11-13.9V7.6L16 3.5Z"/>
+  <path class="deep" d="M16 3.5 5 7.6v6.7c0 6.5 4.6 11.9 11 13.9Z"/>
+  <path class="eyes" d="M12 12.5v3.4M20 12.5v3.4" stroke-width="2.7" stroke-linecap="round"/>
 </svg>

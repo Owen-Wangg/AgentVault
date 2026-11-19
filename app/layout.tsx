@@ -11,9 +11,14 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains-mo
 // Kiroween headings only, so it isn't preloaded: the browser fetches it when a Kiroween page uses it.
 const creepster = Creepster({ subsets: ["latin"], weight: "400", variable: "--font-creepster", display: "swap", preload: false });
 
+const DESCRIPTION = "A security proxy between AI agents and payment rails.";
+
+// UI-29: link previews. The image is app/opengraph-image.png, which Next.js adds to these tags itself.
 export const metadata: Metadata = {
   title: { default: "AgentVault", template: "%s · AgentVault" },
-  description: "A security proxy between AI agents and payment rails.",
+  description: DESCRIPTION,
+  openGraph: { title: "AgentVault", description: DESCRIPTION, siteName: "AgentVault", type: "website" },
+  twitter: { card: "summary_large_image", title: "AgentVault", description: DESCRIPTION },
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
