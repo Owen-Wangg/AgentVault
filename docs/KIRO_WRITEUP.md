@@ -13,11 +13,11 @@ The Official Rules (section 4) list eight questions the write-up should answer. 
 | Steering docs, and the strategy that made the biggest difference | Steering |
 | MCP | MCP, both directions |
 | Property-based testing | Property-based tests that found real bugs |
-| Kiro powers | Powers and plugins |
+| Kiro powers | Powers |
 
 ## Which Kiro apps
 
-Most of the work was done in the Kiro IDE on Windows. The Kiro CLI (3.0.0) was used for the custom agent: `kiro-cli agent validate` and `kiro-cli agent list` checked its config, and the agent then ran as a sub-agent for the security review below. <!-- Owen: add one line on how the CLI felt different from the IDE, and say whether you used Web or Crew. --> The project's MCP server works with any MCP client, and `docs/MCP.md` also covers Claude Desktop.
+Most of the work was done in the Kiro IDE on Windows. The Kiro CLI (3.0.0) was used for the custom agent: `kiro-cli agent validate` and `kiro-cli agent list` checked its config, and the agent then ran as a sub-agent for the security review below. The CLI felt much faster and more autonomous than the IDE, and it was nicer for quickly running terminal commands. The IDE's workflow felt more structured and visual, which was good for walking through the specs and reviewing diffs inline. The project's MCP server works with any MCP client, and `docs/MCP.md` also covers Claude Desktop.
 
 ## Subagents and custom agents
 
@@ -32,9 +32,14 @@ The first full review ran as a sub-agent and saved `docs/security/2026-11-18-ful
 What went wrong: the first version was Markdown with front matter, which the docs allow, but the CLI's `agent list` and `validate` only read JSON, so I converted it. The agent also listed some files as unread that the earlier pass had covered. And its report corrected my own note that unknown-tool requests skip the velocity count: they count, through the idempotency row.
 
 Kiro's built-in introspect subagent checked Kiro's own docs: that a hook's `timeout` belongs on the hook and not the action, and how Kiro confirms and permits MCP tool calls.
-## Powers and plugins
+## Powers
 
-The Stripe and Neon plugins were installed. The Stripe plugin's account tools were never authenticated, so nothing read or changed the Stripe account through them. The Neon plugin's MCP server was used read-only on Nov 16 and 17 to check the project's compute and network usage against the Free plan for the judging period, and to confirm a lower compute cap. The Stripe plugin's best-practices skill set the payout-rails Connect design: Accounts v2 recipient accounts, a capability check before each transfer, and no legacy account types. Its docs search, along with docs.stripe.com's Markdown pages, stood in for the Stripe CLI, which isn't installed. Other Stripe research used the published `mppx` and `stripe` packages, and Neon work used the Neon console and `DATABASE_URL_TEST`. <!-- Owen: check that this matches how you think of the plugins. --> Vercel's official MCP server was connected and used read-only (see MCP below).
+Two Kiro powers were installed and authenticated: Stripe and Neon.
+
+- **Stripe.** Its account tools are connected to the project's Stripe test-mode account, and Kiro used them during testing to inspect the account and its API data. Its docs search read Stripe's documentation and helped plan the implementation, along with docs.stripe.com's Markdown pages, and stood in for the Stripe CLI, which isn't installed. Its best-practices skill set the payout-rails Connect design: Accounts v2 recipient accounts, a capability check before each transfer, and no legacy account types.
+- **Neon.** Its MCP server was used read-only on Nov 16 and 17 to check the project's compute and network usage against the Free plan for the judging period, and to confirm a lower compute cap (see MCP below).
+
+Other Stripe research used the published `mppx` and `stripe` packages, and Neon work also used the Neon console and `DATABASE_URL_TEST`. Vercel's official MCP server was connected and used read-only (see MCP below).
 
 ## Specs first, code second
 
@@ -52,7 +57,9 @@ Writing the specs caught design bugs before any code existed:
 - **Turning on real rails would have broken the sandbox.** While designing the public testnet button, reading the rail setup showed that every request built every real adapter before it knew its workspace. With `RAIL_MODE=real` and any real-rail variable missing, every sandbox request would have failed, even though the sandbox only uses mocks. The testnet-demo spec made the per-workspace choice a requirement (TN-8) and a property test, and breaking it on purpose shrank to `{"RAIL_MODE":"real"}`.
 - **One visitor's approval leaking into another's demo.** In the shared sandbox, one visitor approving the hijack would leave the supplier pointing at the attacker until the nightly reset. Each payee hijack run now gets its own supplier row.
 
-**Compared to vibe coding.** <!-- Owen: this paragraph is yours to write; some true points to draw on: --> Payment code fails quietly: a rounding direction or a missing lock produces a wrong number, not an error. Vibe coding would have produced working-looking code with those bugs in it. With specs, each rule had an ID, a planned property, and a task before any code, so Kiro implemented one task at a time against a fixed target, and the post-task hook ran the full suite after each one.
+**Compared to vibe coding.** This felt far more structured and organized than vibe coding on the fly. When Kiro generated each spec, it asked me a lot of questions, and answering them made clear what I really wanted from the project. It then broke the work into tasks and stages, so I always had a structured goal in mind instead of improvising the next step.
+
+This mattered most for payment code, which fails quietly: a rounding direction or a missing lock produces a wrong number, not an error. Vibe coding would have produced working-looking code with those bugs in it. With specs, each rule had an ID, a planned property, and a task before any code, so Kiro implemented one task at a time against a fixed target, and the post-task hook ran the full suite after each one.
 
 The payout-rails spec also required a probe of each rail before any adapter was written, and the design changed when the probes disagreed with the docs. PayPal refuses a resent `sender_batch_id` instead of returning the original batch, and has no read-only lookup by it, so AgentVault now stores PayPal's own batch ID on the reservation (PO-25) and treats a duplicate refusal as unknown, never as a failure. Stripe answers a reused idempotency key with different parameters with `idempotency_error`, which also means a request under that key already exists, so it's unknown too. The Canadian Stripe sandbox couldn't create recipient accounts until the platform took on loss liability in its Connect platform profile, which only Owen could change in the Dashboard.
 
@@ -118,7 +125,7 @@ For each safeguard, I broke it in the code, checked that a test failed, and rest
 
 ## The live AI agent
 
-The optional Gemini agent (`gemini-3.5-flash-lite`, free tier) runs three scenarios with real model choices, and AgentVault's rules still decide every request. In the live drift run the model sometimes buys GPU time, which is denied with `DENY_INTENT_DRIFT` and `ADVISORY_DRIFT` (score 100). In the live injection run the model reads the poisoned page but has never asked for the $480 refund, so the demo uses the scripted run for the hold. <!-- If the more trusting injection prompt is adopted, say so here. -->
+The optional Gemini agent (`gemini-3.5-flash-lite`, free tier) runs three scenarios with real model choices, and AgentVault's rules still decide every request. In the live drift run the model sometimes buys GPU time, which is denied with `DENY_INTENT_DRIFT` and `ADVISORY_DRIFT` (score 100). In the live injection run the model reads the poisoned page but has never asked for the $480 refund, so the demo uses the scripted run for the hold. I kept the prompt as a developer would plausibly write it rather than tuning it to fall for the injection. AgentVault doesn't depend on the model resisting: had it asked, the refund would have been held.
 
 ## What Kiro got wrong
 
