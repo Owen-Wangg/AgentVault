@@ -478,3 +478,6 @@ Raw notes for the Devpost "How Kiro was used" write-up. The `devlog` hook (Stop 
   - Kiro features: custom agent, steering (security-standards as the checklist).
   - Kiro caught: the raw URL is also stored in the `taint` event, not only `fetch_failed`, and a flood of unknown-tool calls skips the velocity check.
   - Kiro got wrong: my own earlier note that such requests don't count toward velocity. They do count, through the idempotency row. The agent also listed some files as unread that the earlier pass had covered.
+- **Kiro write-up now covers the CLI and the custom agent.** docs/KIRO_WRITEUP.md said no custom agents were made and that all work was in the IDE, which contradicted this log. The "Which Kiro apps" and "Subagents and custom agents" sections now describe the Kiro CLI use and the security-reviewer agent (permissions, steering context, prompt rules, the 2026-11-18 review and the fixes that followed), and the Numbers line counts one custom agent. docs/DEVPOST_STORY.md's "Built with Kiro" line mentions the agent.
+  - Kiro features: custom agent, steering (security-standards as the agent's checklist).
+  - Kiro got wrong: an edit script ate the backticks around two kiro-cli commands, and Set-Content -Encoding UTF8 added a byte-order mark to DEVPOST_STORY.md. Both were fixed before any commit.

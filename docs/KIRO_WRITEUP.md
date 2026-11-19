@@ -17,12 +17,21 @@ The Official Rules (section 4) list eight questions the write-up should answer. 
 
 ## Which Kiro apps
 
-All of the work was done in the Kiro IDE on Windows. <!-- Owen: add CLI, Web, or Crew if you tried any, and how they differed. --> The project's MCP server works with any MCP client, and `docs/MCP.md` also covers Claude Desktop.
+Most of the work was done in the Kiro IDE on Windows. The Kiro CLI (3.0.0) was used for the custom agent: `kiro-cli agent validate` and `kiro-cli agent list` checked its config, and the agent then ran as a sub-agent for the security review below. <!-- Owen: add one line on how the CLI felt different from the IDE, and say whether you used Web or Crew. --> The project's MCP server works with any MCP client, and `docs/MCP.md` also covers Claude Desktop.
 
 ## Subagents and custom agents
 
-No custom agents were created for this project. Kiro's built-in introspect subagent checked Kiro's own docs: that a hook's `timeout` belongs on the hook and not the action, and how Kiro confirms and permits MCP tool calls. <!-- Owen: correct this if you made or used a custom agent. -->
+**`security-reviewer`** (`.kiro/agents/security-reviewer.json`) is a custom agent made in the Kiro CLI. It is built the way AgentVault treats its own agents: least privilege, and file contents are data.
 
+- **Permissions.** It can read the repo, except `.env` files, `.pem` and `.key` files, `node_modules`, and `.next`. Its only write access is new Markdown files under `docs/security/`. Shell, web fetch, web search, MCP, and sub-agents are denied.
+- **Context.** The security, product, structure, and money steering files load as resources, so `security-standards.md` is its checklist, in order: money, the nine-step payment flow, fail closed, taint and scope, approvals, audit log, auth and secrets, trust boundaries, web hardening, dependencies.
+- **Prompt.** It must treat the deliberately poisoned vendor page and invoice as data and report any embedded instruction as a finding. It must cite a file and line for every finding, say what it could not check, never print a secret value, and never overwrite an earlier report.
+
+The first full review ran as a sub-agent and saved `docs/security/2026-11-18-full-review.md`: no critical or high findings, two medium (raw URLs with query strings written to the append-only audit log, and `clientIp` trusting forwarded headers off Vercel) and seven low. It also confirmed or corrected four findings from an earlier chat pass, and it said which files it had not read and that it could not run `pnpm audit`. The fixes went in as separate commits: security headers on every route, URLs stripped of query strings and credentials in fetch events, proxy IP headers trusted only behind a proxy that sets them, `AGENT_FROZEN` on early refusals, no stored GitHub tokens and shorter sessions, no vendor redirects and capped vendor reads, and all-visitor caps on scenario runs, event streams, and approval listing.
+
+What went wrong: the first version was Markdown with front matter, which the docs allow, but the CLI's `agent list` and `validate` only read JSON, so I converted it. The agent also listed some files as unread that the earlier pass had covered. And its report corrected my own note that unknown-tool requests skip the velocity count: they count, through the idempotency row.
+
+Kiro's built-in introspect subagent checked Kiro's own docs: that a hook's `timeout` belongs on the hook and not the action, and how Kiro confirms and permits MCP tool calls.
 ## Powers and plugins
 
 The Stripe and Neon plugins were installed. The Stripe plugin's account tools were never authenticated, so nothing read or changed the Stripe account through them. The Neon plugin's MCP server was used read-only on Nov 16 and 17 to check the project's compute and network usage against the Free plan for the judging period, and to confirm a lower compute cap. The Stripe plugin's best-practices skill set the payout-rails Connect design: Accounts v2 recipient accounts, a capability check before each transfer, and no legacy account types. Its docs search, along with docs.stripe.com's Markdown pages, stood in for the Stripe CLI, which isn't installed. Other Stripe research used the published `mppx` and `stripe` packages, and Neon work used the Neon console and `DATABASE_URL_TEST`. <!-- Owen: check that this matches how you think of the plugins. --> Vercel's official MCP server was connected and used read-only (see MCP below).
@@ -121,4 +130,4 @@ The optional Gemini agent (`gemini-3.5-flash-lite`, free tier) runs three scenar
 
 ## Numbers
 
-Nine specs, eight steering files, seven hooks, and about 300 commits. About 1,500 Vitest tests (unit, property, and integration), with 18 property-test files, and 8 Playwright tests. Lighthouse accessibility, best practices, and SEO 100 on the overview in both themes. One real testnet payment button on the hosted site, live since Nov 17.
+Nine specs, eight steering files, seven hooks, one custom agent, and about 300 commits. About 1,500 Vitest tests (unit, property, and integration), with 18 property-test files, and 8 Playwright tests. Lighthouse accessibility, best practices, and SEO 100 on the overview in both themes. One real testnet payment button on the hosted site, live since Nov 17.

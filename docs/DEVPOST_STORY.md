@@ -49,7 +49,7 @@ In the **payee hijack**, an agent paying a supplier's $900 invoice reads a poiso
 - **Each payment is one database transaction:** lock the agent's envelope row, claim the idempotency key, load the state, run a pure `evaluate()` function, write the audit row, and reserve the amount. The rail call happens after the commit, so no lock is held during a payment. If any step fails, nothing is paid.
 - **Rails:** x402 on Base Sepolia (USDC) and Stripe MPP in test mode for payments, Stripe Connect transfers (test mode) and PayPal Payouts (sandbox) for payouts, each verified with real test payments, plus a mock rail for the sandbox. PayPal is a second, unrelated provider, there to show the same rules hold on a rail AgentVault didn't start with.
 - **Testing:** about 1,500 Vitest tests, including 18 files of fast-check property tests that check the designs' correctness properties, and Playwright for the judge's path. Each safeguard was broken on purpose to confirm a test catches it.
-- **Built with Kiro:** nine specs, steering, seven hooks, and MCP. Details in the Kiro write-up.
+- **Built with Kiro:** nine specs, steering, seven hooks, MCP, and a least-privilege security-reviewer custom agent (made in the Kiro CLI) whose review led to a round of hardening fixes. Details in the Kiro write-up.
 
 ## Challenges we ran into
 
