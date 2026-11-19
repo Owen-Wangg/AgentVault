@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <!-- AgentVault's tab icon: a shield with a check mark. Drawn for this project; Apache-2.0 like the repo. -->
-  <path d="M16 2 4 6.5v8.2c0 7.3 5.1 13.4 12 15.3 6.9-1.9 12-8 12-15.3V6.5L16 2Z" fill="#4338ca"/>
-  <path d="m10.5 16.2 3.8 3.8 7.4-7.6" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- AgentVault's tab icon: a two-tone shield with an agent's eyes. Drawn for this project; Apache-2.0 like the repo. -->
+  <path d="M16 3.5 5 7.6v6.7c0 6.5 4.6 11.9 11 13.9 6.4-2 11-7.4 11-13.9V7.6L16 3.5Z" fill="#6366f1"/>
+  <path d="M16 3.5 5 7.6v6.7c0 6.5 4.6 11.9 11 13.9Z" fill="#4338ca"/>
+  <path d="M12 12.5v3.4M20 12.5v3.4" stroke="#ffffff" stroke-width="2.7" stroke-linecap="round"/>
 </svg>
