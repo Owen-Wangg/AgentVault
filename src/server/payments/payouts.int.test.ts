@@ -280,6 +280,8 @@ describe("payout-rails design, Vendor registry: destination constraints", () => 
     await expect(db().insert(vendors).values({ ...row, name: "not-acct", stripeAccount: "pi_123" })).rejects.toThrow();
     await expect(db().insert(vendors).values({ ...row, name: "bad-email", paypalReceiver: "not-an-email" })).rejects.toThrow();
     await expect(db().insert(vendors).values({ ...row, name: "long-email", paypalReceiver: `${"a".repeat(60)}@${"b".repeat(200)}.com` })).rejects.toThrow();
+    // security-standards §7: a PayPal receiver outside the sandbox domains could be a real person.
+    await expect(db().insert(vendors).values({ ...row, name: "real-email", paypalReceiver: "someone@gmail.com" })).rejects.toThrow();
     await db().insert(vendors).values({ ...row, name: "good", stripeAccount: SUPPLIER_ACCT, paypalReceiver: SUPPLIER_PAYPAL });
   });
 });

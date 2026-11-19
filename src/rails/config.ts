@@ -1,6 +1,7 @@
 import { getAddress, isAddress } from "viem";
 import { type LocalAccount, privateKeyToAccount } from "viem/accounts";
 import { z } from "zod";
+import { SANDBOX_RECEIVER } from "./destination";
 
 /**
  * Rail configuration from environment variables (rail-adapters design,
@@ -255,14 +256,7 @@ export const PAYPAL_SANDBOX_API = "https://api-m.sandbox.paypal.com";
 /** The PayPal variables, in the order `pnpm env:check` lists them. */
 export const PAYPAL_VARIABLES = ["PAYPAL_ENV", "PAYPAL_CLIENT_ID", "PAYPAL_CLIENT_SECRET", "PAYPAL_SUPPLIER_RECEIVER", "PAYPAL_ATTACKER_RECEIVER"] as const;
 
-/**
- * Sandbox personal and business accounts get addresses at these domains
- * (PayPal's sandbox accounts guide), so a receiver at any other domain
- * could be a real person. Refusing it keeps payouts inside the sandbox.
- */
-const SANDBOX_RECEIVER = /^[A-Za-z0-9._%+-]{1,64}@(personal|business)\.example\.com$/;
-
-/** True for a PayPal sandbox account address. The PayPal adapter's destination check uses the same rule. */
+/** True for a PayPal sandbox account address (SANDBOX_RECEIVER in destination.ts). The PayPal adapter's destination check uses the same rule. */
 export function isSandboxReceiver(address: string): boolean {
   return SANDBOX_RECEIVER.test(address);
 }

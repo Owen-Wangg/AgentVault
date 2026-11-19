@@ -17,7 +17,7 @@ describe("PO-10: payout destination formats", () => {
     expect(isDestinationFor("paypal", ref)).toBe(true);
   });
 
-  it.each(["acct_1AcmeSupplies", "no-at-sign", "a@b", "a@@b.com", "a b@c.com", `${"a".repeat(65)}@b.com`, `a@${"b".repeat(250)}.com`])(
+  it.each(["acct_1AcmeSupplies", "no-at-sign", "a@b", "a@@b.com", "a b@c.com", "someone@gmail.com", "x@example.com", "x@personal.example.com.evil.com", `${"a".repeat(65)}@business.example.com`])(
     "PO-10: %s is not a PayPal destination",
     (ref) => {
       expect(isDestinationFor("paypal", ref)).toBe(false);

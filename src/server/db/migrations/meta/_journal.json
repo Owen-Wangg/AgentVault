@@ -57,6 +57,13 @@
       "when": 1795054604627,
       "tag": "0007_clear_oauth_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795054686604,
+      "tag": "0008_paypal_sandbox_receivers",
+      "breakpoints": true
     }
   ]
 }
