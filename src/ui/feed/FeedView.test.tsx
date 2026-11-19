@@ -66,6 +66,37 @@ describe("<FeedView>", () => {
     expect(second!.textContent).toContain("All checks passed.");
   });
 
+  it("UI-25: a held payee change shows the requested account as text, and the applied change replaces it", async () => {
+    render(<FeedView workspaceId="w1" agentNames={{}} stream={stream} />);
+    const held = decision("a1", "acme-supplies", "0", "hold", ["HELD_TAINTED"]);
+    const payload = held.payload as { request: Record<string, unknown> };
+    payload.request = { ...payload.request, tool: "payee.update", args: { payee_ref: "acct_1AttackerPayout" } };
+    act(() => {
+      FakeSource.last.emit("audit", held);
+      FakeSource.last.emit("ready", {});
+    });
+    await flush();
+    const shown = screen.getByTestId("requested-payee");
+    expect(shown.textContent).toBe("Requested payout account: acct_1AttackerPayout");
+    expect(within(screen.getByRole("table")).queryByRole("link")).toBeNull();
+
+    seq += 1;
+    act(() =>
+      FakeSource.last.emit("audit", {
+        workspace_id: "w1",
+        seq,
+        type: "payee_updated",
+        created_at: "2026-11-24T12:00:01.000Z",
+        payload: { decision_seq: held.seq, rail: "stripe", old_ref: "acct_1AcmeSupplies", new_ref: "acct_1AttackerPayout" },
+        prev_hash: "",
+        hash: "",
+      }),
+    );
+    await flush();
+    expect(screen.queryByTestId("requested-payee")).toBeNull();
+    expect(screen.getByTestId("payee-change").textContent).toContain("acct_1AcmeSupplies to acct_1AttackerPayout");
+  });
+
   it("UI-6: filters by agent, decision, and reason", async () => {
     render(<FeedView workspaceId="w1" agentNames={{ a1: "billing-bot", a2: "research-bot" }} stream={stream} />);
     act(() => {

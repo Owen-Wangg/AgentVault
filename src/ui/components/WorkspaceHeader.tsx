@@ -3,6 +3,7 @@
 import { FlaskConical } from "lucide-react";
 import type { ReactNode } from "react";
 import { useCopy } from "@/ui/ThemeProvider";
+import { HeaderThemeSwitch } from "@/ui/settings/HeaderThemeSwitch";
 import { Badge } from "./primitives";
 
 /**
@@ -26,7 +27,10 @@ export function WorkspaceHeader({ workspace, account }: { workspace: { name: str
             </Badge>
           ) : null}
         </div>
-        {account ? <div className="md:hidden">{account}</div> : null}
+        <div className="flex flex-wrap items-center gap-3">
+          <HeaderThemeSwitch />
+          {account ? <div className="md:hidden">{account}</div> : null}
+        </div>
       </div>
       {workspace?.isSandbox ? (
         <p className="rounded-card border border-hold bg-surface px-3 py-2 text-sm text-hold" role="note">

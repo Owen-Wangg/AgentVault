@@ -199,3 +199,24 @@ describe("overview", () => {
     expect(summarize(events, "day", NOW).blockedMicros).toBe(4500n);
   });
 });
+
+describe("requested payee on a payee.update decision", () => {
+  const change = (args: unknown, tool = "payee.update") =>
+    ev("decision", { agent_id: "a1", request: { vendor: "acme-supplies", tool, amount_micros: "0", args }, decision: "hold", reasons: [{ code: "HELD_TAINTED" }] });
+
+  it("UI-25: a held payee.update carries the account the agent asked to switch to", () => {
+    expect(feedRows([change({ vendor: "acme-supplies", payee_ref: "acct_1AttackerPayout", rail: "stripe" })])[0]?.requestedPayee).toBe("acct_1AttackerPayout");
+  });
+
+  it("UI-25: only payee.update gets one, and decisions without arguments get none", () => {
+    expect(feedRows([change({ payee_ref: "acct_1AttackerPayout" }, "payout.create")])[0]).not.toHaveProperty("requestedPayee");
+    expect(feedRows([decision("allow", "1500")])[0]).not.toHaveProperty("requestedPayee");
+  });
+
+  it.each([42, null, "", "x".repeat(201), ["acct_1"], "not-an-object"])("UI-25: a malformed payee_ref (%j) is dropped and the row still shows", (ref) => {
+    const args = ref === "not-an-object" ? "acct_1" : { payee_ref: ref };
+    const [row] = feedRows([change(args)]);
+    expect(row?.decision).toBe("hold");
+    expect(row).not.toHaveProperty("requestedPayee");
+  });
+});

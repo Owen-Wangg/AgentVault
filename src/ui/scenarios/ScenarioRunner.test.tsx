@@ -116,6 +116,27 @@ describe("<ScenarioRunner>", () => {
     expect((screen.getByRole("button", { name: "Run: Normal purchase" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
+  it("UI-25: a held payee change step shows the account the agent asked to switch to, as text", async () => {
+    const { api } = pendingApi();
+    mount(api);
+    fireEvent.click(screen.getByRole("button", { name: "Run: Payee hijack" }));
+    await act(async () => {
+      FakeSource.last.emit("audit", started("run-1", "agent-run"));
+      FakeSource.last.emit(
+        "audit",
+        event("decision", {
+          agent_id: "agent-run",
+          request: { vendor: "acme-supplies", tool: "payee.update", amount_micros: "0", args: { vendor: "acme-supplies", payee_ref: "acct_1AttackerPayout", rail: "stripe" } },
+          decision: "hold",
+          reasons: [{ code: "HELD_TAINTED" }],
+        }),
+      );
+    });
+    const log = await screen.findByRole("log", { name: "Steps" });
+    expect(within(log).getByTestId("requested-payee").textContent).toBe("Requested payout account: acct_1AttackerPayout");
+    expect(within(log).queryByRole("link")).toBeNull();
+  });
+
   it("AGT-10: when the run finishes, shows requests, spend allowed, held, and blocked, and decisions by reason", async () => {
     const { api, finish } = pendingApi();
     mount(api);

@@ -60,6 +60,8 @@ export interface FeedRow {
   payeeChange?: { rail: string; oldRef: string | null; newRef: string };
   /** Where this decision's payout was sent, read from the registry when it ran (payout-rails PO-24). */
   payoutTo?: string;
+  /** The account a payee.update asked to switch to, from its arguments (UI-25). Shown as text, never a link. */
+  requestedPayee?: string;
 }
 
 const DetailSchema = z
@@ -69,7 +71,14 @@ const DetailSchema = z
 const DecisionPayload = z.looseObject({
   agent_id: z.string(),
   // A malformed score is dropped rather than hiding the whole decision.
-  request: z.looseObject({ vendor: z.string(), tool: z.string(), amount_micros: MicrosSchema, advisory_drift_score: z.unknown().optional() }),
+  // A malformed payee_ref is dropped the same way (UI-25).
+  request: z.looseObject({
+    vendor: z.string(),
+    tool: z.string(),
+    amount_micros: MicrosSchema,
+    advisory_drift_score: z.unknown().optional(),
+    args: z.looseObject({ payee_ref: z.unknown().optional() }).optional().catch(undefined),
+  }),
   decision: z.enum(["allow", "hold", "deny"]),
   reasons: z.array(z.looseObject({ code: z.string(), detail: DetailSchema.optional() })),
   approval_id: z.string().optional(),
@@ -107,7 +116,15 @@ export function decisionRow(event: AuditEventMessage): FeedRow | null {
     reasons: p.data.reasons.map((r) => (r.detail ? { code: r.code, detail: r.detail } : { code: r.code })),
     ...(p.data.approval_id ? { approvalId: p.data.approval_id } : {}),
     ...(isScore(p.data.request.advisory_drift_score) ? { advisoryDriftScore: p.data.request.advisory_drift_score } : {}),
+    ...requestedPayeeOf(p.data.request.tool, p.data.request.args?.payee_ref),
   };
+}
+
+const MAX_PAYEE_REF = 200;
+
+function requestedPayeeOf(tool: string, ref: unknown): { requestedPayee?: string } {
+  if (tool !== "payee.update" || typeof ref !== "string" || ref.length === 0 || ref.length > MAX_PAYEE_REF) return {};
+  return { requestedPayee: ref };
 }
 
 const isScore = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 100;

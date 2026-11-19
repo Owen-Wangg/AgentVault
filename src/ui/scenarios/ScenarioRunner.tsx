@@ -216,6 +216,12 @@ function StepList({ steps, running }: { steps: RunStep[]; running: boolean }) {
                   </span>
                 ) : null}
               </span>
+              {step.row.requestedPayee ? (
+                // UI-25: where the agent tried to send the money. Text, never a link.
+                <span data-testid="requested-payee">
+                  <span className="font-medium">{t("feed.requestedPayee")}</span> <span className="break-all font-mono">{step.row.requestedPayee}</span>
+                </span>
+              ) : null}
               <span className="text-text-muted">
                 {step.row.reasons.length === 0 ? t("feed.noReasons") : step.row.reasons.map((r) => reasonText(r.code)).join(" ")}
               </span>

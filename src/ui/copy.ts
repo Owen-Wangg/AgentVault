@@ -56,6 +56,15 @@ type UiKey =
   | "overview.alerts"
   | "overview.noAlerts"
   | "overview.range"
+  | "overview.tourTitle"
+  | "overview.tourIntro"
+  | "overview.tourStep.hijack"
+  | "overview.tourStep.decide"
+  | "overview.tourStep.verify"
+  | "overview.tourStep.testnet"
+  | "overview.tourLink.scenarios"
+  | "overview.tourLink.approvals"
+  | "overview.tourLink.audit"
   | "range.hour"
   | "range.day"
   | "range.week"
@@ -80,6 +89,7 @@ type UiKey =
   | "feed.payeeNone"
   | "feed.payeeTo"
   | "feed.payoutTo"
+  | "feed.requestedPayee"
   | "agents.title"
   | "agents.empty"
   | "agents.create"
@@ -208,6 +218,7 @@ type UiKey =
   | "settings.kiroweenHint"
   | "settings.on"
   | "settings.off"
+  | "header.kiroween"
   | "mcp.allowed"
   | "mcp.held"
   | "mcp.denied"
@@ -284,6 +295,16 @@ const defaultCopy: CopyTable = {
   "overview.alerts": "Recent alerts",
   "overview.noAlerts": "No denials, holds, or freezes in this range.",
   "overview.range": "Range",
+  "overview.tourTitle": "Start here: the 60-second tour",
+  "overview.tourIntro": "This is a public sandbox on mock rails, so nothing you click here moves real money. The scripted agent makes the same choices every run.",
+  "overview.tourStep.hijack":
+    "Run Payee hijack. An agent paying a supplier's $900 invoice reads a poisoned invoice and tries to switch the supplier's payout account to an attacker's. Both requests are held.",
+  "overview.tourStep.decide": "Deny the payout account change and approve the payout. The $900 goes to the supplier's account on file.",
+  "overview.tourStep.verify": "Click Verify chain. Every decision is in a hash-chained, append-only log.",
+  "overview.tourStep.testnet": "Click Make a real testnet payment: $0.0015 over x402 on Base Sepolia, through the same checks, linked on BaseScan.",
+  "overview.tourLink.scenarios": "Open Scenarios",
+  "overview.tourLink.approvals": "Open Approvals",
+  "overview.tourLink.audit": "Open Audit",
   "range.hour": "Last hour",
   "range.day": "Last 24 hours",
   "range.week": "Last 7 days",
@@ -308,6 +329,7 @@ const defaultCopy: CopyTable = {
   "feed.payeeNone": "none",
   "feed.payeeTo": "to",
   "feed.payoutTo": "Paid out to",
+  "feed.requestedPayee": "Requested payout account:",
   "agents.title": "Agents",
   "agents.empty": "No agents yet.",
   "agents.create": "Create agent",
@@ -440,6 +462,7 @@ const defaultCopy: CopyTable = {
     "A Halloween look for demos: dark colors, a spooky heading font, and themed wording. It changes only how the dashboard looks and reads. Limits, decisions, and the audit log are the same in both modes. The choice is saved in this browser.",
   "settings.on": "Kiroween mode is on.",
   "settings.off": "Kiroween mode is off.",
+  "header.kiroween": "Kiroween mode",
   // MCP tool results (mcp-server MCP-3 to MCP-7, MCP-12). Read by the client's model, always in this theme.
   "mcp.allowed": "Allowed: the request passed every AgentVault check.",
   "mcp.held":
@@ -490,6 +513,9 @@ const kiroweenCopy: CopyTable = {
     "Haunted sandbox: mock rails only. Anyone can approve, deny, and release agents from The Crypt here, and no real money moves. It rises fresh every night.",
   "workspace.publicName": "Public haunted workspace",
   "overview.frozen": "Agents in The Crypt",
+  "overview.tourTitle": "Start here, if you dare: the 60-second tour",
+  "overview.tourIntro": "This is a haunted sandbox on mock rails, so nothing you click here moves real money. The scripted agent makes the same choices every run.",
+  "overview.tourStep.testnet": "Click Make a real offering: $0.0015 over x402 on Base Sepolia, through the same wards, etched on BaseScan.",
   "overview.alerts": "Recent hauntings",
   "overview.noAlerts": "All quiet in the graveyard: no denials, holds, or freezes in this range.",
   "feed.empty": "Nothing stirs yet. Run a scenario or send a request with an agent key.",

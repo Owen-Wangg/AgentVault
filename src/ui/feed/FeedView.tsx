@@ -137,6 +137,12 @@ function Row({ row, agentNames }: { row: FeedRow; agentNames: Record<string, str
             <span className="font-mono">{row.payeeChange.newRef}</span>
           </p>
         ) : null}
+        {row.requestedPayee && !row.payeeChange ? (
+          // UI-25: where the agent tried to send the money. Text, never a link.
+          <p className="mt-1 text-xs" data-testid="requested-payee">
+            <span className="font-medium">{t("feed.requestedPayee")}</span> <span className="break-all font-mono">{row.requestedPayee}</span>
+          </p>
+        ) : null}
         {row.payoutTo ? (
           // payout-rails PO-24: where the money went. Text, never a link.
           <p className="mt-1 text-xs" data-testid="payout-to">

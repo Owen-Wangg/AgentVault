@@ -11,18 +11,25 @@ import { type Alert, RANGES, type Range, isCapped, summarize } from "@/ui/events
 import { type EventStreamOptions, useEventStream } from "@/ui/events/use-event-stream";
 import { agentLabel } from "@/ui/feed/agent-label";
 import { DecisionsChart, SpendChart } from "./Charts";
+import { type Tour, TourCard } from "./TourCard";
 
-/** The overview page (UI-5): KPI cards, spend over time, decisions by outcome, and recent alerts. */
+/**
+ * The overview page (UI-5): KPI cards, spend over time, decisions by
+ * outcome, and recent alerts. `tour` is passed only for the public
+ * sandbox, which then shows the "Start here" card first (UI-23).
+ */
 export function OverviewView({
   workspaceId,
   agentNames,
   now = Date.now,
   stream,
+  tour,
 }: {
   workspaceId: string;
   agentNames: Record<string, string>;
   now?: () => number;
   stream?: EventStreamOptions;
+  tour?: Tour | undefined;
 }) {
   const { t } = useCopy();
   const { events, status, ready, resume } = useEventStream(workspaceId, stream);
@@ -55,6 +62,7 @@ export function OverviewView({
       >
         {t("overview.title")}
       </PageTitle>
+      {tour ? <TourCard tour={tour} /> : null}
       <DataState status={ready || events.length > 0 ? "ready" : "loading"} empty="">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Kpi label={t("overview.spend")}>
