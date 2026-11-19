@@ -1,4 +1,6 @@
 allowBuilds:
-  esbuild: true
+  # Its postinstall only checks or fetches the platform binary, which pnpm already installs as an
+  # optional dependency. On a clean install with it off, tsx and every installed esbuild copy work.
+  esbuild: false
   # @google/genai depends on it. Its postinstall only checks CLI versions, so it stays off.
   protobufjs: false
