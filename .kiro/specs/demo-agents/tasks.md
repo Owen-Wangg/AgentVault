@@ -33,3 +33,7 @@ Plan (`docs/PLAN.md`): **Phase 11** = tasks 1–4. **Phase 17** (optional, cut f
   - `decisionPath` in `src/ui/scenarios/decision-path.ts`, with property 4
   - `DecisionPath` above the step list, with copy in both themes
   - _Requirements: AGT-17_
+
+- [ ] 8. Give each scripted-only scenario its own reason
+  - The runaway loop and the payee hijack cards each say why they have no live run, in both themes
+  - _Requirements: AGT-11_
