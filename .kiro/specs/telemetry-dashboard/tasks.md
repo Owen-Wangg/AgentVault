@@ -86,3 +86,8 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
 - [x] 17. Say Connecting before the first connection
   - `StreamStatusBadge` shows "Connecting…" for the hook's `connecting` status, in both themes
   - _Requirements: UI-6_
+
+- [ ] 18. Show each agent's last decision
+  - `lastDecisions` in `src/server/dashboard/agents.ts`, with an integration test
+  - A Last decision column in place of Created, with copy in both themes
+  - _Requirements: UI-7_
