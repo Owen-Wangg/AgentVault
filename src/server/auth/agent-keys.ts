@@ -37,9 +37,12 @@ export interface AuthenticatedAgent {
 }
 
 /**
- * Find the agent for a bearer header (PXY-2). The lookup uses the unique
- * index on the hash. The stored hash is then compared again with
- * timingSafeEqual, so the match itself is decided in constant time.
+ * Find the agent for a bearer header (PXY-2). The lookup is by the
+ * SHA-256 of the key through the unique index on the hash. Timing there
+ * reveals nothing useful: the attacker would have to guess hashes of
+ * 256-bit random keys. The timingSafeEqual below is a second check that
+ * the row's hash is the one asked for, as security-standards §2 requires;
+ * it does not by itself make the lookup constant-time.
  * Returns null for a missing, malformed, unknown, or revoked key (PXY-3).
  */
 export async function authenticateAgent(db: Db | Tx, authorization: string | null | undefined): Promise<AuthenticatedAgent | null> {
