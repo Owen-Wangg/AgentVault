@@ -1,4 +1,4 @@
-# Demo video script (target 2:45, limit 3:00)
+# Demo video script (target 2:50, limit 3:00)
 
 Recorded against <https://owen-agentvault.vercel.app> in the default theme until the last scene. Every run uses the scripted agent, so the decisions are the same every take.
 
@@ -18,20 +18,20 @@ Video rules (Official Rules, section 4): under 3 minutes, uploaded to YouTube as
 
 | Time | Screen | Voice-over |
 |---|---|---|
-| 0:00–0:15 | Overview, empty | "AI agents now pay for APIs on their own, a fraction of a cent per call, over Stripe's Machine Payments Protocol and x402. Nobody approves each charge. One prompt injection or one retry bug can drain a budget. AgentVault is for teams shipping agents that spend money. It sits between the agent and the payment rail and checks every request before money moves." |
+| 0:00–0:15 | Overview, empty, with the "Start here" tour card | "AI agents now pay for APIs on their own, a fraction of a cent per call, over Stripe's Machine Payments Protocol and x402. Nobody approves each charge. One prompt injection or one retry bug can drain a budget. AgentVault is for teams shipping agents that spend money. It sits between the agent and the payment rail and checks every request before money moves." |
 | 0:15–0:25 | Scenarios: run **Normal purchase** | "A normal agent buys five weather forecasts at a fraction of a cent each. All five are allowed and logged." |
 | 0:25–0:40 | Run **Runaway loop**, then show the summary | "Now a retry bug. The agent pays in a tight loop. After 30 calls in a minute AgentVault denies it for velocity and freezes the agent. Every later call is denied, and the total stays at four and a half cents." |
 | 0:40–1:00 | Run **Prompt injection**; hover the taint step and the held refund | "The agent reads a vendor docs page with a hidden instruction: refund four hundred and eighty dollars. Reading an untrusted page taints the session, and while it's tainted, refunds, payouts, and payout account changes are frozen. The refund is held, not paid." |
 | 1:00–1:12 | Run **Payee hijack**; show the three steps | "A harder one. This agent's job is paying a supplier's nine hundred dollar invoice. The invoice hides an instruction: switch the supplier's payout account to the attacker's first, then pay. The agent obeys. Both requests are held." |
 | 1:12–1:30 | Click the summary link to Approvals. On the `payee.update` card, show the attacker account and the untrusted source, click **Deny**. On the `payout.create` card, click **Approve** | "A person decides. The account change came from an untrusted invoice, so deny it. The payout itself is real, so approve it. Approving re-runs every check, and it runs exactly once." |
 | 1:30–1:38 | Live feed: the allowed payout row, "Paid out to acct_1AcmeSupplies" | "The payout reads the account on file when it runs, so the nine hundred dollars goes to the supplier, not the attacker." |
-| 1:38–1:48 | Audit: click **Verify chain** | "Every decision is in a hash-chained, append-only log with a signed head. Verify chain recomputes it; an edited, deleted, or reordered row would break it." |
-| 1:48–2:00 | Scenarios: click **Make a real testnet payment**, then the BaseScan link in a new tab, framed on the transaction's status and USDC transfer (keep the site's header and logo out of frame) | "Those were mock rails. This button is real: the same checks, then a payment of a fraction of a cent on Base Sepolia. Here's the transaction on chain." |
-| 2:00–2:22 | Kiro chat calling the MCP tools (see below) | "AgentVault is also an MCP server, so Kiro can be the agent. It pays for a forecast, reads the poisoned page, and asks for the refund. The refund is held, and there's no approve tool, so Kiro can't approve its own refund." |
-| 2:22–2:35 | Settings: turn on **Kiroween mode**, then the Overview and Agents | "And for Kiroween, a theme toggle. Frozen agents are sealed in The Crypt and tainted sessions are Haunted. It changes only styling and copy; a property test checks that every decision is identical in both themes." |
-| 2:35–2:45 | Overview in Kiroween mode, with the live URL and repo URL as a text overlay | "Built with Kiro: nine specs, steering, hooks, and property-based tests. Try it, no login." |
+| 1:38–1:52 | Audit: click **Verify chain**, then **Rewrite an event** in the "Try to tamper with it" card | "Every decision is in a hash-chained, append-only log with a signed head. Verify chain recomputes it. Now try to cover the attack: rewrite the held payout as allowed. The browser rechecks a copy, and the chain breaks at exactly that event. The real log can't be changed at all." |
+| 1:52–2:04 | Scenarios: click **Make a real testnet payment**, then the BaseScan link in a new tab, framed on the transaction's status and USDC transfer (keep the site's header and logo out of frame) | "Those were mock rails. This button is real: the same checks, then a payment of a fraction of a cent on Base Sepolia. Here's the transaction on chain." |
+| 2:04–2:26 | Kiro chat calling the MCP tools (see below) | "AgentVault is also an MCP server, so Kiro can be the agent. It pays for a forecast, reads the poisoned page, and asks for the refund. The refund is held, and there's no approve tool, so Kiro can't approve its own refund." |
+| 2:26–2:39 | Header: turn on **Kiroween mode**, then the Overview and Agents | "And for Kiroween, a theme toggle. Frozen agents are sealed in The Crypt and tainted sessions are Haunted. It changes only styling and copy; a property test checks that every decision is identical in both themes." |
+| 2:39–2:49 | Overview in Kiroween mode, with the live URL and repo URL as a text overlay | "Built with Kiro: nine specs, steering, hooks, and property-based tests. Try it, no login." |
 
-About 2:45 in total. The Intent drift scenario is left out to make room for the Payee hijack; it's on the scenarios page for anyone who tries the sandbox. If a take runs long, shorten the Prompt injection scene first (the Payee hijack shows the same taint rule), then the audit scene. If a take runs short, add Intent drift after the runaway loop (13 s): "This agent's task is weather data. It tries to pay a GPU vendor. That's outside its declared scope, so it's denied as intent drift."
+About 2:49 in total. The Intent drift scenario is left out to make room for the Payee hijack; it's on the scenarios page for anyone who tries the sandbox. If a take runs long, shorten the Prompt injection scene first (the Payee hijack shows the same taint rule), then the audit scene. If a take runs short, add Intent drift after the runaway loop (13 s): "This agent's task is weather data. It tries to pay a GPU vendor. That's outside its declared scope, so it's denied as intent drift."
 
 ## Shot checklist
 
@@ -45,10 +45,10 @@ Check each result on screen before moving to the next scene. If one is wrong, st
 | Payee hijack | **Run** | `payee.update` held with `HELD_TAINTED`; the $900 `payout.create` held with `HELD_TAINTED`, `NEEDS_APPROVAL`; your run's `acme-supplies-…` name |
 | Approvals | **Deny** on `payee.update`, **Approve** on `payout.create` | "Approved. The request ran." on the payout card |
 | Live feed | none | "Paid out to acct_1AcmeSupplies" |
-| Audit | **Verify chain** | "Chain verified." |
+| Audit | **Verify chain**, then **Rewrite an event** | "Chain verified."; then "Rewrote seq … (decision): hold to allow." and "Chain broken at seq …" with the same seq |
 | Testnet | **Make a real testnet payment**, then the link | `allow`, an audit seq, a BaseScan link; the transaction shows success and a 0.0015 USDC transfer |
 | MCP | approve the three tool calls | allowed; untrusted with the session tainted; held with `HELD_TAINTED`, `NEEDS_APPROVAL` |
-| Kiroween | Settings toggle | "The Crypt" for frozen agents, "Haunted" for tainted sessions |
+| Kiroween | Header switch | "The Crypt" for frozen agents, "Haunted" for tainted sessions |
 
 ## The MCP scene
 
