@@ -233,6 +233,36 @@ type UiKey =
   | "audit.tamperTo"
   | "audit.tamperNotCaught"
   | "audit.tamperUnchecked"
+  | "audit.what"
+  | "audit.what.settled"
+  | "audit.what.settledNoRail"
+  | "audit.what.paidOutTo"
+  | "audit.what.failed"
+  | "audit.what.unknown"
+  | "audit.what.reconciled"
+  | "audit.what.taint"
+  | "audit.what.fetchFailed"
+  | "audit.what.approvalCreated"
+  | "audit.what.approved"
+  | "audit.what.denied"
+  | "audit.what.recheckFailed"
+  | "audit.what.executed"
+  | "audit.what.expired"
+  | "audit.what.frozen"
+  | "audit.what.unfrozen"
+  | "audit.what.payeeUpdated"
+  | "audit.what.payeeNone"
+  | "audit.what.envelope"
+  | "audit.what.scenario"
+  | "audit.what.scenarioLive"
+  | "audit.what.mcpAgent"
+  | "audit.what.sandboxCreated"
+  | "audit.what.sandboxRetired"
+  | "audit.what.testnetCreated"
+  | "audit.actor.sandboxVisitor"
+  | "audit.actor.system"
+  | "audit.actor.cli"
+  | "audit.actor.member"
   | "error.agentLimit"
   | "error.generic"
   | "error.rateLimited"
@@ -504,6 +534,36 @@ const defaultCopy: CopyTable = {
   "audit.tamperTo": "to",
   "audit.tamperNotCaught": "The changed copy still verifies.",
   "audit.tamperUnchecked": "Your browser couldn't recheck the events on this page, so there's nothing to compare against.",
+  "audit.what": "What happened",
+  "audit.what.settled": "Settled on {rail}",
+  "audit.what.settledNoRail": "Done, with no rail call",
+  "audit.what.paidOutTo": "paid out to {to}",
+  "audit.what.failed": "The rail refused it: {code}",
+  "audit.what.unknown": "The rail hasn't confirmed it, so the amount stays counted",
+  "audit.what.reconciled": "(found by the reconciler)",
+  "audit.what.taint": "Session tainted by {url}",
+  "audit.what.fetchFailed": "Fetch refused: {code}",
+  "audit.what.approvalCreated": "Sent to the approvals inbox",
+  "audit.what.approved": "Approved by {actor}",
+  "audit.what.denied": "Denied by {actor}",
+  "audit.what.recheckFailed": "Approved by {actor}, but the recheck failed",
+  "audit.what.executed": "The approved request passed its recheck",
+  "audit.what.expired": "The approval expired",
+  "audit.what.frozen": "Agent frozen",
+  "audit.what.unfrozen": "Unfrozen by {actor}",
+  "audit.what.payeeUpdated": "Payout account changed from {old} to {new}",
+  "audit.what.payeeNone": "none",
+  "audit.what.envelope": "Envelope version {version} saved by {actor}",
+  "audit.what.scenario": "Scenario started: {title}",
+  "audit.what.scenarioLive": "Scenario started with the live AI agent: {title}",
+  "audit.what.mcpAgent": "MCP agent created: {name}",
+  "audit.what.sandboxCreated": "Sandbox created",
+  "audit.what.sandboxRetired": "Sandbox retired",
+  "audit.what.testnetCreated": "Testnet workspace created",
+  "audit.actor.sandboxVisitor": "a sandbox visitor",
+  "audit.actor.system": "AgentVault",
+  "audit.actor.cli": "the command line",
+  "audit.actor.member": "a workspace member",
   "error.agentLimit": "This workspace has as many agents as it can hold.",
   "error.generic": "That didn't work. Try again.",
   "error.rateLimited": "Too many actions from your address. Wait a minute and try again.",
@@ -586,6 +646,13 @@ const kiroweenCopy: CopyTable = {
   "audit.verified": "The chain holds. No spirit has meddled with it.",
   "audit.broken": "The chain is cursed at seq",
   "audit.tamperTitle": "Try to curse the chain",
+  "audit.what.taint": "Session Haunted by {url}",
+  "audit.what.approved": "Blessed by {actor}",
+  "audit.what.denied": "Banished by {actor}",
+  "audit.what.recheckFailed": "Blessed by {actor}, but the wards refused it on recheck",
+  "audit.what.frozen": "Agent sealed in The Crypt",
+  "audit.what.unfrozen": "Released from The Crypt by {actor}",
+  "audit.actor.sandboxVisitor": "a wandering visitor",
   "settings.on": "Kiroween mode is on. Happy haunting.",
   "scenarios.runLive": "Summon a live AI agent",
   "scenarios.liveBadge": "Summoned AI agent",

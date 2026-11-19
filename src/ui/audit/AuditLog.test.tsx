@@ -38,12 +38,29 @@ describe("<AuditLog>", () => {
     expect(rows[1]!.textContent).toContain("agent agent-wi");
     expect(rows[2]!.textContent).toContain("–");
     // Shown truncated, with the full hash for screen readers and on hover.
-    const hash = within(rows[0]!).getAllByRole("cell")[4]!;
+    const hash = within(rows[0]!).getAllByRole("cell")[5]!;
     expect(hash.getAttribute("title")).toBe(HASH);
     expect(hash.textContent).toContain("a1b2c3d4e5f6…");
     expect(hash.textContent).toContain(HASH);
   });
 
+  it("UI-30: says what happened on each row, as text, with a dash for an event it can't read", () => {
+    const url = 'https://evil.test/<img src=x onerror="alert(1)">';
+    mount(apiReturning(200, {}), {
+      events: [
+        event(3, "decision", { agent_id: "a1", request: { vendor: "acme", tool: "payout.create", amount_micros: "900000000" }, decision: "hold", reasons: [{ code: "HELD_TAINTED" }] }),
+        event(2, "taint", { agent_id: "a1", url }),
+        event(1, "something_new"),
+      ],
+    });
+    expect(screen.getByRole("columnheader", { name: "What happened" })).toBeTruthy();
+    const what = within(screen.getByRole("table"))
+      .getAllByRole("row")
+      .slice(1)
+      .map((r) => within(r).getAllByRole("cell")[3]!);
+    expect(what.map((cell) => cell.textContent)).toEqual(["Held payout.create, $900.00: HELD_TAINTED", `Session tainted by ${url}`, "–"]);
+    expect(what[1]!.querySelector("img, a")).toBeNull();
+  });
   it("AUD-6: Verify chain asks the server for this workspace and shows the count and the signed head", async () => {
     const api = apiReturning(200, { workspace_id: "w1", ok: true, count: 88, head_seq: 88 });
     mount(api);

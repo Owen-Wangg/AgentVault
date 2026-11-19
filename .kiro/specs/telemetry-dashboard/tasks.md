@@ -74,7 +74,7 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
   - A dark-scheme style in `app/icon.svg`; `app/opengraph-image.png` with alt text, `app/apple-icon.png`, and Open Graph and Twitter metadata in the layout
   - _Requirements: UI-28, UI-29_
 
-- [ ] 15. Say what happened on each audit row
+- [x] 15. Say what happened on each audit row
   - `describeEvent` in `src/ui/audit/describe.ts`, pure, with a lenient schema per event type
   - A "What happened" column on the audit page, rendered as text, with copy in both themes
   - _Requirements: UI-30_

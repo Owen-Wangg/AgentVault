@@ -9,6 +9,7 @@ import type { UiKey } from "@/ui/copy";
 import { useCopy } from "@/ui/ThemeProvider";
 import type { AuditEventMessage } from "@/ui/events/summarize";
 import { agentLabel } from "@/ui/feed/agent-label";
+import { describeEvent } from "./describe";
 import { MIN_EVENTS_TO_DELETE, type Simulation, type TamperKind, simulateTamper } from "./tamper";
 
 export interface VerifyApi {
@@ -73,7 +74,8 @@ export function AuditLog({
   agentNames: Record<string, string>;
   api?: VerifyApi;
 }) {
-  const { t } = useCopy();
+  const copy = useCopy();
+  const { t } = copy;
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
 
@@ -145,6 +147,9 @@ export function AuditLog({
                   {t("audit.type")}
                 </th>
                 <th scope="col" className="px-3 py-2 font-medium">
+                  {t("audit.what")}
+                </th>
+                <th scope="col" className="px-3 py-2 font-medium">
                   {t("audit.agent")}
                 </th>
                 <th scope="col" className="px-3 py-2 font-medium">
@@ -165,6 +170,8 @@ export function AuditLog({
                       </time>
                     </td>
                     <td className="px-3 py-2 font-mono">{e.type}</td>
+                    {/* UI-30: plain text, never markup or a link, even for the URL a taint names. */}
+                    <td className="min-w-[16rem] px-3 py-2 [overflow-wrap:anywhere]">{describeEvent(e, copy)}</td>
                     <td className="px-3 py-2">{agent ? agentLabel(agentNames, agent) : "–"}</td>
                     <td className="px-3 py-2 font-mono" title={e.hash}>
                       <span aria-hidden="true">{short(e.hash)}</span>
