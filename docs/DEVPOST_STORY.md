@@ -7,7 +7,8 @@ Paste into the Devpost "About the project" fields. The Kiro section is in `docs/
 **Try it:** <https://owen-agentvault.vercel.app> (no login; mock rails, plus one real Base Sepolia testnet payment)
 
 **Submission form checklist** (Official Rules, section 4, read 2026-11-16):
-- Category: **Frankenstein** (one category only). Bonus prizes to tick: Best Student Project (Frankenstein), Best Demo (automatic), Bonus Blog Prize, Social Blitz.
+- Category: **Frankenstein** (one category only). Bonus prizes to tick: Best Student Project (Frankenstein), Best Demo (automatic), Bonus Blog Prize, Social Blitz. Also **Best Ghost of Kiroween Past** ($2,000) if you registered for Kiroween 2025; Devpost checks that against its 2025 records.
+- Kiro credits (rules section 4, read 2026-11-19): request the one-time 4,000 credits through the Credit Request Form by **Tuesday, Dec 1, 12:00 PM PT**, and redeem them by Dec 4. Review takes up to 48 business hours.
 - Best Student Project needs your LinkedIn profile, student email, year and degree, and school name. Proof of enrollment may be requested.
 - Public GitHub repo URL, live app URL, public YouTube video URL (under 3 minutes), the Kiro write-up, and the blog and social post URLs.
 - No login is needed for judging; say so in the credentials field. The hosted site runs as a public sandbox, and GitHub sign-in is turned off there.

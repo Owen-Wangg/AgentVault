@@ -163,7 +163,7 @@ On Vercel, add the same three variables under **Project → Settings → Environ
 
 ### Try it
 
-Open <http://localhost:3000> and click **Sign in with GitHub** in the sidebar. After you approve the app on GitHub, the header shows your workspace instead of the **Sandbox** badge. Sessions last 30 days; **Sign out** ends yours.
+Open <http://localhost:3000> and click **Sign in with GitHub** in the sidebar. After you approve the app on GitHub, the header shows your workspace instead of the **Sandbox** badge. Sessions last 8 hours; **Sign out** ends yours sooner.
 
 ## 6. x402 test payments (Base Sepolia)
 
