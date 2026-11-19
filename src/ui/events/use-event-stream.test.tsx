@@ -105,8 +105,9 @@ describe("useEventStream", () => {
     }
   });
 
-  it("UI-6: shows Live when connected and Reconnecting… while EventSource retries", async () => {
+  it("UI-6: shows Connecting… before the first connection, Live when connected, and Reconnecting… while EventSource retries", async () => {
     const { source } = mount();
+    expect(screen.getByRole("status").textContent).toBe("Connecting…");
     act(() => source.emit("open"));
     expect(screen.getByRole("status").textContent).toBe("Live");
     act(() => {

@@ -20,6 +20,7 @@ type UiKey =
   | "state.error"
   | "state.retry"
   | "state.reconnecting"
+  | "state.connecting"
   | "state.live"
   | "state.paused"
   | "state.resume"
@@ -313,6 +314,7 @@ const defaultCopy: CopyTable = {
   "state.error": "Something went wrong loading this. Try again in a moment.",
   "state.retry": "Try again",
   "state.reconnecting": "Reconnecting…",
+  "state.connecting": "Connecting…",
   "state.live": "Live",
   "state.paused": "Live updates paused",
   "state.resume": "Resume live updates",
@@ -604,6 +606,7 @@ const kiroweenCopy: CopyTable = {
   "state.loading": "Summoning…",
   "state.paused": "The spirits rest: live updates paused",
   "state.resume": "Wake the spirits",
+  "state.connecting": "Calling the spirits…",
   "nav.pendingSuffix": "awaiting judgment",
   "testnet.title": "A real offering",
   "testnet.description":
