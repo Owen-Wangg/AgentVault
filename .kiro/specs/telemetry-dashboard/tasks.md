@@ -60,3 +60,9 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
   - `FeedRow.requestedPayee` from a `payee.update` decision's `payee_ref`, shown in the feed and the scenario steps as text
   - Copy in both themes
   - _Requirements: UI-23, UI-24, UI-25_
+
+- [x] 13. Let visitors watch the chain check fail
+  - `verifySegment` in `src/core/audit/chain.ts`, with property 4
+  - `src/ui/audit/tamper.ts`: target choice, rewrite and delete on a copy
+  - A "Try to tamper with it" card on the audit page, with copy in both themes; no request, nothing stored
+  - _Requirements: UI-26_
