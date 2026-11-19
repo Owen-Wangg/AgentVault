@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { buildChain } from "@/core/testing/audit-fixtures";
 import type { AuditEventMessage } from "@/ui/events/summarize";
 import { AuditLog, type VerifyApi, outcomeOf } from "./AuditLog";
 
@@ -65,6 +66,58 @@ describe("<AuditLog>", () => {
     mount(apiReturning(200, {}), { events: [] });
     expect(screen.getByText("No events yet.")).toBeTruthy();
     expect(screen.queryByRole("link")).toBeNull();
+  });
+});
+
+describe("<AuditLog> tamper simulation", () => {
+  /** A real chain's newest rows, as the page gets them: newest first. */
+  const realPage = (): AuditEventMessage[] =>
+    buildChain("w1", [
+      { type: "scenario_started", payload: { agent_id: "a1", run_id: "r1" } },
+      { type: "taint", payload: { agent_id: "a1", url: "https://vendor.example/invoice" } },
+      { type: "decision", payload: { agent_id: "a1", request: { vendor: "acme-supplies", tool: "payout.create", amount_micros: "900000000" }, decision: "hold", reasons: [{ code: "HELD_TAINTED" }] } },
+      { type: "approval_created", payload: { approval_id: "ap1" } },
+    ]).events.reverse();
+
+  const tamper = (name: string) => act(() => fireEvent.click(screen.getByRole("button", { name })));
+  const result = () => screen.getByTestId("tamper-result").textContent;
+
+  it("UI-26: rewriting shows the untouched copy verifying, then the break at the rewritten seq, with no request", async () => {
+    const api = apiReturning(200, {});
+    const events = realPage();
+    const before = structuredClone(events);
+    mount(api, { events });
+    await tamper("Rewrite an event");
+    expect(result()).toBe(
+      "Untouched, the events on this page verify in your browser. Events checked: 4.Rewrote seq 3 (decision): hold to allow.Chain broken at seq 3. That event's hash doesn't match its contents.",
+    );
+    expect(api.verify).not.toHaveBeenCalled();
+    expect(events).toEqual(before);
+    // The page's own status region still belongs to Verify chain.
+    expect(screen.getByRole("status").textContent).toBe("");
+  });
+
+  it("UI-26: deleting shows the gap at the deleted seq", async () => {
+    mount(apiReturning(200, {}), { events: realPage() });
+    await tamper("Delete an event");
+    expect(screen.getByTestId("tamper-broken").textContent).toBe("Chain broken at seq 3. That event is missing.");
+  });
+
+  it("UI-26: says so when the browser can't recheck the page, and says the head check stays on the server", async () => {
+    // EVENTS carry made-up hashes, so even the untouched copy fails.
+    mount(apiReturning(200, {}));
+    await tamper("Rewrite an event");
+    expect(result()).toBe("Your browser couldn't recheck the events on this page, so there's nothing to compare against.");
+    expect(screen.queryByTestId("tamper-broken")).toBeNull();
+    expect(screen.getByText(/can't check the signed head/)).toBeTruthy();
+  });
+
+  it("UI-26: delete needs three events, and an empty page has no card", () => {
+    const { unmount } = mount(apiReturning(200, {}), { events: realPage().slice(0, 2) });
+    expect((screen.getByRole("button", { name: "Delete an event" }) as HTMLButtonElement).disabled).toBe(true);
+    unmount();
+    mount(apiReturning(200, {}), { events: [] });
+    expect(screen.queryByRole("region", { name: "Try to tamper with it" })).toBeNull();
   });
 });
 

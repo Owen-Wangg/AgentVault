@@ -207,6 +207,17 @@ type UiKey =
   | "audit.why.link"
   | "audit.why.gap"
   | "audit.why.head"
+  | "audit.tamperTitle"
+  | "audit.tamperIntro"
+  | "audit.tamperHeadNote"
+  | "audit.tamperRewrite"
+  | "audit.tamperDelete"
+  | "audit.tamperUntouched"
+  | "audit.tamperRewrote"
+  | "audit.tamperDeleted"
+  | "audit.tamperTo"
+  | "audit.tamperNotCaught"
+  | "audit.tamperUnchecked"
   | "error.agentLimit"
   | "error.generic"
   | "error.rateLimited"
@@ -450,6 +461,19 @@ const defaultCopy: CopyTable = {
   "audit.why.link": "That event doesn't link to the one before it.",
   "audit.why.gap": "That event is missing.",
   "audit.why.head": "The signed chain head doesn't match the last event.",
+  "audit.tamperTitle": "Try to tamper with it",
+  "audit.tamperIntro":
+    "These buttons change a copy of the events on this page, in your browser, then recheck the copy with the same chain code the server uses. Nothing is sent, and the stored log can't be changed: the database rejects every edit and delete.",
+  "audit.tamperHeadNote":
+    "Your browser can't check the signed head, because its key stays on the server. That check catches events deleted from the end of the log, and Verify chain runs it.",
+  "audit.tamperRewrite": "Rewrite an event",
+  "audit.tamperDelete": "Delete an event",
+  "audit.tamperUntouched": "Untouched, the events on this page verify in your browser. Events checked",
+  "audit.tamperRewrote": "Rewrote seq",
+  "audit.tamperDeleted": "Deleted seq",
+  "audit.tamperTo": "to",
+  "audit.tamperNotCaught": "The changed copy still verifies.",
+  "audit.tamperUnchecked": "Your browser couldn't recheck the events on this page, so there's nothing to compare against.",
   "error.agentLimit": "This workspace has as many agents as it can hold.",
   "error.generic": "That didn't work. Try again.",
   "error.rateLimited": "Too many actions from your address. Wait a minute and try again.",
@@ -527,6 +551,7 @@ const kiroweenCopy: CopyTable = {
   "approvals.empty": "No souls await judgment. Nothing is waiting for approval.",
   "audit.verified": "The chain holds. No spirit has meddled with it.",
   "audit.broken": "The chain is cursed at seq",
+  "audit.tamperTitle": "Try to curse the chain",
   "settings.on": "Kiroween mode is on. Happy haunting.",
   "scenarios.runLive": "Summon a live AI agent",
   "scenarios.liveBadge": "Summoned AI agent",

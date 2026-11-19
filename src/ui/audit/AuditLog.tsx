@@ -1,6 +1,6 @@
 "use client";
 
-import { ShieldCheck, ShieldX } from "lucide-react";
+import { PencilLine, ShieldCheck, ShieldX, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { DataState } from "@/ui/components/DataState";
@@ -9,6 +9,7 @@ import type { UiKey } from "@/ui/copy";
 import { useCopy } from "@/ui/ThemeProvider";
 import type { AuditEventMessage } from "@/ui/events/summarize";
 import { agentLabel } from "@/ui/feed/agent-label";
+import { MIN_EVENTS_TO_DELETE, type Simulation, type TamperKind, simulateTamper } from "./tamper";
 
 export interface VerifyApi {
   verify: (workspaceId: string) => Promise<{ status: number; body: unknown }>;
@@ -125,6 +126,9 @@ export function AuditLog({
         {outcome?.kind === "error" ? <Badge tone="deny">{t(outcome.message)}</Badge> : null}
       </div>
 
+      {/* An empty page already says "No events yet." */}
+      {events.length > 0 ? <TamperCard workspaceId={workspaceId} events={events} /> : null}
+
       <DataState status={events.length === 0 ? "empty" : "ready"} empty={t("audit.empty")}>
         {/* `relative` keeps the cells' sr-only text inside the scrolling box (UI-14). */}
         <div className="relative overflow-x-auto rounded-card border border-border bg-surface">
@@ -186,5 +190,77 @@ export function AuditLog({
         ) : null}
       </nav>
     </>
+  );
+}
+
+/**
+ * "Try to tamper with it" (UI-26): changes a copy of this page's events in
+ * the browser and rechecks it with the server's chain code. It sends no
+ * request and never touches `events` or the stored log.
+ */
+function TamperCard({ workspaceId, events }: { workspaceId: string; events: readonly AuditEventMessage[] }) {
+  const { t } = useCopy();
+  const [simulation, setSimulation] = useState<Simulation | null>(null);
+  const run = (kind: TamperKind) => setSimulation(simulateTamper(workspaceId, events, kind));
+  return (
+    <Card aria-labelledby="tamper-title" className="mb-4">
+      <h2 id="tamper-title" className="text-base font-semibold">
+        {t("audit.tamperTitle")}
+      </h2>
+      <p className="mt-1 text-sm text-text-muted">{t("audit.tamperIntro")}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button variant="secondary" onClick={() => run("rewrite")}>
+          <PencilLine aria-hidden="true" className="size-4" />
+          {t("audit.tamperRewrite")}
+        </Button>
+        <Button variant="secondary" disabled={events.length < MIN_EVENTS_TO_DELETE} onClick={() => run("delete")}>
+          <Trash2 aria-hidden="true" className="size-4" />
+          {t("audit.tamperDelete")}
+        </Button>
+      </div>
+      {/* Live but not role="status": Verify chain's result is the page's status. */}
+      <div aria-live="polite" data-testid="tamper-result" className="mt-3 text-sm">
+        {simulation ? <SimulationResult simulation={simulation} /> : null}
+      </div>
+      <p className="mt-3 text-xs text-text-muted">{t("audit.tamperHeadNote")}</p>
+    </Card>
+  );
+}
+
+function SimulationResult({ simulation }: { simulation: Simulation }) {
+  const { t } = useCopy();
+  if (simulation.kind === "unchecked") return <p>{t("audit.tamperUnchecked")}</p>;
+  const { change, result } = simulation;
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="flex items-start gap-2">
+        <ShieldCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-allow" />
+        <span>
+          {t("audit.tamperUntouched")}: <span className="font-mono">{simulation.untouched}</span>.
+        </span>
+      </p>
+      <p>
+        {change.kind === "rewrite" ? t("audit.tamperRewrote") : t("audit.tamperDeleted")} <span className="font-mono">{change.seq}</span> (<span className="font-mono">{change.type}</span>)
+        {change.kind === "rewrite" && change.from !== null && change.to !== null ? (
+          <>
+            : <span className="font-mono">{change.from}</span> {t("audit.tamperTo")} <span className="font-mono">{change.to}</span>
+          </>
+        ) : null}
+        .
+      </p>
+      {result.ok ? (
+        <p>{t("audit.tamperNotCaught")}</p>
+      ) : (
+        <p className="flex items-start gap-2 text-deny" data-testid="tamper-broken">
+          <ShieldX aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <span>
+            <strong>
+              {t("audit.broken")} <span className="font-mono">{result.brokenAtSeq}</span>.
+            </strong>{" "}
+            {t(`audit.why.${result.why}` as UiKey)}
+          </span>
+        </p>
+      )}
+    </div>
   );
 }
