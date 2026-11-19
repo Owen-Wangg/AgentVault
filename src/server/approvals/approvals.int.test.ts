@@ -25,7 +25,8 @@ import {
 } from "@/server/payments/test-fixtures";
 import { retireSandboxWorkspace } from "@/server/sandbox/sandbox";
 import { handleTool } from "@/server/tools/tool-handler";
-import { type HumanRouteDeps, handleApprovalAction, handleListApprovals, handleUnfreeze } from "./handlers";
+import { SANDBOX_ACTION_LIMIT } from "@/server/http/rate-limit";
+import { type HumanRouteDeps, SANDBOX_LIST_LIMIT, handleApprovalAction, handleListApprovals, handleUnfreeze } from "./handlers";
 
 let database: Database;
 
@@ -252,6 +253,18 @@ describe("HITL-11: who may approve", () => {
     const user = await ownWorkspace(own, "list-limit-owner");
     const ownDeps = harness({ user }).human({ rateLimit: { limit: 0, windowMs: 60_000 } });
     expect((await list("203.0.113.31", ownDeps)).status).toBe(200);
+  });
+
+  it("security §8, UI-4: the sandbox list's own limit lets someone click through every page for a minute", async () => {
+    await billingScene({ isSandbox: true });
+    const defaults: HumanRouteDeps = { ...harness().human() };
+    delete (defaults as { rateLimit?: unknown }).rateLimit;
+    const list = () => handleListApprovals(new Request("https://agentvault.example/api/v1/approvals", { headers: { "x-real-ip": "203.0.113.77" } }), defaults);
+    expect(SANDBOX_LIST_LIMIT.limit).toBeGreaterThan(SANDBOX_ACTION_LIMIT.limit);
+    // Two lists per page, more pages than the 30-a-minute action limit allowed.
+    const statuses = [];
+    for (let i = 0; i < 40; i += 1) statuses.push((await list()).status);
+    expect(statuses.every((s) => s === 200)).toBe(true);
   });
 
   it("returns 404 for an unknown or malformed approval ID and 400 for a bad action", async () => {

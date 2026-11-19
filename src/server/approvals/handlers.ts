@@ -77,9 +77,18 @@ async function authorizeAction(db: Db, request: Request, workspace: TargetWorksp
 }
 
 /** Sandbox actions are public, so they are rate-limited per IP (security-standards §8). */
-async function underRateLimit(db: Db, request: Request, action: string, deps: HumanRouteDeps): Promise<boolean> {
-  return hitRateLimit(db, { action, ip: clientIp(request), now: deps.now(), ...(deps.rateLimit ?? SANDBOX_ACTION_LIMIT) });
+async function underRateLimit(db: Db, request: Request, action: string, deps: HumanRouteDeps, limit: RateLimit = SANDBOX_ACTION_LIMIT): Promise<boolean> {
+  return hitRateLimit(db, { action, ip: clientIp(request), now: deps.now(), ...(deps.rateLimit ?? limit) });
 }
+
+/**
+ * Listing the sandbox's approvals per IP per minute. Every dashboard page
+ * lists them once or twice (the pending count and the inbox), so the
+ * 30-a-minute action limit stopped someone clicking through the pages, or
+ * several people behind one address. Each list writes at most the
+ * expirations that are due, so this still bounds the writes.
+ */
+export const SANDBOX_LIST_LIMIT: RateLimit = { limit: 180, windowMs: 60_000 };
 
 /**
  * A state-changing request sent from another site (CSRF). The session
@@ -136,7 +145,7 @@ export function handleListApprovals(request: Request, deps: HumanRouteDeps = def
     const workspace = await defaultWorkspace(db, await deps.getUser(request));
     if (!workspace) return json(404, { error: "NO_WORKSPACE" });
     // Listing applies expiry, which writes, and the sandbox is public.
-    if (workspace.isSandbox && !(await underRateLimit(db, request, "approvals list", deps))) return json(429, { error: "RATE_LIMITED" });
+    if (workspace.isSandbox && !(await underRateLimit(db, request, "approvals list", deps, SANDBOX_LIST_LIMIT))) return json(429, { error: "RATE_LIMITED" });
 
     const list = await listApprovals(serviceDeps(db, deps), workspace.id, query.data.status ? { status: query.data.status } : {});
     return json(200, { workspace_id: workspace.id, sandbox: workspace.isSandbox, approvals: list });
