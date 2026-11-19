@@ -78,3 +78,7 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
   - `describeEvent` in `src/ui/audit/describe.ts`, pure, with a lenient schema per event type
   - A "What happened" column on the audit page, rendered as text, with copy in both themes
   - _Requirements: UI-30_
+
+- [ ] 16. Show a skeleton while data loads
+  - `DataState`'s loading state draws muted bars instead of a dashed box with text; the text stays for screen readers
+  - _Requirements: UI-15, UI-19_
