@@ -1,7 +1,7 @@
 # Requirements: Demo Agents
 
 ## Introduction
-This spec covers the agents that exercise AgentVault: a **scripted agent** that replays the four demo scenarios deterministically, and an **optional live agent** on Gemini's free tier. Both call AgentVault only through its public API (`/api/v1/fetch`, `/api/v1/pay`, `/api/v1/tool`), exactly like a third-party agent would.
+This spec covers the agents that exercise AgentVault: a **scripted agent** that replays the five demo scenarios deterministically, and an **optional live agent** on Gemini's free tier. Both call AgentVault only through its public API (`/api/v1/fetch`, `/api/v1/pay`, `/api/v1/tool`), exactly like a third-party agent would.
 
 ## Requirement 1: Scenario runner
 **User story:** As a judge, I want to run each attack with one click, so that I can see AgentVault stop it.

@@ -17,7 +17,7 @@ import { BASE_URL, apiFetch } from "./test-fixtures";
 
 /**
  * demo-agents property 3 on in-memory PGlite, like property 1: each case
- * runs all four scenarios, about 45 agent requests, and needs no
+ * runs all five scenarios, about 48 agent requests, and needs no
  * concurrency. The per-request score behavior is covered on Postgres by
  * src/server/payments/advisory.int.test.ts and live.int.test.ts.
  *
