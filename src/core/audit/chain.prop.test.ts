@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { TEST_HEAD_KEY, buildChain, testTime } from "@/core/testing/audit-fixtures";
 import { canonicalJson } from "./canonical";
-import { type AuditEventBody, type ChainHead, EVENT_TYPES, type StoredEvent, verify } from "./chain";
+import { type AuditEventBody, type ChainHead, EVENT_TYPES, type StoredEvent, verify, verifySegment } from "./chain";
 
 const RUNS = { numRuns: 1000 };
 const WS = "ws_prop";
@@ -142,4 +142,58 @@ describe("hash chain properties", () => {
     // Each run rebuilds and re-signs a whole chain, so this property takes about 4 s alone
     // and can pass Vitest's 5 s default when every test file runs at once.
   }, 30_000);
+});
+
+describe("segment verification", () => {
+  /** A chain and a contiguous run of it, as [from, to) indexes. */
+  const runArb = (minRun: number) =>
+    chainArb(minRun).chain((c) =>
+      fc.integer({ min: 0, max: c.events.length - minRun }).chain((from) =>
+        fc.integer({ min: from + minRun, max: c.events.length }).map((to) => ({ chain: c, run: c.events.slice(from, to) })),
+      ),
+    );
+
+  // telemetry-dashboard property 4, segment tamper detection (UI-26): for any
+  // chain and any contiguous run of it, `verifySegment` accepts the untouched
+  // run; a payload edit to any row of the run fails at that row with
+  // `why: "hash"`; and deleting any row strictly inside the run fails at that
+  // row's `seq` with `why: "gap"`.
+  it("UI-26: any untouched run of a chain verifies with its length", () => {
+    fc.assert(
+      fc.property(runArb(0), ({ run }) => {
+        expect(verifySegment(WS, run)).toEqual({ ok: true, count: run.length });
+      }),
+      RUNS,
+    );
+  });
+
+  it("UI-26: a payload edit to any row of a run is caught at that row", () => {
+    const arb = runArb(1).chain((r) => fc.tuple(fc.constant(r.run), fc.integer({ min: 0, max: r.run.length - 1 })));
+    fc.assert(
+      fc.property(arb, ([run, i]) => {
+        const tampered = run.map((e, j) => (j === i ? EDITS.payload!(e, 0) : e));
+        expect(verifySegment(WS, tampered)).toEqual({ ok: false, brokenAtSeq: (run[i] as StoredEvent).seq, why: "hash" });
+      }),
+      RUNS,
+    );
+  });
+
+  it("UI-26: deleting any row strictly inside a run is caught at its seq", () => {
+    const arb = runArb(3).chain((r) => fc.tuple(fc.constant(r.run), fc.integer({ min: 1, max: r.run.length - 2 })));
+    fc.assert(
+      fc.property(arb, ([run, i]) => {
+        expect(verifySegment(WS, run.filter((_, j) => j !== i))).toEqual({ ok: false, brokenAtSeq: (run[i] as StoredEvent).seq, why: "gap" });
+      }),
+      RUNS,
+    );
+  });
+
+  it("UI-26: a run from another workspace fails at its first row", () => {
+    fc.assert(
+      fc.property(runArb(1), ({ run }) => {
+        expect(verifySegment("ws_other", run)).toEqual({ ok: false, brokenAtSeq: (run[0] as StoredEvent).seq, why: "hash" });
+      }),
+      RUNS,
+    );
+  });
 });

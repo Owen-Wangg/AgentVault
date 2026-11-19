@@ -190,6 +190,28 @@ export function verifyNext(workspaceId: string, state: VerifyState, event: Store
   return { prev: event.hash, expectedSeq: expectedSeq + 1 };
 }
 
+/** verifyNext() never reports `head`, so a segment fails only with `hash`, `link`, or `gap`. */
+export type SegmentResult = { ok: true; count: number } | VerifyFailure;
+
+/**
+ * Verify a contiguous run of a chain, such as one page of the audit log
+ * (telemetry-dashboard UI-26). `events` must be in `seq` order. The run
+ * starts from its first row's own `prev_hash` and `seq`, then gets the
+ * verifyNext() checks. There is no head check: the head key stays on the
+ * server, so a run with rows deleted from its end still passes here.
+ */
+export function verifySegment(workspaceId: string, events: readonly StoredEvent[]): SegmentResult {
+  const first = events[0];
+  if (!first) return { ok: true, count: 0 };
+  let state: VerifyState = { prev: first.prev_hash, expectedSeq: first.seq };
+  for (const event of events) {
+    const next = verifyNext(workspaceId, state, event);
+    if ("ok" in next) return next;
+    state = next;
+  }
+  return { ok: true, count: events.length };
+}
+
 /** The head checks, once every event has passed verifyNext(). */
 export function finishVerify(workspaceId: string, state: VerifyState, head: ChainHead | null, key: Uint8Array): VerifyResult {
   assertKey(key);
