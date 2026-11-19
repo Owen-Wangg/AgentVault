@@ -8,14 +8,14 @@ The Official Rules require <https://owen-agentvault.vercel.app> to stay availabl
 2. Vercel dashboard, **Usage**: Provisioned Memory, Active CPU, Function Invocations, and Fast Data Transfer, against the Hobby allotments below. Provisioned Memory is the one most likely to run out (see the event stream risk).
 3. Neon console, **Usage** for the project: compute (CU-hours this month), storage, and network transfer. The allowance is per project, so the test branch (`DATABASE_URL_TEST`) and every `pnpm verify` against it count too.
 4. Prefer `pnpm verify:local` (PGlite) for routine test runs, and `pnpm verify` (Neon) only before commits that touch the payment flow, approvals, the reconciler, the scenario runner, or the schema.
-5. Before recording the demo: `pnpm connect:setup --fund 5` if the Stripe platform's USD test balance is low. The live site doesn't need it; it runs mock rails.
+5. Before recording the demo: `pnpm connect:setup --fund 5` if the Stripe platform's USD test balance is low. The live site doesn't use that balance: the public sandbox runs mock rails, and the testnet button pays only over x402.
 
 ## Limits
 
 | Service | Limit on the free plan | What happens past it | Source (read 2026-11-16) |
 |---|---|---|---|
 | Vercel Hobby | 360 GB-hours of Provisioned Memory, 4 hours of Active CPU, and 1,000,000 Function Invocations a month; 100 GB Fast Data Transfer, 10 GB Fast Origin Transfer | The team is paused: every deployment answers `503 DEPLOYMENT_PAUSED`. It doesn't resume on its own; it waits out the 30-day cycle and then needs Support, or a move to Pro | vercel.com/docs/functions/usage-and-pricing, /docs/limits/fair-use-guidelines |
-| Vercel Hobby cron | Daily jobs only, run somewhere in the scheduled hour | A more frequent schedule fails the deploy (a test checks `vercel.json`) | vercel.com/docs/cron-jobs/usage-and-pricing |
+| Vercel Hobby cron | Daily jobs only, run somewhere in the scheduled hour. `vercel.json` schedules the reconciler at 10:00 UTC and the sandbox reset at 11:00 UTC, so each runs between :00 and :59 of that hour | A more frequent schedule fails the deploy (a test checks `vercel.json`) | vercel.com/docs/cron-jobs/usage-and-pricing |
 | Neon Free | 100 CU-hours of compute a month per project (all branches), 1 GB of storage per project, 5 GB of network transfer a month; computes scale to zero after 5 minutes idle | Computes are suspended until the next month (SQLSTATE `53000`), so every page and API call fails closed | neon.com/docs/introduction/plans |
 | Gemini free tier | Per-minute and per-day request limits | Live AI runs stop with `gemini_rate_limited`; scripted runs don't use Gemini. AgentVault also caps live runs at 3 per IP per 10 minutes and 40 a day | `docs/SETUP.md` section 8 |
 
@@ -37,7 +37,7 @@ Every open dashboard tab holds an event stream (`/api/v1/events`). Each stream r
 - keeps a Vercel function instance alive all the time. Provisioned Memory is billed for the instance's whole lifetime, at 2 GB (the Hobby default), so that's about 48 GB-hours a day, and **360 GB-hours lasts about 7.5 days**. Tabs that share one instance cost the same as one tab.
 - keeps the Neon compute from scaling to zero. At 0.25 CU that's 6 CU-hours a day, so **100 CU-hours lasts about 16 days**, less whatever the tests use.
 
-Both numbers are estimates from the published rates, not measurements. The dashboards' usage pages show the real figures. Since telemetry-dashboard task 10 (TEL-6, TEL-7), the dashboard closes its stream while the tab is hidden and after 15 minutes without input, and shows "Live updates paused" with a Resume button, so a forgotten tab costs at most 15 minutes. A client that ignores this, such as a script holding the stream open, still costs the same; the per-IP limit of 30 stream opens a minute is the only check on that.
+Both numbers are estimates from the published rates, not measurements. The dashboards' usage pages show the real figures. Since telemetry-dashboard task 10 (TEL-6, TEL-7), the dashboard closes its stream while the tab is hidden and after 15 minutes without input, and shows "Live updates paused" with a Resume button, so a forgotten tab costs at most 15 minutes. A client that ignores this, such as a script holding the stream open, still costs the same. On the sandbox, the only checks on that are 30 stream opens a minute per IP and 40 a minute for all visitors together. The second cap keeps open streams, each holding a database connection, well under the roughly 100 connections a direct (unpooled) Neon connection string allows.
 
 ## Status on 2026-11-16
 
