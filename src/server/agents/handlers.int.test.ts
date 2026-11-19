@@ -13,7 +13,7 @@ import { createTestDb } from "@/server/db/test-db";
 import { runGuardedRequest } from "@/server/payments/guarded";
 import { FakeClock, type Scene, createScene, eventsOf, testDeps } from "@/server/payments/test-fixtures";
 import { type AgentAdminDeps, handleCreateAgent, handleUpdateEnvelope } from "./handlers";
-import { NEW_AGENT_ENVELOPE, getAgentEnvelope } from "./manage";
+import { MAX_AGENTS_PER_WORKSPACE, NEW_AGENT_ENVELOPE, getAgentEnvelope } from "./manage";
 
 let database: Database;
 
@@ -81,6 +81,18 @@ describe("POST /api/v1/agents", () => {
     const [env] = await db().select().from(envelopes).where(eq(envelopes.agentId, body.agent_id));
     expect(decodeEnvelope(body.agent_id, env!)).toEqual({ agentId: body.agent_id, ...NEW_AGENT_ENVELOPE });
   });
+
+  it("UI-7: a workspace holds at most MAX_AGENTS_PER_WORKSPACE agents; the next create is 409 and adds nothing", async () => {
+    const u = await user("create-many");
+    let workspaceId = "";
+    for (let i = 0; i < MAX_AGENTS_PER_WORKSPACE; i += 1) {
+      const response = await handleCreateAgent(create({ name: `bot-${i}` }), deps(u));
+      expect(response.status).toBe(201);
+      workspaceId = ((await response.json()) as { workspace_id: string }).workspace_id;
+    }
+    expect(await read(await handleCreateAgent(create({ name: "one-too-many" }), deps(u)))).toEqual([409, { error: "AGENT_LIMIT_REACHED" }]);
+    expect(await db().select().from(agents).where(eq(agents.workspaceId, workspaceId))).toHaveLength(MAX_AGENTS_PER_WORKSPACE);
+  }, 60_000);
 
   it("UI-7: signed out is 401, and a bad name is 400", async () => {
     expect(await read(await handleCreateAgent(create({ name: "bot" }), deps(null)))).toEqual([401, { error: "UNAUTHORIZED" }]);

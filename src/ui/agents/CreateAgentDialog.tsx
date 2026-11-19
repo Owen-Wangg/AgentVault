@@ -56,7 +56,7 @@ export function CreateAgentDialog({ create = postCreateAgent, copy = (text: stri
       const result = await create(name.trim());
       const apiKey = (result.body as { api_key?: unknown } | null)?.api_key;
       if (result.status === 201 && typeof apiKey === "string") setKey(apiKey);
-      else setError(result.status === 401 ? t("error.unauthorized") : t("error.generic"));
+      else setError(result.status === 401 ? t("error.unauthorized") : result.status === 409 ? t("error.agentLimit") : t("error.generic"));
     } catch {
       setError(t("error.generic"));
     } finally {

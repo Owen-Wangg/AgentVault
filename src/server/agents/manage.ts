@@ -1,10 +1,10 @@
-import { and, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { fromDecimalString } from "@/core/money";
 import { type Envelope, type EnvelopeWire, envelopeToWire } from "@/core/policy";
 import { appendEvent } from "@/server/audit/append";
 import type { Db } from "@/server/db/client";
 import { decodeEnvelope, encodeEnvelope } from "@/server/db/envelope-json";
-import { agents, envelopes } from "@/server/db/schema";
+import { agents, envelopes, workspaces } from "@/server/db/schema";
 import { createAgent } from "./agents";
 
 /**
@@ -31,9 +31,22 @@ export const NEW_AGENT_ENVELOPE: Omit<Envelope, "agentId"> = {
   allowedTools: ["x402.pay", "mpp.pay"],
 };
 
-/** Create an agent with the default envelope. The key is returned once and never stored (PXY-1). */
-export async function createWorkspaceAgent(db: Db, input: { workspaceId: string; name: string; now: Date }): Promise<{ agentId: string; apiKey: string }> {
-  return db.transaction((tx) => createAgent(tx, { workspaceId: input.workspaceId, name: input.name, envelope: NEW_AGENT_ENVELOPE, now: input.now }));
+/** At most this many agents per workspace, so a signed-in visitor can't fill the database with them. */
+export const MAX_AGENTS_PER_WORKSPACE = 25;
+
+/**
+ * Create an agent with the default envelope. The key is returned once and
+ * never stored (PXY-1). Returns null when the workspace already has
+ * MAX_AGENTS_PER_WORKSPACE agents. The workspace row is locked first, so
+ * concurrent creates can't both pass the count.
+ */
+export async function createWorkspaceAgent(db: Db, input: { workspaceId: string; name: string; now: Date }): Promise<{ agentId: string; apiKey: string } | null> {
+  return db.transaction(async (tx) => {
+    await tx.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.id, input.workspaceId)).for("update");
+    const [row] = await tx.select({ n: count() }).from(agents).where(eq(agents.workspaceId, input.workspaceId));
+    if ((row?.n ?? 0) >= MAX_AGENTS_PER_WORKSPACE) return null;
+    return createAgent(tx, { workspaceId: input.workspaceId, name: input.name, envelope: NEW_AGENT_ENVELOPE, now: input.now });
+  });
 }
 
 export interface AgentEnvelope {

@@ -56,7 +56,9 @@ export function handleCreateAgent(request: Request, deps: AgentAdminDeps = defau
     const body = await parseBody(request, CreateBodySchema);
     if (!body.ok) return body.response;
     const workspace = await ensurePersonalWorkspace(db, user, { key: deps.key() });
-    const { agentId, apiKey } = await createWorkspaceAgent(db, { workspaceId: workspace.id, name: body.value.name, now: deps.now() });
+    const created = await createWorkspaceAgent(db, { workspaceId: workspace.id, name: body.value.name, now: deps.now() });
+    if (!created) return json(409, { error: "AGENT_LIMIT_REACHED" });
+    const { agentId, apiKey } = created;
     return noStore(json(201, { agent_id: agentId, name: body.value.name, workspace_id: workspace.id, api_key: apiKey }));
   });
 }

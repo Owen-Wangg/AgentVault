@@ -197,6 +197,7 @@ type UiKey =
   | "audit.why.link"
   | "audit.why.gap"
   | "audit.why.head"
+  | "error.agentLimit"
   | "error.generic"
   | "error.rateLimited"
   | "error.unauthorized"
@@ -427,6 +428,7 @@ const defaultCopy: CopyTable = {
   "audit.why.link": "That event doesn't link to the one before it.",
   "audit.why.gap": "That event is missing.",
   "audit.why.head": "The signed chain head doesn't match the last event.",
+  "error.agentLimit": "This workspace has as many agents as it can hold.",
   "error.generic": "That didn't work. Try again.",
   "error.rateLimited": "Too many actions from your address. Wait a minute and try again.",
   "error.unauthorized": "Sign in to do that.",
