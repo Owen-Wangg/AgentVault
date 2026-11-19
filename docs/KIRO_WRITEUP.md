@@ -150,4 +150,4 @@ The optional Gemini agent (`gemini-3.5-flash-lite`, free tier) runs three scenar
 
 ## Numbers
 
-Nine specs, eight steering files, seven hooks, one custom agent, and about 360 commits. About 1,580 Vitest tests (unit, property, and integration), with 19 property-test files, and 10 Playwright tests. Lighthouse accessibility, best practices, and SEO 100 on the overview in both themes. One real testnet payment button on the hosted site, live since Nov 17.
+Nine specs, eight steering files, seven hooks, one custom agent, and about 380 commits. About 1,580 Vitest tests (unit, property, and integration), with 19 property-test files, and 10 Playwright tests. Lighthouse accessibility, best practices, and SEO 100 on the overview, Scenarios, and Audit in both themes, and on Approvals in the default theme. One real testnet payment button on the hosted site, live since Nov 17.

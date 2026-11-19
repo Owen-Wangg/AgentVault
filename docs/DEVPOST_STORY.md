@@ -69,7 +69,7 @@ In the **payee hijack**, an agent paying a supplier's $900 invoice reads a poiso
 - Any visitor can make a real $0.0015 x402 payment on Base Sepolia from the hosted site and see it on BaseScan, through the same checks as every other request.
 - Real sub-cent x402 payments ($0.0015) settled on Base Sepolia, and real Stripe MPP test payments with a refund, each found again by the read-only lookup the reconciler uses. Guarded $1.00 payouts settled as a Stripe Connect test-mode transfer and a PayPal sandbox payout.
 - Property tests that found real bugs, including one that would have let a limit disappear.
-- Lighthouse accessibility, best practices, and SEO scores of 100 on the overview in both themes.
+- Lighthouse accessibility, best practices, and SEO scores of 100 on the overview, Scenarios, and Audit pages in both themes, and on Approvals in the default theme.
 
 ## What we learned
 
