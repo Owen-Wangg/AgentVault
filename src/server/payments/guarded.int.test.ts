@@ -8,7 +8,7 @@ import { type Database, queryRows } from "@/server/db/client";
 import { agents, approvals, idempotency, spendReservations } from "@/server/db/schema";
 import { createTestDb } from "@/server/db/test-db";
 import { type GuardedDeps, requestHash, runGuardedRequest } from "./guarded";
-import { FakeClock, createScene, eventsOf, expectAuditBeforeSpend, testDeps } from "./test-fixtures";
+import { FakeClock, createScene, eventsOf, expectAuditBeforeSpend, taintSession, testDeps } from "./test-fixtures";
 
 let database: Database;
 
@@ -422,6 +422,75 @@ describe("PXY-10, PXY-11: velocity freezes the agent", () => {
     expect(row?.frozenAt).toBeInstanceOf(Date);
     expect((await eventsOf(db(), scene.workspaceId)).filter((e) => e.type === "agent_frozen")).toHaveLength(1);
     expect(mocks.x402.calls).toBe(0);
+  });
+});
+
+describe("RAIL-27: a refund outside the sandbox must refund this workspace's own payment", () => {
+  const refundScene = () =>
+    createScene(db(), { task: { allowedTools: ["mpp.pay", "stripe.refund"], budgetMicros: fromDecimalString("1000") } });
+  const notOurs = { code: "INVALID_REQUEST", detail: { field: "args.payment_ref", reason: "not a settled payment of this workspace" } };
+  const tooMuch = { code: "INVALID_REQUEST", detail: { field: "args.payment_ref", reason: "more than is left to refund" } };
+
+  async function pay(scene: Awaited<ReturnType<typeof createScene>>, deps: GuardedDeps, amount: string) {
+    const r = await runGuardedRequest({ agent: scene.agent, idempotencyKey: key(), body: scene.body({ tool: "mpp.pay", amountMicros: fromDecimalString(amount) }) }, deps);
+    expect(r.body.rail_status).toBe("settled");
+    return r.body.rail_ref!;
+  }
+  const refund = (scene: Awaited<ReturnType<typeof createScene>>, deps: GuardedDeps, ref: string, amount: string) =>
+    runGuardedRequest(
+      { agent: scene.agent, idempotencyKey: key(), body: scene.body({ tool: "stripe.refund", amountMicros: fromDecimalString(amount), args: { payment_ref: ref } }) },
+      deps,
+    );
+
+  it("RAIL-27: a refund naming a payment this workspace never made is denied before any rail call", async () => {
+    const scene = await refundScene();
+    const { deps, mocks } = testDeps(db());
+    const r = await refund(scene, deps, "pi_someone_elses", "1.00");
+    expect(r).toMatchObject({ status: 403, body: { decision: "deny", reasons: [notOurs] } });
+    expect(mocks.stripe.calls).toBe(0);
+    expect(await reservationsOf(scene.agent.id)).toEqual([]);
+  });
+
+  it("RAIL-27: a payment made by another workspace can't be refunded", async () => {
+    const other = await refundScene();
+    const scene = await refundScene();
+    const { deps, mocks } = testDeps(db());
+    const ref = await pay(other, deps, "2.00");
+    const r = await refund(scene, deps, ref, "1.00");
+    expect(r.body.reasons).toEqual([notOurs]);
+    expect(mocks.stripe.recorded().map((x) => x.kind)).toEqual(["payment"]);
+  });
+
+  it("RAIL-27: refunds of a payment are allowed up to its settled amount, then denied", async () => {
+    const scene = await refundScene();
+    const { deps, mocks } = testDeps(db());
+    const ref = await pay(scene, deps, "2.00");
+    expect((await refund(scene, deps, ref, "1.50")).body.rail_status).toBe("settled");
+    expect((await refund(scene, deps, ref, "0.51")).body.reasons).toEqual([tooMuch]);
+    expect((await refund(scene, deps, ref, "0.50")).body.rail_status).toBe("settled");
+    expect((await refund(scene, deps, ref, "0.01")).body.reasons).toEqual([tooMuch]);
+    expect(mocks.stripe.recorded().map((x) => x.kind)).toEqual(["payment", "refund", "refund"]);
+  });
+
+  it("RAIL-27: a refund the rail confirmed as failed doesn't use up the payment, but an unknown one does", async () => {
+    const scene = await refundScene();
+    const { deps, mocks } = testDeps(db());
+    const ref = await pay(scene, deps, "1.00");
+    mocks.stripe.setFailureMode("RAIL_REJECTED");
+    expect((await refund(scene, deps, ref, "1.00")).body.rail_status).toBe("failed");
+    mocks.stripe.setFailureMode("RAIL_TIMEOUT");
+    expect((await refund(scene, deps, ref, "1.00")).body.rail_status).toBe("unknown");
+    mocks.stripe.setFailureMode(null);
+    expect((await refund(scene, deps, ref, "0.01")).body.reasons).toEqual([tooMuch]);
+  });
+
+  it("RAIL-27, AGT-8: a tainted refund of an unknown payment is still held for a human, not denied", async () => {
+    const scene = await refundScene();
+    await taintSession(db(), scene.sessionId);
+    const { deps } = testDeps(db());
+    const r = await refund(scene, deps, "pi_mock_billing_500", "480.00");
+    expect(r.body.decision).toBe("hold");
+    expect(r.body.reasons?.map((x) => x.code)).toEqual(["HELD_TAINTED"]);
   });
 });
 

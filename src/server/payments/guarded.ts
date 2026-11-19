@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { canonicalJson } from "@/core/audit";
-import { type Micros, type Rail, chargeableMicros, micros } from "@/core/money";
+import { type Micros, type Rail, chargeableMicros, cmp, fromMicrosString, micros, sub } from "@/core/money";
 import { type Decision, type EvaluateInput, type HoldReason, type ReasonDetail, type Window, evaluate, velocityReasons } from "@/core/policy";
 import { type PayoutRail, isDestinationFor, isPayoutRail } from "@/rails/destination";
 import type { DestinationCheck, RailAdapter, RailResult } from "@/rails/types";
@@ -11,7 +11,7 @@ import type { AuthenticatedAgent } from "@/server/auth/agent-keys";
 import { type Db, type Tx, queryRows } from "@/server/db/client";
 import { decodeEnvelope } from "@/server/db/envelope-json";
 import { agents, approvals, envelopes, idempotency, sessions, spendReservations, tasks, vendors, workspaces } from "@/server/db/schema";
-import { PAY_TOOLS, type ToolDef, findTool, policyTool } from "@/server/tools/registry";
+import { PAY_TOOLS, type ToolDef, findTool, policyTool, registeredTools } from "@/server/tools/registry";
 import { type RailOutcome, classifyRailResult } from "./outcome";
 
 /**
@@ -162,6 +162,52 @@ async function loadCallsLastMinute(tx: Tx, agentId: string, key: string, now: Da
 }
 
 type Claim = { kind: "claimed" } | { kind: "done"; response: GuardedResponse };
+
+/**
+ * How much of an earlier payment is left to refund, or null if `paymentRef`
+ * is not a payment this workspace settled on `rail`. The payment is a
+ * settled rail_result of a pay tool on that rail. Earlier refunds are every
+ * allowed refund decision naming it, by counted amount, unless its rail
+ * result is a confirmed failure, so a refund still in flight or unknown
+ * keeps its amount counted. Callers hold the envelope lock, which
+ * serializes this agent's refunds.
+ */
+async function refundRoom(tx: Tx, workspaceId: string, paymentRef: string, rail: Rail): Promise<Micros | null> {
+  const payTools = toolNames(rail, "pay");
+  const refundTools = toolNames(rail, "refund");
+  if (paymentRef === "" || payTools.length === 0 || refundTools.length === 0) return null;
+  const list = (names: string[]) =>
+    sql.join(
+      names.map((n) => sql`${n}`),
+      sql`, `,
+    );
+  const [row] = await queryRows<{ paid: string | null; refunded: string }>(
+    tx,
+    sql`SELECT
+      (SELECT r.payload->>'settled_micros' FROM audit_events r
+        JOIN audit_events d ON d.workspace_id = r.workspace_id AND d.seq = (r.payload->>'decision_seq')::int AND d.type = 'decision'
+        WHERE r.workspace_id = ${workspaceId} AND r.type = 'rail_result' AND r.payload->>'status' = 'settled'
+          AND r.payload->>'rail' = ${rail} AND r.payload->>'rail_ref' = ${paymentRef} AND r.payload->'refund_of' IS NULL
+          AND d.payload->'request'->>'tool' IN (${list(payTools)})
+        ORDER BY r.seq LIMIT 1) AS paid,
+      (SELECT coalesce(sum((d.payload->'request'->>'counted_micros')::numeric), 0)::text FROM audit_events d
+        WHERE d.workspace_id = ${workspaceId} AND d.type = 'decision' AND d.payload->>'decision' = 'allow'
+          AND d.payload->'request'->>'tool' IN (${list(refundTools)})
+          AND d.payload->'request'->'args'->>'payment_ref' = ${paymentRef}
+          AND NOT EXISTS (SELECT 1 FROM audit_events f WHERE f.workspace_id = d.workspace_id AND f.type = 'rail_result'
+            AND (f.payload->>'decision_seq')::int = d.seq AND f.payload->>'status' = 'failed')) AS refunded`,
+  );
+  if (!row?.paid) return null;
+  const paid = fromMicrosString(row.paid);
+  const refunded = fromMicrosString(row.refunded);
+  return cmp(refunded, paid) >= 0 ? micros(0n) : sub(paid, refunded);
+}
+
+/** Registered tools on `rail` with this operation. */
+const toolNames = (rail: Rail, operation: ToolDef["operation"]): string[] =>
+  registeredTools()
+    .filter((t) => t.rail === rail && t.operation === operation)
+    .map((t) => t.name);
 
 /** Claim the idempotency key under the envelope lock (PXY-8, PXY-12, PXY-13, PXY-14). */
 async function claimKey(tx: Tx, agentId: string, key: string, hash: string, now: Date): Promise<Claim> {
@@ -348,6 +394,25 @@ export async function decideGuarded(tx: Tx, req: GuardedRequest, deps: GuardedDe
       }),
     );
     if (early.length > 0) decision = { decision: "deny", reasons: [...early, ...decision.reasons] };
+  }
+
+  // A refund outside the sandbox must refund a payment this workspace settled on the same rail,
+  // and not more than is left of it. Checked only when it would run, so a held refund still goes
+  // to a human, and its approved re-run is checked here before anything is reserved.
+  if (decision.decision === "allow" && tool?.operation === "refund" && tool.rail !== null && !agentRow.isSandbox) {
+    const paymentRef = body.args?.payment_ref ?? "";
+    const room = await refundRoom(tx, workspaceId, paymentRef, tool.rail);
+    if (room === null || cmp(counted, room) > 0) {
+      decision = {
+        decision: "deny",
+        reasons: [
+          {
+            code: "INVALID_REQUEST",
+            detail: { field: "args.payment_ref", reason: room === null ? "not a settled payment of this workspace" : "more than is left to refund" },
+          },
+        ],
+      };
+    }
   }
 
   // Step 6: the decision is audited before anything executes (PXY-5).

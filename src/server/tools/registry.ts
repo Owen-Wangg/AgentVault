@@ -39,6 +39,11 @@ const TOOLS: readonly ToolDef[] = [
 
 const BY_NAME = new Map(TOOLS.map((t) => [t.name, t]));
 
+/** Every registered tool. */
+export function registeredTools(): readonly ToolDef[] {
+  return TOOLS;
+}
+
 /** The registered tool, or undefined for an unknown name. */
 export function findTool(name: string): ToolDef | undefined {
   return BY_NAME.get(name);

@@ -46,6 +46,15 @@ function toolDeps(options: { mocks?: MockRails; clock?: FakeClock } = {}) {
 const billingScene = (envelope: Omit<Envelope, "agentId"> = OPEN_ENVELOPE) =>
   createScene(db(), { envelope, task: { allowedTools: ALL_TOOLS, budgetMicros: fromDecimalString("1000") } });
 
+/**
+ * The same, as a sandbox workspace. Outside the sandbox a refund must name a
+ * payment the workspace settled; these tests are about the refund itself, so
+ * they refund the made-up pi_seed_500 where that check doesn't apply. The
+ * check has its own tests below.
+ */
+const refundScene = () =>
+  createScene(db(), { envelope: OPEN_ENVELOPE, isSandbox: true, task: { allowedTools: ALL_TOOLS, budgetMicros: fromDecimalString("1000") } });
+
 let n = 0;
 const nextKey = () => `tool-${(n += 1)}`;
 
@@ -69,7 +78,7 @@ async function reservationsOf(agentId: string) {
 
 describe("TAINT-7: privileged tools in an untainted session", () => {
   it("TAINT-7: stripe.refund runs refund() on the rail with the payment reference and settles", async () => {
-    const scene = await billingScene();
+    const scene = await refundScene();
     const { tool, mocks } = toolDeps();
     const r = await read(await handleTool(request(scene), tool));
     expect(r).toMatchObject({ status: 200, body: { decision: "allow", reasons: [], rail_status: "settled", event_seq: 1 } });
@@ -85,7 +94,7 @@ describe("TAINT-7: privileged tools in an untainted session", () => {
   });
 
   it("MON-8, MON-11: a refund counts the full amount but the rail refunds whole cents, rounded down", async () => {
-    const scene = await billingScene();
+    const scene = await refundScene();
     const { tool, mocks } = toolDeps();
     await handleTool(request(scene, { args: { ...REFUND_ARGS, amount_micros: "15000" } }), tool);
     const [reservation] = await reservationsOf(scene.agent.id);
@@ -277,7 +286,7 @@ describe("POST /api/v1/tool: authentication, validation, idempotency", () => {
   });
 
   it("PXY-8: a replay returns the original response and refunds once", async () => {
-    const scene = await billingScene();
+    const scene = await refundScene();
     const { tool, mocks } = toolDeps();
     const first = await read(await handleTool(request(scene, {}, { "idempotency-key": "same-refund" }), tool));
     const second = await read(await handleTool(request(scene, {}, { "idempotency-key": "same-refund" }), tool));
@@ -286,7 +295,7 @@ describe("POST /api/v1/tool: authentication, validation, idempotency", () => {
   });
 
   it("PXY-12: the same key with a different payment reference returns 422", async () => {
-    const scene = await billingScene();
+    const scene = await refundScene();
     const { tool, mocks } = toolDeps();
     await handleTool(request(scene, {}, { "idempotency-key": "ref-reuse" }), tool);
     const r = await read(await handleTool(request(scene, { args: { ...REFUND_ARGS, payment_ref: "pi_other" } }, { "idempotency-key": "ref-reuse" }), tool));

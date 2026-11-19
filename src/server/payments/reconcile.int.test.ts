@@ -221,7 +221,8 @@ describe("RES-6, RES-3, RES-9: resolving unknown outcomes", () => {
   });
 
   it("RES-6: a refund reconciled later keeps its payment reference in the rail result", async () => {
-    const scene = await createScene(db(), { task: { allowedTools: ["stripe.refund"] } });
+    // A sandbox workspace, so the made-up pi_seed_500 can be refunded (RAIL-27 checks payments only outside it).
+    const scene = await createScene(db(), { isSandbox: true, task: { allowedTools: ["stripe.refund"] } });
     const { deps, mocks, clock, rec } = setup();
     const toolDeps = { openDb: () => ({ db: db(), close: async () => {} }), key: () => TEST_HEAD_KEY, now: clock.now, railFor: deps.railFor };
     mocks.stripe.setFailureMode("RAIL_TIMEOUT");
