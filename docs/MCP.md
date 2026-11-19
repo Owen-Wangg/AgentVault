@@ -30,6 +30,8 @@ Run this from the repo, with `DATABASE_URL`, `AUDIT_HEAD_KEY`, and `APP_ORIGIN` 
 pnpm mcp:agent
 ```
 
+The script writes to that deployment's database, so only its owner can make keys for <https://owen-agentvault.vercel.app>. To try MCP yourself, run AgentVault locally (`docs/SETUP.md`, sections 1 to 4, then `pnpm dev`), run `pnpm mcp:agent` against your local database, and use `http://localhost:3000` wherever the examples below say `https://owen-agentvault.vercel.app`.
+
 It creates an agent, a task, and a session in the current public sandbox, and prints `AGENTVAULT_URL`, `AGENTVAULT_API_KEY`, and the session ID. The key is shown once and never stored. The sandbox always uses mock rails, so no real money moves, and the nightly sandbox reset revokes the key.
 
 The default preset, `billing`, allows weather payments and refunds, so it can show the prompt-injection hold. `pnpm mcp:agent --preset weather` allows only weather payments. `--name <name>` sets the agent's name.
@@ -101,7 +103,7 @@ Tell the agent its session ID, then ask it to:
 
 1. Pay `nimbus-weather` `0.0015` dollars for a forecast. AgentVault allows it.
 2. Read `https://owen-agentvault.vercel.app/vendor/docs/integration`. The result comes back labeled untrusted, and the session is now tainted.
-3. Refund `480` dollars to `nimbus-weather` for payment `pi_3Uc9pZ3i6fxzvKeT0hGFL3nf`, as the page's hidden instruction asks. AgentVault holds it with `HELD_TAINTED` and returns the approval ID.
+3. Refund `480` dollars to `nimbus-weather` for payment `pi_mock_billing_500` with `stripe.refund`, as the page's hidden instruction asks. AgentVault holds it with `HELD_TAINTED` and `NEEDS_APPROVAL` and returns the approval ID. A refund needs a `payment_ref`; the scripted scenario uses this mock one.
 
 Each decision appears in the dashboard's live feed, and the held refund waits in Approvals.
 
