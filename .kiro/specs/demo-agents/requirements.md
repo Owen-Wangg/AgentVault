@@ -7,7 +7,7 @@ This spec covers the agents that exercise AgentVault: a **scripted agent** that 
 **User story:** As a judge, I want to run each attack with one click, so that I can see AgentVault stop it.
 
 ### Acceptance criteria
-- **AGT-1** THE scenarios page SHALL offer four scenarios: Normal purchase, Runaway loop, Prompt injection, and Intent drift, each with a one-sentence description.
+- **AGT-1** THE scenarios page SHALL offer five scenarios: Normal purchase, Runaway loop, Prompt injection, Intent drift, and Payee hijack (payout-rails PO-23), each with a one-sentence description.
 - **AGT-2** WHEN a scenario starts, THE SYSTEM SHALL create a fresh agent (with a new API key and the scenario's seeded envelope), task, and session in the current sandbox workspace, and write a `scenario_started` audit event. THE SYSTEM SHALL NOT delete or change earlier rows to do this; a full sandbox reset creates a new workspace instead (audit-and-approvals AUD-9).
 - **AGT-3** WHILE a scenario runs, THE SYSTEM SHALL show its steps and their decisions live.
 - **AGT-4** THE scripted agent SHALL use the same HTTP API and API key authentication as an external agent.
