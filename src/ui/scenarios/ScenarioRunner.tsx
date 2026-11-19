@@ -131,15 +131,7 @@ export function ScenarioRunner({
   return (
     <>
       <PageTitle actions={<StreamStatusBadge status={status} onResume={resume} />}>{t("scenarios.title")}</PageTitle>
-      <p className="mb-2 text-sm">{t("scenarios.intro")}</p>
-      <p className={`${liveOn ? "mb-2" : "mb-6"} text-sm text-text-muted`} role="note">
-        {t("scenarios.sandboxNote")}
-      </p>
-      {liveOn ? (
-        <p className="mb-6 text-sm text-text-muted" role="note">
-          {t("scenarios.liveNote")}
-        </p>
-      ) : null}
+      <p className="mb-6 text-sm">{t("scenarios.intro")}</p>
 
       {featured ? <div className="mb-6">{featured}</div> : null}
       <ul className="grid gap-4 sm:grid-cols-2">
@@ -167,6 +159,12 @@ export function ScenarioRunner({
           </li>
         ))}
       </ul>
+      {/* Below the cards, next to the live buttons it explains (AGT-11). */}
+      {liveOn ? (
+        <p className="mt-4 text-sm text-text-muted" role="note">
+          {t("scenarios.liveNote")}
+        </p>
+      ) : null}
 
       {run ? (
         <section aria-labelledby="run-title" className="mt-8">

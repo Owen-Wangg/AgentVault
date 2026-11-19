@@ -10,7 +10,7 @@ const DOCS = "http://localhost:3100/vendor/docs/integration";
  */
 test("UI-21, AGT-8, AUD-6: a signed-out visitor runs the prompt injection, approves the held refund, sees it run, and verifies the chain", async ({ page }) => {
   await page.goto("/scenarios");
-  await expect(page.getByText("Scenarios run in the public sandbox on mock rails")).toBeVisible();
+  await expect(page.getByText("in the public sandbox on mock rails")).toBeVisible();
   await page.getByRole("button", { name: "Run: Prompt injection" }).click();
 
   // AGT-3: the steps arrive on the event stream.

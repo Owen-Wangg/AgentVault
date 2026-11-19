@@ -85,7 +85,11 @@ describe("<ScenarioRunner>", () => {
       expect(within(card).getByRole("button", { name: `Run: ${title}` })).toBeTruthy();
     }
     expect(FakeSource.last.url).toBe("/api/v1/events?workspace_id=sandbox-1");
-    expect(screen.getByRole("note").textContent).toContain("mock rails");
+    // One sentence above the cards, which still says the runs use mock rails.
+    const intro = screen.getByText(/^Run an agent through AgentVault/);
+    expect(intro.textContent).toContain("mock rails");
+    expect(intro.textContent!.slice(0, -1)).not.toMatch(/\.\s/);
+    expect(screen.queryAllByRole("note")).toHaveLength(0);
   });
 
   it("AGT-3: shows the run's steps live, in order, with plain-language reasons, and only that run's", async () => {
@@ -241,7 +245,12 @@ describe("<ScenarioRunner> with the live agent", () => {
     expect(runaway.textContent).toContain(copy.default["scenario.runaway.scriptedOnly"]);
     expect(hijack.textContent).toContain(copy.default["scenario.hijack.scriptedOnly"]);
     expect(hijack.textContent).not.toContain("runaway loop");
-    expect(screen.getAllByRole("note").map((n) => n.textContent).join(" ")).toContain("Gemini on its free tier");
+    // The Gemini note sits below the cards and their live buttons, not in the intro.
+    const note = screen.getByRole("note");
+    expect(note.textContent).toContain("Gemini on its free tier");
+    const cards = screen.getByRole("region", { name: "Payee hijack" }).closest("ul")!;
+    expect(cards.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(cards.contains(note)).toBe(false);
   });
   it("AGT-11: each scripted-only reason has its own Kiroween wording", () => {
     render(

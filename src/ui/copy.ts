@@ -147,7 +147,6 @@ type UiKey =
   | "nav.scenarios"
   | "scenarios.title"
   | "scenarios.intro"
-  | "scenarios.sandboxNote"
   | "scenario.normal.title"
   | "scenario.normal.description"
   | "scenario.runaway.title"
@@ -442,8 +441,7 @@ const defaultCopy: CopyTable = {
   "approvals.notPending": "Someone already acted on this approval.",
   "nav.scenarios": "Scenarios",
   "scenarios.title": "Scenarios",
-  "scenarios.intro": "Run a scripted agent against AgentVault and watch each decision as it's made. Every run gets a fresh agent with its own API key. The vendors are demo APIs built into AgentVault, such as Nimbus Weather, which sells forecasts for $0.0015 a call. Weather is only a stand-in: the same checks apply to any API an agent pays for.",
-  "scenarios.sandboxNote": "Scenarios run in the public sandbox on mock rails, even when you're signed in. No real money moves.",
+  "scenarios.intro": "Run an agent through AgentVault and watch each decision as it's made, in the public sandbox on mock rails, so no real money moves even when you're signed in.",
   "scenario.normal.title": "Normal purchase",
   "scenario.normal.description": "The agent buys five weather forecasts at $0.0015 each, and every payment is allowed.",
   "scenario.runaway.title": "Runaway loop",
@@ -654,6 +652,7 @@ const kiroweenCopy: CopyTable = {
   "audit.what.unfrozen": "Released from The Crypt by {actor}",
   "audit.actor.sandboxVisitor": "a wandering visitor",
   "settings.on": "Kiroween mode is on. Happy haunting.",
+  "scenarios.intro": "Summon an agent through AgentVault's wards and watch each decision as it's made, in the haunted sandbox on mock rails, so no real money moves even when you're signed in.",
   "scenarios.runLive": "Summon a live AI agent",
   "scenarios.liveBadge": "Summoned AI agent",
   "scenarios.liveQuotaUsed": "Today's summonings are spent. The scripted runs still work.",
