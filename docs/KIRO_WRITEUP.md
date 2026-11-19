@@ -95,7 +95,7 @@ Seven hooks in `.kiro/hooks/`:
 
 ## Property-based tests that found real bugs
 
-Each design's correctness properties became fast-check tests, in 18 property-test files, with fast-check also used in 14 other test files. They cover the requirements where one bad input costs money or trust, and where example tests can't cover the input space: money conversion and rounding, spend caps over whole sequences of requests, the taint and intent rules, approvals (a model-based test with commands), the audit hash chain, each rail adapter's idempotency, the theme boundary, the per-workspace rail choice, and the public testnet endpoint. Some found bugs in code that unit tests had passed:
+Each design's correctness properties became fast-check tests, in 19 property-test files, with fast-check also used in 14 other test files. They cover the requirements where one bad input costs money or trust, and where example tests can't cover the input space: money conversion and rounding, spend caps over whole sequences of requests, the taint and intent rules, approvals (a model-based test with commands), the audit hash chain, each rail adapter's idempotency, the theme boundary, the per-workspace rail choice, and the public testnet endpoint. Some found bugs in code that unit tests had passed:
 
 - **Zod dropped a limit silently.** "Allowed spend never exceeds any cap" failed with seed `-792056920` and shrank to one 1-micro payment to a vendor named `__proto__`, whose day cap was 0, being allowed. `z.record` skips an own `__proto__` key, so the limit vanished during parsing. Limit maps keyed by `__proto__` are now rejected, and the same lesson was applied to audit decoding and tool arguments later.
 - **A crash in the overview.** "The chart's buckets add up to the spend card" failed on seed `554141298`: two maximum-size payments made the guarded `add()` throw, which would have taken the overview down.
@@ -113,6 +113,9 @@ For each safeguard, I broke it in the code, checked that a test failed, and rest
 - **Uncertain payouts.** Mapping PayPal's `PENDING` to failed, which would release a reservation for a payout that may still pay, failed 11 tests, including property 5 and the replay of the recorded probe. Treating Stripe's `idempotency_error` as a confirmed failure failed a contract test and a unit test.
 - **The public testnet button.** Creating the session before checking the visitor limits, so a refused press leaves a row behind, failed testnet-demo property 1, which shrank to three presses from one IP. Accepting extra fields in the body failed property 2 with `{"vendor":[]}`: the visitor must never choose anything about a real payment.
 - **The theme boundary.** Kiroween mode must change only styling and copy. A property runs two sandboxes in lockstep, one per theme, and requires identical responses and audit events. A response made to depend on the cookie's length failed it on the first case.
+- **The tamper demo.** The audit page's "Rewrite an event" rechecks a page of the log in the browser, starting mid-chain from the page's first row. Starting from the genesis hash instead, which would make every page look broken, failed four properties; the first shrank after 3 cases (seed `-1387811573`).
+- **The decision path.** The scenarios page shows which check decided a request, ending at the payment rail. Marking the rail "Sent" for held requests too failed the path-consistency property after 7 cases (seed `-560700878`).
+- **A CSP violation no test had seen.** Lighthouse on the live overview scored best practices 96, not 100. A browser probe of the page found why: zod 4 tries `Function("")` once to decide whether to compile validators, and the page's nonce-only script policy blocks it, so every page load logged a violation. Nothing broke, since zod falls back, and no unit test runs under the real policy. Zod is now jitless in the browser only, without loosening the policy, and the new test fails without that setting.
 
 ## MCP, both directions
 
@@ -137,4 +140,4 @@ The optional Gemini agent (`gemini-3.5-flash-lite`, free tier) runs three scenar
 
 ## Numbers
 
-Nine specs, eight steering files, seven hooks, one custom agent, and about 360 commits. About 1,580 Vitest tests (unit, property, and integration), with 18 property-test files, and 8 Playwright tests. Lighthouse accessibility, best practices, and SEO 100 on the overview in both themes. One real testnet payment button on the hosted site, live since Nov 17.
+Nine specs, eight steering files, seven hooks, one custom agent, and about 360 commits. About 1,580 Vitest tests (unit, property, and integration), with 19 property-test files, and 8 Playwright tests. Lighthouse accessibility, best practices, and SEO 100 on the overview in both themes. One real testnet payment button on the hosted site, live since Nov 17.

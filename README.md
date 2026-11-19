@@ -18,7 +18,7 @@ Agents can now pay for APIs on their own: they answer an HTTP `402 Payment Requi
 
 4. On Scenarios, click **Make a real testnet payment**. That's the one thing on the site that isn't a mock: AgentVault's demo agent pays the weather vendor $0.0015 over x402 on Base Sepolia, through the same checks, and the card links the transaction on BaseScan. It's test USDC with no real value, limited to 2 payments per visitor an hour and 20 a day for everyone.
 
-The other scenarios on the same page are below. Their vendors are demo APIs built into AgentVault (under `app/vendor/`), such as Nimbus Weather, which sells forecasts for $0.0015 a call. Weather is only a stand-in: the same checks apply to any API an agent pays for.
+Each run also shows its latest decision as a path through the checks (agent, spend limits, task scope, untrusted input) to the payment rail, so you can see which check stopped it. The other scenarios on the same page are below. Their vendors are demo APIs built into AgentVault (under `app/vendor/`), such as Nimbus Weather, which sells forecasts for $0.0015 a call. Weather is only a stand-in: the same checks apply to any API an agent pays for.
 
 | Scenario | What the agent does | Decision |
 |---|---|---|
