@@ -14,7 +14,7 @@ Agents can now pay for APIs on their own: they answer an HTTP `402 Payment Requi
 
 1. Open [Scenarios](https://owen-agentvault.vercel.app/scenarios) and click **Run** on **Prompt injection**. The scripted agent reads a vendor docs page with a hidden instruction to refund $480. The read taints the session, and the refund is held with `HELD_TAINTED` and `NEEDS_APPROVAL`.
 2. Follow the summary's link to [Approvals](https://owen-agentvault.vercel.app/approvals) and click **Approve**. AgentVault re-runs every check with the approval attached, and the refund runs once on the mock rail ("Approved. The request ran.").
-3. Open [Audit](https://owen-agentvault.vercel.app/audit) and click **Verify chain**. Every decision, taint, and approval is in a hash-chained log, and the check reports "Chain verified."
+3. Open [Audit](https://owen-agentvault.vercel.app/audit) and click **Verify chain**. Every decision, taint, and approval is in a hash-chained log, and the check reports "Chain verified." Then click **Rewrite an event**: your browser rewrites the newest held decision (here, the $480 refund) as allowed in a copy of the page, rechecks it with the same chain code, and shows the chain breaking at that event. The stored log never changes.
 
 4. On Scenarios, click **Make a real testnet payment**. That's the one thing on the site that isn't a mock: AgentVault's demo agent pays the weather vendor $0.0015 over x402 on Base Sepolia, through the same checks, and the card links the transaction on BaseScan. It's test USDC with no real value, limited to 2 payments per visitor an hour and 20 a day for everyone.
 
@@ -93,7 +93,7 @@ Checks:
 
 | Command | What it runs |
 |---|---|
-| `pnpm verify` | Typecheck, lint, and about 1,500 Vitest unit, property, and integration tests. Integration tests use PGlite unless `DATABASE_URL_TEST` is set |
+| `pnpm verify` | Typecheck, lint, and about 1,580 Vitest unit, property, and integration tests. Integration tests use PGlite unless `DATABASE_URL_TEST` is set |
 | `pnpm check:money` | Flags float operations on money |
 | `pnpm test:e2e` | Playwright: the prompt-injection and payee-hijack paths, plus layout at 375 and 1920 px and keyboard navigation in both themes |
 | `pnpm test:live` | `@live` tests against Base Sepolia, Stripe test mode (MPP and Connect), the PayPal sandbox, and Gemini (needs their keys) |
