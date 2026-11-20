@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { EnvelopeWireSchema, envelopeFromWire } from "@/core/policy";
+import { EnvelopeUpdateSchema, envelopeFromWire } from "@/core/policy";
 import { withHuman } from "@/server/approvals/handlers";
 import { type GetSessionUser, type SessionUser, getSessionUser } from "@/server/auth/session";
 import { ensurePersonalWorkspace } from "@/server/auth/workspace-access";
@@ -82,7 +82,7 @@ export function handleUpdateEnvelope(request: Request, agentId: string, deps: Ag
     if (!UUID.safeParse(agentId).success) return json(404, { error: "NOT_FOUND" });
     const access = await ownedAgent(db, agentId, await deps.getUser(request));
     if (!access.ok) return access.response;
-    const body = await parseBody(request, EnvelopeWireSchema);
+    const body = await parseBody(request, EnvelopeUpdateSchema);
     if (!body.ok) return body.response;
     const result = await updateEnvelope(
       db,

@@ -96,6 +96,10 @@ export const EnvelopeFormSchema = z
     tools: NameList,
   })
   .superRefine((form, ctx) => {
+    // UI-8: the agent's own calls-per-minute limit is required, so a runaway agent is always frozen.
+    if (form.limits.callsPerMinute.trim() === "") {
+      ctx.addIssue({ code: "custom", path: ["limits", "callsPerMinute"], message: `Required: a whole number from 0 to ${MAX_CALLS_PER_MINUTE}` });
+    }
     uniqueNames(form.vendorLimits, ctx, "vendorLimits");
     uniqueNames(form.toolLimits, ctx, "toolLimits");
   });

@@ -12,6 +12,7 @@ export {
 } from "./reasons";
 export { EvaluateInputSchema } from "./schemas";
 export {
+  EnvelopeUpdateSchema,
   EnvelopeWireSchema,
   MAX_CALLS_PER_MINUTE,
   MAX_ENTRIES,

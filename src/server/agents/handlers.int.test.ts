@@ -146,7 +146,7 @@ describe("PUT /api/v1/agents/:id/envelope", () => {
     const scene = await createScene(db());
     const u = await owned(scene, "env-stale");
     expect((await handleUpdateEnvelope(put(scene.agent.id, WIRE), scene.agent.id, deps(u))).status).toBe(200);
-    const stale = { ...WIRE, limits: {}, expectedVersion: 1 };
+    const stale = { ...WIRE, limits: { callsPerMinute: 5 }, expectedVersion: 1 };
     expect(await read(await handleUpdateEnvelope(put(scene.agent.id, stale), scene.agent.id, deps(u)))).toEqual([409, { error: "ENVELOPE_CHANGED", version: 2 }]);
     expect((await getAgentEnvelope(db(), scene.workspaceId, scene.agent.id))!.envelope.limits).toEqual(WIRE.limits);
   });
@@ -156,6 +156,9 @@ describe("PUT /api/v1/agents/:id/envelope", () => {
     const u = await owned(scene, "env-invalid");
     for (const body of [
       { ...WIRE, limits: { txMaxMicros: 1000 } },
+      // The agent's own calls-per-minute limit is required, and at most 1,000.
+      { ...WIRE, limits: { txMaxMicros: "1000" } },
+      { ...WIRE, limits: { txMaxMicros: "1000", callsPerMinute: 1001 } },
       { ...WIRE, vendorLimits: JSON.parse('{"__proto__": {"txMaxMicros": "0"}}') },
       { ...WIRE, allowedTools: ["x402.pay", "x402.pay"] },
       { ...WIRE, surprise: true },

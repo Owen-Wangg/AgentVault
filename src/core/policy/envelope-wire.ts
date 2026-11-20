@@ -14,8 +14,11 @@ const Name = z.string().regex(NAME_PATTERN, "Use letters, digits, and . _ : - (a
 
 /** At most this many names in an allow-list or keys in a limit map. */
 export const MAX_ENTRIES = 100;
-/** A calls-per-minute limit above this is a typo, not a limit. */
-export const MAX_CALLS_PER_MINUTE = 100_000;
+/**
+ * The highest calls-per-minute limit the editor accepts (UI-8). Above
+ * this, a runaway agent wouldn't be frozen before it filled the log.
+ */
+export const MAX_CALLS_PER_MINUTE = 1_000;
 
 const WireLimitsSchema = z.strictObject({
   txMaxMicros: MicrosSchema.optional(),
@@ -55,6 +58,15 @@ export const EnvelopeWireSchema = z.strictObject({
 });
 
 export type EnvelopeWire = z.input<typeof EnvelopeWireSchema>;
+
+/**
+ * What PUT /api/v1/agents/:id/envelope accepts (UI-8): the wire envelope,
+ * with the agent's own calls-per-minute limit required, so a saved envelope
+ * always freezes a runaway agent. Per-vendor and per-tool limits stay optional.
+ */
+export const EnvelopeUpdateSchema = EnvelopeWireSchema.extend({
+  limits: WireLimitsSchema.extend({ callsPerMinute: z.number().int().min(0).max(MAX_CALLS_PER_MINUTE) }),
+});
 
 /** Drop undefined fields, to fit exactOptionalPropertyTypes. */
 function limitsOf(parsed: z.output<typeof WireLimitsSchema>): Limits {

@@ -5,7 +5,9 @@ import { envelopeToWire } from "@/core/policy";
 import { envelopeArb, microsWithEdges } from "@/core/testing/arbitraries";
 import { EMPTY_LIMITS, type EnvelopeForm, EnvelopeFormSchema, formToWire, wireToForm } from "./envelope-form";
 
-const base: EnvelopeForm = { limits: { ...EMPTY_LIMITS }, vendorLimits: [], toolLimits: [], allowAllVendors: true, vendors: "", allowAllTools: false, tools: "x402.pay\nmpp.pay" };
+// The agent's own calls-per-minute limit is required (UI-8), so every valid form sets it.
+const LIMITS = { ...EMPTY_LIMITS, callsPerMinute: "30" };
+const base: EnvelopeForm = { limits: { ...LIMITS }, vendorLimits: [], toolLimits: [], allowAllVendors: true, vendors: "", allowAllTools: false, tools: "x402.pay\nmpp.pay" };
 
 const errorsOf = (form: EnvelopeForm) => {
   const r = EnvelopeFormSchema.safeParse(form);
@@ -28,11 +30,19 @@ describe("envelope form", () => {
 
   it("UI-8: refuses amounts it can't store exactly, with a message saying what to type", () => {
     for (const txMax of ["0.0000001", "-1", "1e3", "$5", "1,000", "abc", "5."]) {
-      expect(errorsOf({ ...base, limits: { ...EMPTY_LIMITS, txMax } }), txMax).toEqual([
+      expect(errorsOf({ ...base, limits: { ...LIMITS, txMax } }), txMax).toEqual([
         "limits.txMax: Enter dollars with up to 6 decimal places, like 5 or 0.0015",
       ]);
     }
-    expect(errorsOf({ ...base, limits: { ...EMPTY_LIMITS, callsPerMinute: "2.5" } })[0]).toMatch(/^limits.callsPerMinute: Enter a whole number/);
+    expect(errorsOf({ ...base, limits: { ...LIMITS, callsPerMinute: "2.5" } })[0]).toMatch(/^limits.callsPerMinute: Enter a whole number/);
+  });
+
+  it("UI-8: requires the agent's own calls-per-minute limit, from 0 to 1,000, but not per vendor or tool", () => {
+    expect(errorsOf({ ...base, limits: { ...EMPTY_LIMITS } })).toEqual(["limits.callsPerMinute: Required: a whole number from 0 to 1000"]);
+    expect(errorsOf({ ...base, limits: { ...LIMITS, callsPerMinute: "0" } })).toEqual([]);
+    expect(errorsOf({ ...base, limits: { ...LIMITS, callsPerMinute: "1000" } })).toEqual([]);
+    expect(errorsOf({ ...base, limits: { ...LIMITS, callsPerMinute: "1001" } })[0]).toMatch(/^limits.callsPerMinute: Enter a whole number from 0 to 1000/);
+    expect(errorsOf({ ...base, vendorLimits: [{ name: "nimbus-weather", limits: { ...EMPTY_LIMITS } }] })).toEqual([]);
   });
 
   it("UI-8: checks names in allow-lists and limit rows, and refuses duplicates", () => {
@@ -49,7 +59,7 @@ describe("envelope form", () => {
   it("UI-8: any amount shown as dollars converts back to the same micros", () => {
     fc.assert(
       fc.property(microsWithEdges(), (m) => {
-        const form: EnvelopeForm = { ...base, limits: { ...EMPTY_LIMITS, approvalThreshold: toDecimalString(m) } };
+        const form: EnvelopeForm = { ...base, limits: { ...LIMITS, approvalThreshold: toDecimalString(m) } };
         expect(errorsOf(form)).toEqual([]);
         expect(formToWire(form, 1).limits.approvalThresholdMicros).toBe(toMicrosString(m));
       }),
@@ -61,7 +71,8 @@ describe("envelope form", () => {
     fc.assert(
       fc.property(envelopeArb(), (e) => {
         const clean = (l: readonly string[] | "*") => (l === "*" ? "*" : l.filter((n) => n !== "__proto__"));
-        const wire = envelopeToWire({ ...e, allowedVendors: clean(e.allowedVendors), allowedTools: clean(e.allowedTools) }, 2);
+        const limits = { ...e.limits, callsPerMinute: e.limits.callsPerMinute ?? 30 };
+        const wire = envelopeToWire({ ...e, limits, allowedVendors: clean(e.allowedVendors), allowedTools: clean(e.allowedTools) }, 2);
         const form = wireToForm(wire);
         expect(errorsOf(form)).toEqual([]);
         const saved = formToWire(form, 2);
