@@ -91,3 +91,8 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
   - `lastDecisions` in `src/server/dashboard/agents.ts`, with an integration test
   - A Last decision column in place of Created, with copy in both themes
   - _Requirements: UI-7_
+
+- [ ] 19. Filter the audit page by event type
+  - `type` option on `listAuditEvents`; the page accepts only `EVENT_TYPES`
+  - A GET form on the audit page; links keep the filter; the tamper card is hidden while filtered
+  - _Requirements: UI-31_
