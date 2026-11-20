@@ -573,3 +573,4 @@ Raw notes for the Devpost "How Kiro was used" write-up. The `devlog` hook (Stop 
   - Kiro features: both specs updated first, the spec-trace hook after each requirements save (29 and 38 IDs, no gaps), steering (security-standards §5: the sandbox only uses mock rails; product: never imply real money), a headless-Chrome look at the live Agents and Audit pages.
   - Kiro got wrong: its own traceability script first matched IDs with `\b`, which fails before the `_` that closes `_Requirements: UI-30_`, and reported 12 false gaps until the pattern was fixed.
   - Checks: `pnpm verify:local` 1,625 passed (18 skipped); the new tests fail on the old wording.
+- **Credits checklist item updated.** The Devpost checklist said to request the Kiro credits by Dec 1; Owen had already requested them, so it now says only to redeem them by Dec 4.
