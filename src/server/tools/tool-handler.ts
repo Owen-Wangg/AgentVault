@@ -40,7 +40,7 @@ const TOOL_ARGS = {
     .strictObject({ vendor: Vendor, payee_ref: z.string().max(254), rail: z.enum(PAYOUT_RAILS).default("stripe") })
     .refine((a) => isDestinationFor(a.rail, a.payee_ref), {
       path: ["payee_ref"],
-      message: "must be a Stripe account ID (acct_ followed by letters and digits) or, with rail paypal, an email address",
+      message: "must be a Stripe account ID (acct_ followed by letters and digits) or, with rail paypal, a PayPal sandbox address (@personal.example.com or @business.example.com)",
     })
     .transform((a) => ({ vendor: a.vendor, amountMicros: micros(0n), args: { payee_ref: a.payee_ref, rail: a.rail } })),
 } satisfies Record<string, z.ZodType<{ vendor: string; amountMicros: Micros; args?: Record<string, string> }>>;
