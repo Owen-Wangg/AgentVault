@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 /**
  * Pages get their enforced Content-Security-Policy, with a per-request
  * nonce, from proxy.ts. Everything else that isn't a page (API routes, JSON
- * documents) gets this one, which allows nothing to load or frame it. The
- * demo vendor's pages set their own.
+ * documents, the demo vendor's paid endpoints) gets this one, which allows
+ * nothing to load or frame it. The demo vendor's docs pages set their own.
  */
 const NON_PAGE_POLICY = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'";
 
@@ -24,6 +24,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/:path*", headers: SECURITY_HEADERS },
       { source: "/api/:path*", headers: [{ key: "Content-Security-Policy", value: NON_PAGE_POLICY }] },
+      // rail-adapters RAIL-29: the paid vendor endpoints, including the plain page x402 shows a browser.
+      { source: "/vendor/api/:path*", headers: [{ key: "Content-Security-Policy", value: NON_PAGE_POLICY }] },
     ];
   },
   // mppx lazily imports optional peers this app doesn't install (the MCP SDK, Hono, Express).

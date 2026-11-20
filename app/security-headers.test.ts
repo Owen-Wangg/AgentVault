@@ -29,6 +29,13 @@ describe("security A8: response headers", () => {
     expect(policy).toContain("frame-ancestors 'none'");
   });
 
+  it("RAIL-29: the paid vendor endpoints get the same no-load policy as the API, and the vendor's docs pages aren't overridden", async () => {
+    const api = (await headersFor("/api/:path*")).get("Content-Security-Policy");
+    expect((await headersFor("/vendor/api/:path*")).get("Content-Security-Policy")).toBe(api);
+    const rules = (await nextConfig.headers?.()) ?? [];
+    expect(rules.some((r) => r.source.startsWith("/vendor/docs") || r.source === "/vendor/:path*")).toBe(false);
+  });
+
   it("security A8: the page policy runs only nonced scripts, allows no framing, and sets no wildcard sources", () => {
     const policy = contentSecurityPolicy("abc123", false);
     for (const directive of ["default-src 'self'", "object-src 'none'", "base-uri 'none'", "frame-ancestors 'none'"]) {
