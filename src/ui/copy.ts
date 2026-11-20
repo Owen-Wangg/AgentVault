@@ -96,6 +96,7 @@ type UiKey =
   | "agents.create"
   | "agents.name"
   | "agents.lastDecision"
+  | "agents.truncated"
   | "agents.noDecision"
   | "agents.status"
   | "agents.frozen"
@@ -398,6 +399,7 @@ const defaultCopy: CopyTable = {
   "agents.create": "Create agent",
   "agents.name": "Name",
   "agents.lastDecision": "Last decision",
+  "agents.truncated": "Showing the newest 200 agents. Older ones are still in the audit log.",
   "agents.noDecision": "None yet",
   "agents.status": "Status",
   "agents.frozen": "Frozen",
@@ -636,6 +638,7 @@ const kiroweenCopy: CopyTable = {
   "agents.unfreeze": "Release from The Crypt",
   "agents.empty": "No agents have been summoned yet.",
   "agents.noDecision": "Not a whisper yet",
+  "agents.truncated": "Showing the newest 200 agents. Older spirits still haunt the audit log.",
   "workspace.sandbox": "Haunted sandbox",
   "workspace.sandboxNote":
     "Haunted sandbox: mock rails only. Anyone can approve, deny, and release agents from The Crypt here, and no real money moves. It rises fresh every night.",

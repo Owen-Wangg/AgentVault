@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { MicrosSchema, toMicrosString } from "@/core/money";
 import type { Db } from "@/server/db/client";
@@ -32,17 +32,20 @@ const LastDecisionPayload = z.looseObject({
 });
 
 /**
- * Each agent's newest `decision` event in the workspace, keyed by agent ID.
- * One pass over the workspace's decisions (DISTINCT ON keeps the highest
- * seq per agent), read from the audit log the decisions are written to.
- * A payload this can't read is left out, so that agent shows no decision.
+ * The newest `decision` event of each of `agentIds` in the workspace, keyed
+ * by agent ID. Only the listed agents' decisions are read, through the
+ * partial index on (workspace, payload agent_id, seq) for decisions;
+ * DISTINCT ON keeps the highest seq per agent. A payload this can't read is
+ * left out, so that agent shows no decision.
  */
-export async function lastDecisions(db: Db, workspaceId: string): Promise<Record<string, LastDecision>> {
+export async function lastDecisions(db: Db, workspaceId: string, agentIds: readonly string[]): Promise<Record<string, LastDecision>> {
+  if (agentIds.length === 0) return {};
+  const agentIdOf = sql`(${auditEvents.payload}->>'agent_id')`;
   const rows = await db
-    .selectDistinctOn([sql`${auditEvents.payload}->>'agent_id'`], { payload: auditEvents.payload, createdAt: auditEvents.createdAt })
+    .selectDistinctOn([agentIdOf], { payload: auditEvents.payload, createdAt: auditEvents.createdAt })
     .from(auditEvents)
-    .where(and(eq(auditEvents.workspaceId, workspaceId), eq(auditEvents.type, "decision")))
-    .orderBy(sql`${auditEvents.payload}->>'agent_id'`, desc(auditEvents.seq));
+    .where(and(eq(auditEvents.workspaceId, workspaceId), eq(auditEvents.type, "decision"), inArray(agentIdOf, [...agentIds])))
+    .orderBy(agentIdOf, desc(auditEvents.seq));
   const out: Record<string, LastDecision> = {};
   for (const row of rows) {
     const p = LastDecisionPayload.safeParse(row.payload);
@@ -57,10 +60,24 @@ export async function lastDecisions(db: Db, workspaceId: string): Promise<Record
   return out;
 }
 
+/**
+ * At most this many agents per list (UI-7): every scenario run adds one to
+ * the public sandbox, so the list and the agent names every page sends to
+ * the browser would otherwise grow all day.
+ */
+export const AGENT_LIST_LIMIT = 200;
+
+export interface AgentList {
+  /** The newest agents, oldest of them first. */
+  agents: AgentSummary[];
+  /** True when older agents were left out. */
+  truncated: boolean;
+}
+
 // The subqueries name the outer column as "agents"."id": Drizzle renders
 // ${agents.id} unqualified here, and inside the subquery "id" would mean
 // sessions.id.
-export async function listAgents(db: Db, workspaceId: string): Promise<AgentSummary[]> {
+export async function listAgents(db: Db, workspaceId: string, limit = AGENT_LIST_LIMIT): Promise<AgentList> {
   const rows = await db
     .select({
       id: agents.id,
@@ -76,14 +93,20 @@ export async function listAgents(db: Db, workspaceId: string): Promise<AgentSumm
     })
     .from(agents)
     .where(eq(agents.workspaceId, workspaceId))
-    .orderBy(asc(agents.createdAt), asc(agents.id));
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    frozenAt: r.frozenAt?.toISOString() ?? null,
-    revokedAt: r.revokedAt?.toISOString() ?? null,
-    createdAt: r.createdAt.toISOString(),
-    tainted: r.tainted === true || (r.tainted as unknown) === "t",
-    taintSourceUrl: r.taintSourceUrl,
-  }));
+    // Newest first, so the cut keeps the newest; one extra row says whether there are more.
+    .orderBy(desc(agents.createdAt), desc(agents.id))
+    .limit(limit + 1);
+  const kept = rows.slice(0, limit).reverse();
+  return {
+    agents: kept.map((r) => ({
+      id: r.id,
+      name: r.name,
+      frozenAt: r.frozenAt?.toISOString() ?? null,
+      revokedAt: r.revokedAt?.toISOString() ?? null,
+      createdAt: r.createdAt.toISOString(),
+      tainted: r.tainted === true || (r.tainted as unknown) === "t",
+      taintSourceUrl: r.taintSourceUrl,
+    })),
+    truncated: rows.length > limit,
+  };
 }

@@ -20,11 +20,18 @@ export default async function AgentsPage() {
   // but read-only for creating agents (see src/server/agents/handlers.ts).
   const owner = user !== null && !workspace.isSandbox;
   const canUnfreeze = owner || (workspace.isSandbox && !workspace.retired);
+  const list = await getAgents(workspace.id);
+  const last = await getLastDecisions(
+    workspace.id,
+    list.agents.map((a) => a.id),
+  );
   return (
     <>
       <PageTitle actions={owner ? <CreateAgentDialog /> : null}>{t("agents.title")}</PageTitle>
       {!owner ? <p className="mb-4 text-sm text-text-muted">{t("agents.signInToEdit")}</p> : null}
-      <AgentsTable agents={withLastDecisions(...(await Promise.all([getAgents(workspace.id), getLastDecisions(workspace.id)])))} canUnfreeze={canUnfreeze} />
+      {/* The copy names AGENT_LIST_LIMIT; agents.int.test.ts checks the two match. */}
+      {list.truncated ? <p className="mb-4 text-sm text-text-muted">{t("agents.truncated")}</p> : null}
+      <AgentsTable agents={withLastDecisions(list.agents, last)} canUnfreeze={canUnfreeze} />
     </>
   );
 }

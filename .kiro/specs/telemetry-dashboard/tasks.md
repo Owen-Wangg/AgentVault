@@ -97,7 +97,7 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
   - A GET form on the audit page; links keep the filter; the tamper card is hidden while filtered
   - _Requirements: UI-31_
 
-- [ ] 20. Keep dashboard reads bounded as the sandbox grows
+- [x] 20. Keep dashboard reads bounded as the sandbox grows
   - `listAgents` returns the newest 200 agents and says when it cut some; the agents page notes it
   - `lastDecisions` reads only the listed agents
   - Migration 0009: indexes for the type filter, each agent's newest decision, and sessions by agent

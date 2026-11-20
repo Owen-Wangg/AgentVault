@@ -64,6 +64,13 @@
       "when": 1795054686604,
       "tag": "0008_paypal_sandbox_receivers",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795149165797,
+      "tag": "0009_dashboard_read_indexes",
+      "breakpoints": true
     }
   ]
 }

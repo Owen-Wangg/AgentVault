@@ -156,7 +156,10 @@ export const sessions = pgTable("sessions", {
   taintSourceUrl: text("taint_source_url"),
   taintContentSha256: text("taint_content_sha256"),
   createdAt: createdAt(),
-});
+}, (t) => [
+  // The agents list's per-agent taint lookups (UI-7).
+  index("sessions_agent_idx").on(t.agentId),
+]);
 
 export const vendors = pgTable(
   "vendors",
@@ -301,7 +304,16 @@ export const auditEvents = pgTable(
     /** Set by the application at millisecond precision, so the hashed value survives a round trip (CJ-6). */
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date", precision: 3 }).notNull(),
   },
-  (t) => [primaryKey({ columns: [t.workspaceId, t.seq] }), check("audit_events_seq_check", sql`${t.seq} >= 1`)],
+  (t) => [
+    primaryKey({ columns: [t.workspaceId, t.seq] }),
+    check("audit_events_seq_check", sql`${t.seq} >= 1`),
+    // The audit page's type filter reads one type newest first (UI-31).
+    index("audit_events_workspace_type_seq_idx").on(t.workspaceId, t.type, t.seq),
+    // Each agent's newest decision for the agents page (UI-7).
+    index("audit_events_decision_agent_idx")
+      .on(t.workspaceId, sql`(${t.payload}->>'agent_id')`, t.seq)
+      .where(sql`${t.type} = 'decision'`),
+  ],
 );
 
 /** The signed checkpoint of each workspace's chain (AUD-7). Mutable by design. */
