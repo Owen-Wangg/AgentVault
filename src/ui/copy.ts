@@ -234,6 +234,11 @@ type UiKey =
   | "audit.tamperTo"
   | "audit.tamperNotCaught"
   | "audit.tamperUnchecked"
+  | "audit.filterLabel"
+  | "audit.filterAll"
+  | "audit.filterApply"
+  | "audit.noMatch"
+  | "audit.tamperFiltered"
   | "audit.what"
   | "audit.what.settled"
   | "audit.what.settledNoRail"
@@ -536,6 +541,11 @@ const defaultCopy: CopyTable = {
   "audit.tamperTo": "to",
   "audit.tamperNotCaught": "The changed copy still verifies.",
   "audit.tamperUnchecked": "Your browser couldn't recheck the events on this page, so there's nothing to compare against.",
+  "audit.filterLabel": "Event type",
+  "audit.filterAll": "All events",
+  "audit.filterApply": "Filter",
+  "audit.noMatch": "No events of this type yet.",
+  "audit.tamperFiltered": "To try tampering with the chain, show all events: a filtered page skips events, so a recheck would see gaps that aren't tampering.",
   "audit.what": "What happened",
   "audit.what.settled": "Settled on {rail}",
   "audit.what.settledNoRail": "Done, with no rail call",
@@ -650,6 +660,8 @@ const kiroweenCopy: CopyTable = {
   "audit.verified": "The chain holds. No spirit has meddled with it.",
   "audit.broken": "The chain is cursed at seq",
   "audit.tamperTitle": "Try to curse the chain",
+  "audit.tamperFiltered": "To try cursing the chain, show all events: a filtered page skips events, so a recheck would see gaps no spirit made.",
+  "audit.noMatch": "No events of this kind have stirred yet.",
   "audit.what.taint": "Session Haunted by {url}",
   "audit.what.approved": "Blessed by {actor}",
   "audit.what.denied": "Banished by {actor}",

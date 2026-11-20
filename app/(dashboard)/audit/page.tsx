@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { EVENT_TYPES, type EventType } from "@/core/audit/chain";
 import { listAuditEvents } from "@/server/dashboard/audit";
 import { defaultDashboardDeps, withDashboardDb } from "@/server/dashboard/context";
 import { AuditLog } from "@/ui/audit/AuditLog";
@@ -15,10 +16,28 @@ function cursor(value: string | string[] | undefined): number | undefined {
   return Number.parseInt(value, 10);
 }
 
+/** A known event type from `?type=`, or undefined for all events. Anything else is ignored (UI-31). */
+function eventType(value: string | string[] | undefined): EventType | undefined {
+  return typeof value === "string" && (EVENT_TYPES as readonly string[]).includes(value) ? (value as EventType) : undefined;
+}
+
 export default async function AuditPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { workspace } = await getDashboardContext();
   if (!workspace) return <DataState status="empty" empty={(await getCopy()).t("workspace.none")} />;
-  const before = cursor((await searchParams).before);
-  const page = await withDashboardDb(defaultDashboardDeps(), "audit list", (db) => listAuditEvents(db, workspace.id, before === undefined ? {} : { before }));
-  return <AuditLog workspaceId={workspace.id} events={page.events} older={page.older} isFirstPage={before === undefined} agentNames={await getAgentNames(workspace.id)} />;
+  const params = await searchParams;
+  const before = cursor(params.before);
+  const type = eventType(params.type);
+  const page = await withDashboardDb(defaultDashboardDeps(), "audit list", (db) =>
+    listAuditEvents(db, workspace.id, { ...(before === undefined ? {} : { before }), ...(type === undefined ? {} : { type }) }),
+  );
+  return (
+    <AuditLog
+      workspaceId={workspace.id}
+      events={page.events}
+      older={page.older}
+      isFirstPage={before === undefined}
+      agentNames={await getAgentNames(workspace.id)}
+      {...(type === undefined ? {} : { type })}
+    />
+  );
 }

@@ -9,6 +9,7 @@ import type { UiKey } from "@/ui/copy";
 import { useCopy } from "@/ui/ThemeProvider";
 import type { AuditEventMessage } from "@/ui/events/summarize";
 import { agentLabel } from "@/ui/feed/agent-label";
+import { EVENT_TYPES, type EventType } from "@/core/audit/chain";
 import { describeEvent } from "./describe";
 import { MIN_EVENTS_TO_DELETE, type Simulation, type TamperKind, simulateTamper } from "./tamper";
 
@@ -64,6 +65,7 @@ export function AuditLog({
   older,
   isFirstPage,
   agentNames,
+  type,
   api = httpVerifyApi,
 }: {
   workspaceId: string;
@@ -72,6 +74,8 @@ export function AuditLog({
   older: number | null;
   isFirstPage: boolean;
   agentNames: Record<string, string>;
+  /** The event type the page is filtered to, if any (UI-31). */
+  type?: EventType;
   api?: VerifyApi;
 }) {
   const copy = useCopy();
@@ -128,10 +132,18 @@ export function AuditLog({
         {outcome?.kind === "error" ? <Badge tone="deny">{t(outcome.message)}</Badge> : null}
       </div>
 
-      {/* An empty page already says "No events yet." */}
-      {events.length > 0 ? <TamperCard workspaceId={workspaceId} events={events} /> : null}
+      {/* An empty page already says "No events yet." UI-31: a filtered page skips seqs, so the recheck would see false gaps. */}
+      {type !== undefined ? (
+        <p className="mb-4 text-sm text-text-muted" data-testid="tamper-filtered">
+          {t("audit.tamperFiltered")}
+        </p>
+      ) : events.length > 0 ? (
+        <TamperCard workspaceId={workspaceId} events={events} />
+      ) : null}
 
-      <DataState status={events.length === 0 ? "empty" : "ready"} empty={t("audit.empty")}>
+      <TypeFilter type={type} />
+
+      <DataState status={events.length === 0 ? "empty" : "ready"} empty={t(type === undefined ? "audit.empty" : "audit.noMatch")}>
         {/* `relative` keeps the cells' sr-only text inside the scrolling box (UI-14). */}
         <div className="relative overflow-x-auto rounded-card border border-border bg-surface">
           <table className="w-full text-left text-sm">
@@ -186,17 +198,53 @@ export function AuditLog({
       </DataState>
       <nav aria-label={t("audit.title")} className="mt-4 flex gap-4 text-sm">
         {!isFirstPage ? (
-          <Link href="/audit" className="text-accent underline">
+          <Link href={auditHref({ type })} className="text-accent underline">
             {t("audit.newest")}
           </Link>
         ) : null}
         {older !== null ? (
-          <Link href={`/audit?before=${older}`} className="text-accent underline">
+          <Link href={auditHref({ before: older, type })} className="text-accent underline">
             {t("audit.older")}
           </Link>
         ) : null}
       </nav>
     </>
+  );
+}
+
+/** An audit page link that keeps the type filter (UI-31). */
+export function auditHref({ before, type }: { before?: number; type?: EventType | undefined }): string {
+  const params = new URLSearchParams();
+  if (type !== undefined) params.set("type", type);
+  if (before !== undefined) params.set("before", String(before));
+  const query = params.toString();
+  return query ? `/audit?${query}` : "/audit";
+}
+
+/**
+ * The event type filter (UI-31): a plain GET form, so it works without
+ * JavaScript and a filtered page can be linked. Choosing "All events"
+ * sends an empty type, which the page ignores.
+ */
+function TypeFilter({ type }: { type: EventType | undefined }) {
+  const { t } = useCopy();
+  return (
+    <form method="get" action="/audit" className="mb-4 flex flex-wrap items-end gap-2 text-sm">
+      <label className="flex flex-col gap-1">
+        <span className="font-medium">{t("audit.filterLabel")}</span>
+        <select name="type" defaultValue={type ?? ""} className="min-h-10 rounded-card border border-control-border bg-surface px-2 font-mono">
+          <option value="">{t("audit.filterAll")}</option>
+          {EVENT_TYPES.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <Button type="submit" variant="secondary">
+        {t("audit.filterApply")}
+      </Button>
+    </form>
   );
 }
 

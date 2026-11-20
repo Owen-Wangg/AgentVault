@@ -1,4 +1,5 @@
 import { and, desc, eq, lt } from "drizzle-orm";
+import type { EventType } from "@/core/audit/chain";
 import type { Db } from "@/server/db/client";
 import { auditEvents } from "@/server/db/schema";
 
@@ -26,9 +27,17 @@ export interface AuditPage {
   older: number | null;
 }
 
-export async function listAuditEvents(db: Db, workspaceId: string, options: { before?: number; limit?: number } = {}): Promise<AuditPage> {
+export async function listAuditEvents(
+  db: Db,
+  workspaceId: string,
+  options: { before?: number; limit?: number; /** Only this event type (UI-31). */ type?: EventType } = {},
+): Promise<AuditPage> {
   const limit = options.limit ?? AUDIT_PAGE_SIZE;
-  const where = options.before === undefined ? eq(auditEvents.workspaceId, workspaceId) : and(eq(auditEvents.workspaceId, workspaceId), lt(auditEvents.seq, options.before));
+  const where = and(
+    eq(auditEvents.workspaceId, workspaceId),
+    options.before === undefined ? undefined : lt(auditEvents.seq, options.before),
+    options.type === undefined ? undefined : eq(auditEvents.type, options.type),
+  );
   // One extra row says whether there is an older page.
   const rows = await db.select().from(auditEvents).where(where).orderBy(desc(auditEvents.seq)).limit(limit + 1);
   const page = rows.slice(0, limit);

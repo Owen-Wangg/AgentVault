@@ -3,7 +3,8 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildChain } from "@/core/testing/audit-fixtures";
 import type { AuditEventMessage } from "@/ui/events/summarize";
-import { AuditLog, type VerifyApi, outcomeOf } from "./AuditLog";
+import { EVENT_TYPES, type EventType } from "@/core/audit/chain";
+import { AuditLog, type VerifyApi, auditHref, outcomeOf } from "./AuditLog";
 
 afterEach(cleanup);
 
@@ -83,6 +84,54 @@ describe("<AuditLog>", () => {
     mount(apiReturning(200, {}), { events: [] });
     expect(screen.getByText("No events yet.")).toBeTruthy();
     expect(screen.queryByRole("link")).toBeNull();
+  });
+});
+
+describe("<AuditLog> type filter", () => {
+  const filtered = (props: { type?: EventType; older?: number | null; isFirstPage?: boolean; events?: AuditEventMessage[] }) =>
+    render(
+      <AuditLog
+        workspaceId="w1"
+        events={props.events ?? [event(6, "decision", { agent_id: "a1" }), event(4, "decision", { agent_id: "a1" }), event(2, "decision", { agent_id: "a1" })]}
+        older={props.older ?? null}
+        isFirstPage={props.isFirstPage ?? true}
+        agentNames={{}}
+        api={apiReturning(200, {})}
+        {...(props.type ? { type: props.type } : {})}
+      />,
+    );
+
+  it("UI-31: a GET form offers All events and every event type, with the current one chosen", () => {
+    filtered({ type: "decision" });
+    const select = screen.getByRole("combobox", { name: "Event type" }) as HTMLSelectElement;
+    expect(select.name).toBe("type");
+    expect(select.closest("form")!.getAttribute("method")).toBe("get");
+    expect(select.closest("form")!.getAttribute("action")).toBe("/audit");
+    expect([...select.options].map((o) => o.value)).toEqual(["", ...EVENT_TYPES]);
+    expect(select.options[0]!.textContent).toBe("All events");
+    expect(select.value).toBe("decision");
+    expect(screen.getByRole("button", { name: "Filter" }).getAttribute("type")).toBe("submit");
+  });
+
+  it("UI-31: paging keeps the filter, and the tamper card is hidden while filtered", () => {
+    filtered({ type: "decision", older: 2, isFirstPage: false });
+    expect(screen.getByRole("link", { name: "Older events" }).getAttribute("href")).toBe("/audit?type=decision&before=2");
+    expect(screen.getByRole("link", { name: "Newest events" }).getAttribute("href")).toBe("/audit?type=decision");
+    expect(screen.queryByRole("region", { name: "Try to tamper with it" })).toBeNull();
+    expect(screen.getByTestId("tamper-filtered").textContent).toContain("show all events");
+    // Verify chain still checks the whole chain on the server.
+    expect(screen.getByRole("button", { name: "Verify chain" })).toBeTruthy();
+  });
+
+  it("UI-31: an empty filtered page says no events of that type, and without a filter the links are as before", () => {
+    const { unmount } = filtered({ type: "payee_updated", events: [] });
+    expect(screen.getByText("No events of this type yet.")).toBeTruthy();
+    unmount();
+    expect(auditHref({})).toBe("/audit");
+    expect(auditHref({ before: 51 })).toBe("/audit?before=51");
+    filtered({});
+    expect(screen.getByRole("region", { name: "Try to tamper with it" })).toBeTruthy();
+    expect((screen.getByRole("combobox", { name: "Event type" }) as HTMLSelectElement).value).toBe("");
   });
 });
 

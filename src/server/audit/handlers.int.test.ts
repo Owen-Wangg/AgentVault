@@ -115,4 +115,24 @@ describe("listAuditEvents", () => {
     expect(last).toMatchObject({ events: [{ seq: 1 }], older: null });
     expect((await listAuditEvents(db(), workspaceId, { limit: 7 })).older).toBeNull();
   });
+
+  it("UI-31: lists only one event type when asked, and pages within that type", async () => {
+    const workspaceId = await ownedWorkspace("filter-owner", 0);
+    // seq 1 to 7: envelope_updated at 1, 3, 5, 7 and agent_frozen at 2, 4, 6.
+    await db().transaction(async (tx) => {
+      for (let i = 1; i <= 7; i += 1) {
+        await appendEvent(tx, { workspaceId, type: i % 2 === 1 ? "envelope_updated" : "agent_frozen", payload: { n: i } }, { key: TEST_HEAD_KEY });
+      }
+    });
+    const first = await listAuditEvents(db(), workspaceId, { type: "agent_frozen", limit: 2 });
+    expect(first.events.map((e) => [e.seq, e.type])).toEqual([
+      [6, "agent_frozen"],
+      [4, "agent_frozen"],
+    ]);
+    expect(first.older).toBe(4);
+    const second = await listAuditEvents(db(), workspaceId, { type: "agent_frozen", before: 4, limit: 2 });
+    expect(second).toMatchObject({ events: [{ seq: 2, type: "agent_frozen" }], older: null });
+    expect((await listAuditEvents(db(), workspaceId, { type: "sandbox_created" })).events).toEqual([]);
+    expect((await listAuditEvents(db(), workspaceId)).events).toHaveLength(7);
+  });
 });
