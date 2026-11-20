@@ -64,6 +64,6 @@ Plan (`docs/PLAN.md`): **Phase 5** = tasks 1–3. **Phase 6** = tasks 4–6. **P
   - Integration tests and property 6 (no release without confirmed failure)
   - _Requirements: RES-3, RES-4, RES-6, RES-7, RES-8, RES-9, PXY-13_
 
-- [ ] 10. Cap each agent's request rate
+- [x] 10. Cap each agent's request rate
   - `hitRateLimit` in `withAgent`, 120 a minute per agent, before the handler; 429 `RATE_LIMITED`; a failed count is 503
   - _Requirements: PXY-15_

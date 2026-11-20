@@ -4,11 +4,13 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { fromDecimalString, micros } from "@/core/money";
 import { MockRail } from "@/rails/mock";
 import type { MockRails } from "@/rails/select";
-import { type Database, queryRows } from "@/server/db/client";
-import { agents, spendReservations } from "@/server/db/schema";
+import { type Database, type Db, queryRows } from "@/server/db/client";
+import { agents, idempotency, spendReservations } from "@/server/db/schema";
+import { AGENT_REQUEST_LIMIT } from "@/server/http/agent-route";
+import { hitRateLimit } from "@/server/http/rate-limit";
 import { createTestDb } from "@/server/db/test-db";
 import { type PayDeps, handlePay } from "./pay-handler";
-import { FakeClock, type Scene, createScene, expectAuditBeforeSpend, testDeps } from "./test-fixtures";
+import { FakeClock, type Scene, createScene, eventsOf, expectAuditBeforeSpend, testDeps } from "./test-fixtures";
 
 /** Tests that need real concurrent connections run only against DATABASE_URL_TEST (testing-standards.md). */
 const realPostgres = Boolean(process.env.DATABASE_URL_TEST);
@@ -54,6 +56,16 @@ function request(scene: Scene, body: Record<string, unknown> = {}, headers: Reco
 }
 
 const read = async (r: Response) => ({ status: r.status, body: (await r.json()) as Record<string, unknown> });
+/** The test database, except that every insert throws, as when the rate-limit count can't be written. */
+const brokenRateLimits = (real: Db): Db =>
+  new Proxy(real, {
+    get: (target, prop, receiver) =>
+      prop === "insert"
+        ? () => {
+            throw new Error("rate limit store unavailable");
+          }
+        : Reflect.get(target, prop, receiver),
+  });
 
 describe("POST /api/v1/pay", () => {
   it("PXY-4: allow returns 200 with the rail reference", async () => {
@@ -188,6 +200,33 @@ describe("PXY-3: authentication and validation", () => {
     expect(mocks.x402.calls).toBe(0);
     const claims = await queryRows<{ n: number }>(db(), sql`SELECT count(*)::int AS n FROM idempotency WHERE agent_id = ${scene.agent.id}`);
     expect(claims[0]?.n).toBe(0);
+  });
+
+  it("PXY-15: past 120 requests a minute an agent gets 429 and nothing is written, while other agents carry on", async () => {
+    const scene = await createScene(db());
+    const other = await createScene(db(), { workspaceId: scene.workspaceId });
+    const { pay, mocks } = payDeps();
+    // Use up this minute's 120 for the first agent without sending 120 requests.
+    for (let i = 0; i < AGENT_REQUEST_LIMIT.limit; i += 1) {
+      await hitRateLimit(db(), { action: "agent-request", ip: `agent:${scene.agent.id}`, now: new Date(), ...AGENT_REQUEST_LIMIT });
+    }
+    const before = await eventsOf(db(), scene.workspaceId);
+    const r = await read(await handlePay(request(scene), pay));
+    expect(r).toEqual({ status: 429, body: { error: "RATE_LIMITED" } });
+    expect(await eventsOf(db(), scene.workspaceId)).toHaveLength(before.length);
+    expect(await db().select().from(idempotency).where(eq(idempotency.agentId, scene.agent.id))).toEqual([]);
+    expect(mocks.x402.calls).toBe(0);
+    expect((await handlePay(request(other), pay)).status).toBe(200);
+  });
+
+  it("PXY-15, PXY-7: if the request count can't be made, the request fails closed with 503", async () => {
+    const scene = await createScene(db());
+    const { pay, mocks } = payDeps();
+    const failing = { ...pay, openDb: () => ({ db: brokenRateLimits(db()), close: async () => {} }) };
+    const r = await read(await handlePay(request(scene), failing));
+    expect(r.status).toBe(503);
+    expect(mocks.x402.calls).toBe(0);
+    expect(await eventsOf(db(), scene.workspaceId)).toEqual([]);
   });
 
   it("rejects a missing or malformed Idempotency-Key with 400", async () => {

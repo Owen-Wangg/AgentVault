@@ -3,6 +3,10 @@ import type { z } from "zod";
 import { type AuthenticatedAgent, authenticateAgent } from "@/server/auth/agent-keys";
 import type { Database, Db } from "@/server/db/client";
 import { APPROVAL_KEY_PREFIX } from "@/server/payments/guarded";
+import { type RateLimit, hitRateLimit } from "./rate-limit";
+
+/** Pay, tool, and fetch requests each agent may send a minute (PXY-15). */
+export const AGENT_REQUEST_LIMIT: RateLimit = { limit: 120, windowMs: 60_000 };
 
 /**
  * Shared plumbing for the agent API routes (/api/v1/pay, fetch, tool):
@@ -74,6 +78,10 @@ export async function withAgent(
     database = openDb();
     const agent = await authenticateAgent(database.db, request.headers.get("authorization"));
     if (!agent) return json(401, { error: "UNAUTHORIZED" });
+    // PXY-15: a per-agent cap before any transaction, so one key can't fill the database.
+    // A failed count throws, and the catch below fails closed with a 503.
+    const allowed = await hitRateLimit(database.db, { action: "agent-request", ip: `agent:${agent.id}`, now: new Date(), ...AGENT_REQUEST_LIMIT });
+    if (!allowed) return json(429, { error: "RATE_LIMITED" });
     return await handle(database.db, agent);
   } catch (error) {
     const correlationId = randomUUID();
