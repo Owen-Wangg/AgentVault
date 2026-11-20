@@ -48,6 +48,7 @@ The public sandbox keeps using mock rails for all of these (rail-adapters RAIL-2
 - **PO-16** THE PayPal adapter SHALL report a payout item in `SUCCESS` as `settled`; `FAILED`, `RETURNED`, `BLOCKED`, `DENIED`, or `REFUNDED` as a confirmed failure; and any other status, including `PENDING` and `UNCLAIMED`, as unknown, so the reservation stays counted (audit-and-approvals RES-5).
 - **PO-17** THE SYSTEM SHALL talk only to the PayPal sandbox API host. IF `PAYPAL_ENV` is anything but `sandbox`, THEN THE SYSTEM SHALL refuse every PayPal call (security-standards §7).
 - **PO-25** WHEN a payout's outcome is unknown but the rail returned its own reference (PayPal's `payout_batch_id`), THE SYSTEM SHALL store that reference on the reservation and in the `rail_result` event, and `lookup` SHALL read the payout by it, read-only. Without a stored reference, the outcome stays unknown (rail-adapters RAIL-21).
+- **PO-26** IF reading a payout's destination from the vendor row fails after the decision committed, THEN THE SYSTEM SHALL not call the rail, SHALL record a `failed` `rail_result` with `RAIL_REJECTED`, and SHALL release the reservation, because nothing was sent. An approved re-run SHALL end the same way, so its approval is followed by that failed result rather than by no result.
 
 ## Requirement 5: Taint and scope cover payouts
 **User story:** As a security engineer, I want payouts covered by taint and intent scope like refunds are, so that a new rail doesn't open a new hole.
