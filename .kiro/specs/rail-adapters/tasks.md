@@ -62,3 +62,7 @@ Plan (`docs/PLAN.md`): **Phase 6** = tasks 1–2. **Phase 13** = tasks 3–5. **
   - A static route with the summary, built from the vendor constants, and a route test
   - Run `/validate-mpp` again: the llms.txt suggestion should be gone
   - _Requirements: RAIL-26_
+
+- [ ] 11. Send a content security policy on the vendor's paid endpoints
+  - `/vendor/api/:path*` in `next.config.ts` with the same no-load policy as `/api/*`, and a header test
+  - _Requirements: RAIL-29_

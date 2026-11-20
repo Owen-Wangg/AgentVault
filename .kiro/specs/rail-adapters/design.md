@@ -107,4 +107,5 @@ export type RailLookup =
 - `@live` tests for x402 on Base Sepolia and Stripe test mode, skipped in CI, run with `pnpm test:live`.
 - `/validate-mpp` steering command for RAIL-18 (`pnpm mpp:validate`).
 - RAIL-26: a route test that `/llms.txt` is `text/plain`, names the endpoints and the paid report's price from `REPORT_PRICE`, and contains nothing shaped like a key (`sk_`, `rk_`, `av_`, `acct_`, `0x` addresses, email addresses).
+- RAIL-29: a test that `next.config.ts` sends the no-load policy on `/vendor/api/:path*` as on `/api/:path*`. `withX402`'s browser page (`customPaywallHtml`) is static text with no style, script, or form, so `default-src 'none'` loses nothing; the vendor docs and invoice pages keep their own policy from `STATIC_PAGE_HEADERS`.
 - Example tests cover the rest: RAIL-1 (every adapter class has the `RailAdapter` type and its four methods), RAIL-2, RAIL-5 to RAIL-12, RAIL-14 to RAIL-17, RAIL-19, RAIL-20, and RAIL-23 to RAIL-25 (the guarded flow's URL choice, the fail-closed case without a URL, and the origin check constraint).
