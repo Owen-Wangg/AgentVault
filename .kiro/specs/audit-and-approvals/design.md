@@ -258,6 +258,7 @@ Response shape: `{ decision, reasons, approval_id?, rail_ref?, rail_status?, eve
 
 ## Error handling
 - Every handler wraps `runGuardedRequest` in a try/catch that logs a correlation ID and returns 503 without details (PXY-7).
+- **Per-agent limit (PXY-15).** `withAgent` (`src/server/http/agent-route.ts`) counts each authenticated request with `hitRateLimit` under `agent:<id>`, 120 a minute, before calling the handler, so a key that sends fresh idempotency keys can't fill `idempotency` and `audit_events`. Velocity freezes still come from the envelope's calls-per-minute limit (telemetry-dashboard UI-8 requires one and caps it at 1,000); this cap bounds what any key can write whatever its envelope says, and sits well above the seeded envelopes' 30 a minute. A failed count throws into the same catch, so the request fails closed.
 - Rail outcomes after commit follow the table in [Reservations and rail outcomes](#reservations-and-rail-outcomes). Only confirmed failures release the reservation.
 - If writing the `rail_result` itself fails after the rail call, the reservation stays `reserved`, and the reconciler picks it up after 10 minutes. The client gets 503.
 - `canonicalJson` errors abort the transaction (CJ-8). They are programmer errors and are logged with the event type.
@@ -284,7 +285,7 @@ Response shape: `{ decision, reasons, approval_id?, rail_ref?, rail_status?, eve
   - Reconciler: an unknown outcome stays reserved and counts toward caps. Resolving it to success settles it, resolving it to failure releases it, and the stored idempotency response is updated (RES-3 to RES-9).
 - Example-based tests, named with their IDs, for the rest:
   - Keys and auth: key shown once and only the hash stored (PXY-1), constant-time lookup (PXY-2), 401 with no payment for missing, unknown, or revoked keys (PXY-3).
-  - Flow: one transaction for lock, evaluate, and decision event (PXY-4); `rail_result` content for each outcome (PXY-6); an injected DB error before the rail returns 503 and makes no rail call (PXY-7); velocity freezes in the same transaction (PXY-10).
+  - Flow: one transaction for lock, evaluate, and decision event (PXY-4); `rail_result` content for each outcome (PXY-6); an injected DB error before the rail returns 503 and makes no rail call (PXY-7); velocity freezes in the same transaction (PXY-10); past 120 requests a minute an agent gets 429 with no event, idempotency row, or rail call, another agent is unaffected, and a failed count is 503 (PXY-15).
   - Audit: each listed event type is written (AUD-1); `seq` and `prev_hash` link on append (AUD-2); a scan of every payload written in the suite finds no `av_test_` keys, card numbers, wallet keys, or fetched bodies (AUD-5); the head row and MAC update with each append (AUD-7); an event with a float rolls back the transaction (CJ-8). AUD-6 is covered by the telemetry-dashboard Playwright test.
   - Approvals: a hold creates a pending approval with the request, reasons, and a 15-minute expiry (HITL-1); approve re-runs and drops only approved hold reasons (HITL-2); deny (HITL-4); approve after expiry returns 409 `APPROVAL_EXPIRED` (HITL-5); a second action returns 409 (HITL-6); the actor in each approval event (HITL-8); unfreeze clears the flag and is audited (HITL-9).
 - `pnpm audit:verify` and `pnpm reconcile` CLIs for the demo.

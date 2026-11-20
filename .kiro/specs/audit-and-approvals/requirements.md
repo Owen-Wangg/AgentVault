@@ -37,6 +37,7 @@ This spec covers the server-side flow that wraps the pure policy engine: authent
 - **PXY-12** IF a request reuses an `Idempotency-Key` that the same agent used within the retention period with a different request body, THEN THE SYSTEM SHALL return HTTP 422 with `IDEMPOTENCY_KEY_REUSED`, and SHALL NOT evaluate or charge.
 - **PXY-13** THE SYSTEM SHALL keep each idempotency record for 24 hours after it was created. After that, THE SYSTEM SHALL treat the key as unused.
 - **PXY-14** IF a request repeats an `Idempotency-Key` whose original request has not finished, THEN THE SYSTEM SHALL return HTTP 409 with `IDEMPOTENCY_IN_PROGRESS`, and SHALL NOT evaluate or charge.
+- **PXY-15** WHEN an authenticated agent sends a pay, tool, or fetch request, THE SYSTEM SHALL count it against a limit of 120 requests per agent per minute, before any transaction, idempotency claim, or audit event. Past the limit it SHALL answer 429 `RATE_LIMITED` and write nothing else. IF the count can't be made, THEN THE SYSTEM SHALL answer 503 and not run the request (PXY-7).
 
 ## Requirement 3: Spend reservations and uncertain rail outcomes
 **User story:** As a security owner, I want money that might have moved to keep counting against the budget, so that a slow or broken rail can't be used to overspend.
