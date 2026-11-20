@@ -59,6 +59,6 @@ Plan (`docs/PLAN.md`): **Phase 20** = tasks 1–4. **Phase 21** = tasks 5–6. *
   - `executeGuarded` catches the destination read and records `RAIL_REJECTED` without a rail call
   - _Requirements: PO-26_
 
-- [ ] 10. Name each run's supplier from its agent ID
+- [x] 10. Name each run's supplier from its agent ID
   - `runPayeeName` takes the new agent ID (16 hex characters), not the client's run ID
   - _Requirements: PO-23_

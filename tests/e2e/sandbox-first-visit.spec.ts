@@ -48,7 +48,7 @@ test("AGT-17, UI-25, UI-26: the hijack's path and requested account, then a rewr
   await expect(path).toContainText("payout.create");
   await expect(path.getByTestId("path-state")).toHaveText(["Passed", "Held", "Passed", "Held", "Not sent"]);
 
-  const supplier = /acme-supplies-[0-9a-f]{8}/.exec((await log.getByRole("listitem").nth(2).textContent()) ?? "")?.[0];
+  const supplier = /acme-supplies-[0-9a-f]{16}/.exec((await log.getByRole("listitem").nth(2).textContent()) ?? "")?.[0];
   if (!supplier) throw new Error("the payout step names no per-run supplier");
 
   // UI-26: rewrite the held payout in a browser copy; the chain breaks at that seq, and the stored log is untouched.

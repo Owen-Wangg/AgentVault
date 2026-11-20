@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { AgentClient } from "@/agents/client";
 import { type LiveRun, runGemini } from "@/agents/gemini/agent";
@@ -88,9 +87,14 @@ export interface StartedRun {
 /** Where the per-run supplier says it lives. Nothing is fetched from it: the invoice is on the app's own origin. */
 export const PAYEE_ORIGIN = "https://acme-supplies.example";
 
-/** The per-run supplier's name: the scenario's payee name and 8 hex characters derived from the run ID (payout-rails design). */
-export function runPayeeName(payeeName: string, runId: string): string {
-  return `${payeeName}-${createHash("sha256").update(runId, "utf8").digest("hex").slice(0, 8)}`;
+/**
+ * The per-run supplier's name (payout-rails PO-23): the scenario's payee
+ * name and the first 16 hex characters of the run's new agent ID. The agent
+ * ID is made by the server for this run, so a visitor who resends a run ID
+ * can't collide with another run's supplier.
+ */
+export function runPayeeName(payeeName: string, agentId: string): string {
+  return `${payeeName}-${agentId.replaceAll("-", "").slice(0, 16).toLowerCase()}`;
 }
 
 /** Step 2: the fresh agent, task, and session, and scenario_started, in one transaction. */
@@ -120,7 +124,7 @@ export async function startRun(
     // payout-rails PO-23: a fresh supplier for this run, so another run's approved payee change can't redirect this run's payout.
     const runVendors: Record<string, string> = {};
     if (scenario.payee) {
-      const name = runPayeeName(scenario.payee.name, input.runId);
+      const name = runPayeeName(scenario.payee.name, agentId);
       await tx.insert(vendors).values({
         workspaceId: input.workspaceId,
         name,

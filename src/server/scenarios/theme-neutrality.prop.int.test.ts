@@ -127,7 +127,7 @@ function normalize(value: unknown): string {
   const text = JSON.stringify(value, (_k, v: unknown) => (typeof v === "bigint" ? `${v}n` : v instanceof Date ? v.toISOString() : v));
   // UUIDs, sha256 hashes, the mock rail's random references (mock_tx_…, mock_po_…), and the
   // hijack's per-run supplier names, whose suffix comes from the random run ID.
-  return text.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\b[0-9a-f]{64}\b|\bmock_[a-z]+_[0-9a-f]{8,}\b|\bacme-supplies-[0-9a-f]{8}\b/gi, (match) => {
+  return text.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\b[0-9a-f]{64}\b|\bmock_[a-z]+_[0-9a-f]{8,}\b|\bacme-supplies-[0-9a-f]{16}\b/gi, (match) => {
     const key = match.toLowerCase();
     const kind = key.startsWith("mock_") ? "ref" : key.startsWith("acme-") ? "payee" : key.length === 64 ? "hash" : "id";
     if (!seen.has(key)) seen.set(key, `${kind}#${seen.size}`);

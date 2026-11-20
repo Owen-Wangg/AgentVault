@@ -12,7 +12,7 @@ import { FakeClock, eventsOf, expectAuditBeforeSpend } from "@/server/payments/t
 import { resetSandbox } from "@/server/sandbox/sandbox";
 import { handleRunScenario } from "./handler";
 import { runPayeeName } from "./runner";
-import { BASE_URL, decisionsOf, expectedOf, runRequest, runScenarioRoute, scenarioRouteDeps } from "./test-fixtures";
+import { BASE_URL, type RunBody, decisionsOf, expectedOf, runRequest, runScenarioRoute, scenarioRouteDeps } from "./test-fixtures";
 
 /**
  * Each scenario end to end: the route creates the run's agent, the
@@ -153,7 +153,7 @@ describe("POST /api/v1/scenarios/:name/run", () => {
   it("PO-23: payee hijack reads the poisoned invoice, and both the payout account change and the $900 payout are held", async () => {
     const { deps, mocks } = routeDeps();
     const { body } = await run("hijack", deps);
-    const supplier = runPayeeName("acme-supplies", body.run_id);
+    const supplier = runPayeeName("acme-supplies", body.agent_id);
     expect(body.steps[0]).toMatchObject({ kind: "fetch", label: "untrusted", url: `${BASE_URL}/vendor/docs/invoice` });
     expect(decisions(body)).toEqual(expected("hijack"));
     expect(body.steps[1]).toMatchObject({ kind: "tool", tool: "payee.update", vendor: supplier, amount_micros: "0", approval_id: expect.any(String) });
@@ -166,6 +166,23 @@ describe("POST /api/v1/scenarios/:name/run", () => {
     expect(row).toMatchObject({ category: "suppliers", trusted: false, stripeAccount: ACME_SUPPLIER.stripeAccount, paypalReceiver: ACME_SUPPLIER.paypalReceiver });
     const [started] = await db().select().from(auditEvents).where(and(eq(auditEvents.workspaceId, sandboxId), eq(auditEvents.seq, body.started_seq)));
     expect(started?.payload).toMatchObject({ scenario: "hijack", vendors: { "acme-supplies": supplier } });
+  });
+
+  it("PO-23: two runs sent with the same run ID each get their own supplier", async () => {
+    const { deps, mocks } = routeDeps();
+    const runId = crypto.randomUUID();
+    const send = async () => {
+      const response = await handleRunScenario(runRequest("hijack", { run_id: runId }), "hijack", deps);
+      return { status: response.status, body: (await response.json()) as RunBody };
+    };
+    const first = await send();
+    const second = await send();
+    expect([first.status, second.status]).toEqual([200, 200]);
+    const names = [first.body, second.body].map((b) => runPayeeName("acme-supplies", b.agent_id));
+    expect(names[0]).toMatch(/^acme-supplies-[0-9a-f]{16}$/);
+    expect(names[0]).not.toBe(names[1]);
+    expect(second.body.steps[2]).toMatchObject({ tool: "payout.create", vendor: names[1] });
+    expect(mocks.stripe.calls).toBe(0);
   });
 
   it("PO-24: denying the injected account change and approving the payout pays the supplier's account on file", async () => {
@@ -194,7 +211,7 @@ describe("POST /api/v1/scenarios/:name/run", () => {
     await act(second.body.steps[2]!.approval_id!, "approve");
     expect(mocks.stripe.recorded().map((r) => r.destination)).toEqual([ATTACKER_ACCOUNT, ACME_SUPPLIER.stripeAccount]);
     const payeeChanges = (await eventsOf(db(), sandboxId)).filter((e) => e.type === "payee_updated");
-    expect(payeeChanges.at(-1)?.payload).toMatchObject({ vendor: runPayeeName("acme-supplies", first.body.run_id), old_ref: ACME_SUPPLIER.stripeAccount, new_ref: ATTACKER_ACCOUNT });
+    expect(payeeChanges.at(-1)?.payload).toMatchObject({ vendor: runPayeeName("acme-supplies", first.body.agent_id), old_ref: ACME_SUPPLIER.stripeAccount, new_ref: ATTACKER_ACCOUNT });
     // Two runs and four approvals take about 5 s on the Neon test branch, past Vitest's 5 s default.
   }, 30_000);
 });

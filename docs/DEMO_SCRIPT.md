@@ -10,7 +10,7 @@ Recorded against <https://owen-agentvault.vercel.app> in the default theme until
 4. Browser at 1920 × 1080, zoom 125%, a private window so the theme is the default and no sign-in shows.
 5. Have four tabs open: `/scenarios`, `/approvals`, `/feed`, `/audit`. Check that `/scenarios` shows the **Real testnet payment** card and that `pnpm x402:status` shows test USDC in the agent wallet.
 6. If a run answers "Someone else is running this scenario right now", wait a few seconds and click again.
-7. Each Payee hijack run pays its own supplier, named `acme-supplies-` plus 8 hex characters (shown in the run's steps). If other visitors' cards are in the inbox, act on the two cards with your run's supplier name.
+7. Each Payee hijack run pays its own supplier, named `acme-supplies-` plus 16 hex characters (shown in the run's steps). If other visitors' cards are in the inbox, act on the two cards with your run's supplier name.
 
 Video rules (Official Rules, section 4): under 3 minutes, uploaded to YouTube as **public**, showing the project working on the device it was built for (a desktop browser). No copyrighted music, and no third-party trademarks or copyrighted material without permission, so use no music or a track licensed for reuse, and keep vendor logos (Stripe, Coinbase, PayPal, GitHub, BaseScan) off screen. Kiro's own UI is the sponsor's product and is fine to show.
 

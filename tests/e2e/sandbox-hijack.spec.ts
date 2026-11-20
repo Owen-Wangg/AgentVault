@@ -17,7 +17,7 @@ async function runHijack(page: Page): Promise<string> {
   const summary = page.getByRole("region", { name: "Summary" });
   await expect(summary).toContainText("$900.00", { timeout: 90_000 });
   await expect(summary).toContainText("Deny the payout account change and approve the payout");
-  const supplier = /acme-supplies-[0-9a-f]{8}/.exec((await steps.getByRole("listitem").nth(2).textContent()) ?? "")?.[0];
+  const supplier = /acme-supplies-[0-9a-f]{16}/.exec((await steps.getByRole("listitem").nth(2).textContent()) ?? "")?.[0];
   if (!supplier) throw new Error("the payout step names no per-run supplier");
   return supplier;
 }
