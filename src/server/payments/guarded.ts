@@ -691,10 +691,20 @@ export async function executeGuarded(req: GuardedRequest, deps: GuardedDeps, dec
     // reservedAt is the reservation row's created_at, which the reconciler passes to lookup() too.
     const ctx = { signal: AbortSignal.timeout(deps.railTimeoutMs ?? RAIL_TIMEOUT_MS), reservedAt };
     // PO-4: a payout's destination is read when it runs, from the registry, never from the request.
-    // A failed read throws before the rail is called; the reservation stays and the route returns 503.
-    destination = operation === "payout" ? await payoutDestination(deps, pending.workspaceId, vendor, railName) : null;
+    // PO-26: if that read fails, nothing was sent, so the payout is a confirmed failure: the
+    // rail_result says so, the reservation is released, and an approval doesn't look executed.
+    let unreadDestination = false;
+    if (operation === "payout") {
+      try {
+        destination = await payoutDestination(deps, pending.workspaceId, vendor, railName);
+      } catch {
+        unreadDestination = true;
+      }
+    }
     try {
-      if (operation === "refund" && refundOf !== undefined) {
+      if (unreadDestination) {
+        result = { ok: false, code: "RAIL_REJECTED", detail: "the payout destination couldn't be read; nothing was sent" };
+      } else if (operation === "refund" && refundOf !== undefined) {
         // A refund of an earlier payment; the rail rounds the amount down (MON-8).
         result = await adapter.refund({ paymentRef: refundOf, amountMicros: counted, idempotencyKey: reservationId }, ctx);
       } else if (operation === "payout") {

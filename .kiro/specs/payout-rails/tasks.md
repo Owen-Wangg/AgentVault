@@ -55,6 +55,6 @@ Plan (`docs/PLAN.md`): **Phase 20** = tasks 1–4. **Phase 21** = tasks 5–6. *
   - Run `/validate-mpp` again to confirm the MPP endpoint is unchanged
   - _Requirements: PO-21, PO-23_
 
-- [ ] 9. Record a failed destination read as a failed payout
+- [x] 9. Record a failed destination read as a failed payout
   - `executeGuarded` catches the destination read and records `RAIL_REJECTED` without a rail call
   - _Requirements: PO-26_

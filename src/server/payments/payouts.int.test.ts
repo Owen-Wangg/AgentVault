@@ -7,7 +7,7 @@ import type { MockRails } from "@/rails/select";
 import type { RailAdapter } from "@/rails/types";
 import { actOnApproval } from "@/server/approvals/service";
 import { verifyChain } from "@/server/audit/append";
-import type { Database } from "@/server/db/client";
+import type { Database, Db } from "@/server/db/client";
 import { spendReservations, vendors } from "@/server/db/schema";
 import { createTestDb } from "@/server/db/test-db";
 import { type GuardedBody, type GuardedDeps, runGuardedRequest } from "./guarded";
@@ -84,6 +84,20 @@ async function destinationsOf(workspaceId: string) {
   return row;
 }
 
+/**
+ * The database, except that reads outside a transaction throw, as in a
+ * connection blip after the decision committed. Transactions still work,
+ * so the decision and the outcome are written as usual.
+ */
+const failingReads = (real: Db): Db =>
+  new Proxy(real, {
+    get: (target, prop, receiver) =>
+      prop === "select"
+        ? () => {
+            throw new Error("connection lost");
+          }
+        : Reflect.get(target, prop, receiver),
+  });
 const run = (scene: Scene, deps: GuardedDeps, body: GuardedBody) => runGuardedRequest({ agent: scene.agent, idempotencyKey: nextKey(), body }, deps);
 
 const approve = (deps: GuardedDeps, scene: Scene, approvalId: string, action: "approve" | "deny" = "approve") =>
@@ -116,6 +130,33 @@ describe("PO-2, PO-4: payouts go to the registered destination", () => {
     const { deps, mocks } = testDeps(db());
     await run(scene, deps, payoutBody(scene, "payout.create", "5", { args: { destination: ATTACKER_ACCT, payee_ref: ATTACKER_ACCT } }));
     expect(mocks.stripe.recorded()).toMatchObject([{ destination: SUPPLIER_ACCT }]);
+  });
+
+  it("PO-26: if the destination can't be read, the payout is a recorded failure with no rail call, and the reservation is released", async () => {
+    const scene = await supplierScene();
+    const { deps, mocks } = testDeps(db());
+    const r = await run(scene, { ...deps, db: failingReads(deps.db) }, payoutBody(scene, "payout.create", "900"));
+    expect(r).toMatchObject({ status: 502, body: { decision: "allow", rail_status: "failed", error: "RAIL_REJECTED" } });
+    expect(mocks.stripe.calls).toBe(0);
+    const events = await eventsOf(db(), scene.workspaceId);
+    expect(events.at(-1)).toMatchObject({ type: "rail_result", payload: { status: "failed", code: "RAIL_REJECTED" } });
+    const [reservation] = await db().select().from(spendReservations).where(eq(spendReservations.agentId, scene.agent.id));
+    expect(reservation?.status).toBe("released");
+  });
+
+  it("PO-26: an approved payout whose destination can't be read ends with a failed rail result, not a silent executed approval", async () => {
+    const scene = await supplierScene();
+    await taintSession(db(), scene.sessionId);
+    const { deps, mocks } = testDeps(db());
+    const held = await run(scene, deps, payoutBody(scene, "payout.create", "900"));
+    expect(held.body.decision).toBe("hold");
+    const r = await approve({ ...deps, db: failingReads(deps.db) }, scene, String(held.body.approval_id));
+    // The recheck passed, so the approval is executed; what the rail did is in the rail_result below.
+    expect(r).toMatchObject({ status: 200, body: { status: "executed" } });
+    expect(mocks.stripe.calls).toBe(0);
+    expect((await eventsOf(db(), scene.workspaceId)).at(-1)).toMatchObject({ type: "rail_result", payload: { status: "failed", code: "RAIL_REJECTED" } });
+    const [reservation] = await db().select().from(spendReservations).where(eq(spendReservations.agentId, scene.agent.id));
+    expect(reservation?.status).toBe("released");
   });
 
   it("PO-4: a payee with no destination on the rail fails closed without a rail call and releases the reservation", async () => {
