@@ -90,12 +90,6 @@ export const env = {
    */
   githubAuthConfigured: (): boolean =>
     read("AUTH_SECRET") !== undefined && read("AUTH_GITHUB_ID") !== undefined && read("AUTH_GITHUB_SECRET") !== undefined,
-  /**
-   * Like githubAuthConfigured, but an invalid value turns sign-in off
-   * instead of throwing, so a bad AUTH_ variable can't take the dashboard
-   * or the approval routes down. Nobody is signed in then (fail closed),
-   * and `pnpm env:check` reports which variable is wrong.
-   */
   /** The Gemini key, or undefined when the live agent is off. Throws if it's set but malformed. */
   geminiApiKey: (): string | undefined => read("GEMINI_API_KEY"),
   geminiModel: (): string => read("GEMINI_MODEL"),
@@ -123,6 +117,12 @@ export const env = {
     if (!parsed.success) return false;
     return parsed.data === undefined ? process.env.VERCEL === "1" : parsed.data === "1";
   },
+  /**
+   * Like githubAuthConfigured, but an invalid value turns sign-in off
+   * instead of throwing, so a bad AUTH_ variable can't take the dashboard
+   * or the approval routes down. Nobody is signed in then (fail closed),
+   * and `pnpm env:check` reports which variable is wrong.
+   */
   githubAuthEnabled: (): boolean => {
     try {
       return env.githubAuthConfigured();
