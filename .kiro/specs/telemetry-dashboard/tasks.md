@@ -102,3 +102,7 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
   - `lastDecisions` reads only the listed agents
   - Migration 0009: indexes for the type filter, each agent's newest decision, and sessions by agent
   - _Requirements: UI-7, UI-31_
+
+- [ ] 21. Name rails properly on the audit page and mark the sandbox's as mock
+  - `audit.rail.*` names and `audit.what.settledMock` in `copy.ts`; `describeEvent` takes `{ sandbox }`, passed from the page
+  - _Requirements: UI-30_
