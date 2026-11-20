@@ -53,7 +53,16 @@ const schemas = {
 } as const satisfies Record<EventType, z.ZodType>;
 
 type Schemas = typeof schemas;
-type Describers = { [K in keyof Schemas]: (p: z.infer<Schemas[K]>, c: Copy) => string };
+/** What the page knows that a payload doesn't. */
+export type DescribeOptions = {
+  /**
+   * The workspace is the public sandbox, which only ever runs mock rails.
+   * A rail_result's `rail` names the tool's rail even when the mock adapter
+   * ran it, so only the page can say the settlement wasn't real.
+   */
+  readonly sandbox?: boolean;
+};
+type Describers = { [K in keyof Schemas]: (p: z.infer<Schemas[K]>, c: Copy, o: DescribeOptions) => string };
 
 /** Fills `{name}` slots in a copy string. The values are inserted as they are, never read as a pattern. */
 const fill = (template: string, values: Record<string, string>): string => template.replace(/\{(\w+)\}/g, (slot, name: string) => values[name] ?? slot);
@@ -70,6 +79,16 @@ function actorText(actor: string, c: Copy): string {
   return c.t("audit.actor.member");
 }
 
+const RAIL_NAMES = { stripe: "audit.rail.stripe", x402: "audit.rail.x402", paypal: "audit.rail.paypal" } as const satisfies Record<string, UiKey>;
+
+/** A rail ID as its provider writes it; one this page doesn't know is shown as written. */
+const railName = (rail: string, c: Copy): string => (Object.hasOwn(RAIL_NAMES, rail) ? c.t(RAIL_NAMES[rail as keyof typeof RAIL_NAMES]) : rail);
+
+function settledOn(rail: string, c: Copy, o: DescribeOptions): string {
+  if (rail === "mock") return c.t("audit.what.settledOnMock");
+  return say(c, o.sandbox ? "audit.what.settledMock" : "audit.what.settled", { rail: railName(rail, c) });
+}
+
 const DESCRIBE: Describers = {
   decision: (p, c) => {
     const verb = c.t(`decision.${p.decision}`);
@@ -77,10 +96,10 @@ const DESCRIBE: Describers = {
     const head = p.request.amount_micros > 0n ? `${verb} ${p.request.tool}, ${toDisplay(p.request.amount_micros)}` : `${verb} ${p.request.tool}`;
     return withCodes(head, p.reasons);
   },
-  rail_result: (p, c) => {
+  rail_result: (p, c, o) => {
     let text: string;
     if (p.status === "settled") {
-      text = p.rail ? say(c, "audit.what.settled", { rail: p.rail }) : c.t("audit.what.settledNoRail");
+      text = p.rail ? settledOn(p.rail, c, o) : c.t("audit.what.settledNoRail");
       if (p.settled_micros !== undefined) text += `, ${toDisplay(p.settled_micros)}`;
       if (p.payout_to) text += `, ${say(c, "audit.what.paidOutTo", { to: p.payout_to })}`;
     } else if (p.status === "failed") {
@@ -117,13 +136,13 @@ const DESCRIBE: Describers = {
 
 const isKnown = (type: string): type is keyof Schemas => Object.hasOwn(schemas, type);
 
-export function describeEvent(event: Pick<AuditEventMessage, "type" | "payload">, c: Copy): string {
+export function describeEvent(event: Pick<AuditEventMessage, "type" | "payload">, c: Copy, options: DescribeOptions = {}): string {
   if (!isKnown(event.type)) return NOTHING;
-  return describeKnown(event.type, event.payload, c);
+  return describeKnown(event.type, event.payload, c, options);
 }
 
-function describeKnown<K extends keyof Schemas>(type: K, payload: unknown, c: Copy): string {
+function describeKnown<K extends keyof Schemas>(type: K, payload: unknown, c: Copy, o: DescribeOptions): string {
   const parsed = schemas[type].safeParse(payload);
   if (!parsed.success) return NOTHING;
-  return (DESCRIBE[type] as (p: unknown, c: Copy) => string)(parsed.data, c);
+  return (DESCRIBE[type] as (p: unknown, c: Copy, o: DescribeOptions) => string)(parsed.data, c, o);
 }

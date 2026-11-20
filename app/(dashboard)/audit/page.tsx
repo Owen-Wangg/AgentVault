@@ -37,6 +37,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
       older={page.older}
       isFirstPage={before === undefined}
       agentNames={await getAgentNames(workspace.id)}
+      sandbox={workspace.isSandbox}
       {...(type === undefined ? {} : { type })}
     />
   );

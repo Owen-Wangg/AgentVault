@@ -66,6 +66,7 @@ export function AuditLog({
   isFirstPage,
   agentNames,
   type,
+  sandbox = false,
   api = httpVerifyApi,
 }: {
   workspaceId: string;
@@ -76,6 +77,8 @@ export function AuditLog({
   agentNames: Record<string, string>;
   /** The event type the page is filtered to, if any (UI-31). */
   type?: EventType;
+  /** The public sandbox, whose rails are all mock (UI-30). */
+  sandbox?: boolean;
   api?: VerifyApi;
 }) {
   const copy = useCopy();
@@ -183,7 +186,7 @@ export function AuditLog({
                     </td>
                     <td className="px-3 py-2 font-mono">{e.type}</td>
                     {/* UI-30: plain text, never markup or a link, even for the URL a taint names. */}
-                    <td className="min-w-[16rem] px-3 py-2 [overflow-wrap:anywhere]">{describeEvent(e, copy)}</td>
+                    <td className="min-w-[16rem] px-3 py-2 [overflow-wrap:anywhere]">{describeEvent(e, copy, { sandbox })}</td>
                     <td className="px-3 py-2">{agent ? agentLabel(agentNames, agent) : "–"}</td>
                     <td className="px-3 py-2 font-mono" title={e.hash}>
                       <span aria-hidden="true">{short(e.hash)}</span>

@@ -242,6 +242,11 @@ type UiKey =
   | "audit.tamperFiltered"
   | "audit.what"
   | "audit.what.settled"
+  | "audit.what.settledMock"
+  | "audit.what.settledOnMock"
+  | "audit.rail.stripe"
+  | "audit.rail.x402"
+  | "audit.rail.paypal"
   | "audit.what.settledNoRail"
   | "audit.what.paidOutTo"
   | "audit.what.failed"
@@ -550,6 +555,11 @@ const defaultCopy: CopyTable = {
   "audit.tamperFiltered": "To try tampering with the chain, show all events: a filtered page skips events, so a recheck would see gaps that aren't tampering.",
   "audit.what": "What happened",
   "audit.what.settled": "Settled on {rail}",
+  "audit.what.settledMock": "Settled on the mock {rail} rail",
+  "audit.what.settledOnMock": "Settled on the mock rail",
+  "audit.rail.stripe": "Stripe",
+  "audit.rail.x402": "x402",
+  "audit.rail.paypal": "PayPal",
   "audit.what.settledNoRail": "Done, with no rail call",
   "audit.what.paidOutTo": "paid out to {to}",
   "audit.what.failed": "The rail refused it: {code}",

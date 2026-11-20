@@ -53,14 +53,27 @@ describe("describeEvent", () => {
   });
 
   it("UI-30: a rail result says whether it settled, failed, or is still unknown", () => {
-    expect(say("rail_result", SAMPLES.rail_result)).toBe("Settled on mock, $0.0015");
+    expect(say("rail_result", SAMPLES.rail_result)).toBe("Settled on the mock rail, $0.0015");
     expect(say("rail_result", { status: "settled", rail: "stripe", settled_micros: "900000000", payout_to: "acct_1AcmeSupplies" })).toBe(
-      "Settled on stripe, $900.00, paid out to acct_1AcmeSupplies",
+      "Settled on Stripe, $900.00, paid out to acct_1AcmeSupplies",
     );
     expect(say("rail_result", { status: "settled", rail: null })).toBe("Done, with no rail call");
     expect(say("rail_result", { status: "failed", rail: "x402", code: "RAIL_REJECTED" })).toBe("The rail refused it: RAIL_REJECTED");
     expect(say("rail_result", { status: "unknown", rail: "x402", code: "RAIL_TIMEOUT" })).toBe("The rail hasn't confirmed it, so the amount stays counted");
     expect(say("rail_result", { status: "settled", rail: "x402", settled_micros: "1500", reconciled: true })).toBe("Settled on x402, $0.0015 (found by the reconciler)");
+  });
+
+  it("UI-30: rails are named as their providers write them, and the sandbox's are marked mock", () => {
+    const settled = (rail: string) => ({ status: "settled", rail, settled_micros: "1500" });
+    expect(say("rail_result", settled("paypal"))).toBe("Settled on PayPal, $0.0015");
+    expect(say("rail_result", settled("x402"))).toBe("Settled on x402, $0.0015");
+    const sandbox = (rail: string, c = en) => describeEvent({ type: "rail_result", payload: settled(rail) }, c, { sandbox: true });
+    expect(sandbox("stripe")).toBe("Settled on the mock Stripe rail, $0.0015");
+    expect(sandbox("x402")).toBe("Settled on the mock x402 rail, $0.0015");
+    expect(sandbox("paypal", spooky)).toBe("Settled on the mock PayPal rail, $0.0015");
+    expect(sandbox("mock")).toBe("Settled on the mock rail, $0.0015");
+    // A rail this page doesn't know is shown as written, never dropped.
+    expect(say("rail_result", settled("future-rail"))).toBe("Settled on future-rail, $0.0015");
   });
 
   it("UI-30: approvals name who acted, in words rather than IDs", () => {

@@ -21,9 +21,17 @@ const event = (seq: number, type: string, payload: unknown = {}): AuditEventMess
 
 const EVENTS = [event(3, "decision", { agent_id: "a1" }), event(2, "taint", { agent_id: "agent-without-name" }), event(1, "sandbox_created")];
 
-function mount(api: VerifyApi, props: { older?: number | null; isFirstPage?: boolean; events?: AuditEventMessage[] } = {}) {
+function mount(api: VerifyApi, props: { older?: number | null; isFirstPage?: boolean; events?: AuditEventMessage[]; sandbox?: boolean } = {}) {
   return render(
-    <AuditLog workspaceId="w1" events={props.events ?? EVENTS} older={props.older ?? null} isFirstPage={props.isFirstPage ?? true} agentNames={{ a1: "billing-bot" }} api={api} />,
+    <AuditLog
+      workspaceId="w1"
+      events={props.events ?? EVENTS}
+      older={props.older ?? null}
+      isFirstPage={props.isFirstPage ?? true}
+      agentNames={{ a1: "billing-bot" }}
+      sandbox={props.sandbox ?? false}
+      api={api}
+    />,
   );
 }
 
@@ -61,6 +69,16 @@ describe("<AuditLog>", () => {
       .map((r) => within(r).getAllByRole("cell")[3]!);
     expect(what.map((cell) => cell.textContent)).toEqual(["Held payout.create, $900.00: HELD_TAINTED", `Session tainted by ${url}`, "–"]);
     expect(what[1]!.querySelector("img, a")).toBeNull();
+  });
+
+  it("UI-30: in the sandbox a settled payout says it ran on the mock rail", () => {
+    const events = [event(1, "rail_result", { status: "settled", rail: "stripe", settled_micros: "900000000", payout_to: "acct_1AcmeSupplies" })];
+    const whatOf = () => within(screen.getByRole("table")).getAllByRole("row")[1]!.querySelectorAll("td")[3]!.textContent;
+    const { unmount } = mount(apiReturning(200, {}), { events, sandbox: true });
+    expect(whatOf()).toBe("Settled on the mock Stripe rail, $900.00, paid out to acct_1AcmeSupplies");
+    unmount();
+    mount(apiReturning(200, {}), { events });
+    expect(whatOf()).toBe("Settled on Stripe, $900.00, paid out to acct_1AcmeSupplies");
   });
   it("AUD-6: Verify chain asks the server for this workspace and shows the count and the signed head", async () => {
     const api = apiReturning(200, { workspace_id: "w1", ok: true, count: 88, head_seq: 88 });
