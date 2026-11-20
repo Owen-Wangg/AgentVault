@@ -66,3 +66,9 @@ Plan (`docs/PLAN.md`): **Phase 6** = tasks 1–2. **Phase 13** = tasks 3–5. **
 - [x] 11. Send a content security policy on the vendor's paid endpoints
   - `/vendor/api/:path*` in `next.config.ts` with the same no-load policy as `/api/*`, and a header test
   - _Requirements: RAIL-29_
+
+- [x] 12. Tie refunds to this workspace's payments and rate-limit the vendor's paid APIs
+  - `refundRoom()` in `src/server/payments/guarded.ts`: an allowed refund outside the sandbox needs a settled `mpp.pay` of this workspace with enough left after earlier refunds that did not confirmably fail, or it is denied with `INVALID_REQUEST`
+  - `src/server/vendor/rate-limit.ts`: 60 requests per IP a minute on `/vendor/api/weather` and `/vendor/api/report`, 429 past that, 503 if the count fails
+  - Integration tests in `guarded.int.test.ts` and `src/server/vendor/rate-limit.int.test.ts`
+  - _Requirements: RAIL-27, RAIL-28_
