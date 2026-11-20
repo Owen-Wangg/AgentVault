@@ -6,6 +6,7 @@ import { Amount } from "@/ui/components/Amount";
 import { DataState } from "@/ui/components/DataState";
 import { StreamStatusBadge } from "@/ui/components/StreamStatusBadge";
 import { Card, CardTitle, PageTitle } from "@/ui/components/primitives";
+import { LocalTime } from "@/ui/LocalTime";
 import { useCopy } from "@/ui/ThemeProvider";
 import { type Alert, RANGES, type Range, isCapped, summarize } from "@/ui/events/summarize";
 import { type EventStreamOptions, useEventStream } from "@/ui/events/use-event-stream";
@@ -114,13 +115,13 @@ function Kpi({ label, children }: { label: string; children: React.ReactNode }) 
 
 function AlertItem({ alert, agentNames }: { alert: Alert; agentNames: Record<string, string> }) {
   const { t, reasonText } = useCopy();
-  const when = new Date(alert.at).toLocaleTimeString();
+  const when = <LocalTime iso={alert.at} format="time" />;
   if (alert.kind === "frozen") {
     return (
       <li className="flex items-start gap-3 py-2 text-sm">
         <Lock aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-deny" />
         <span>
-          <span className="font-medium">{agentLabel(agentNames, alert.agentId)}</span>: {t("agents.frozen")} · <time dateTime={alert.at}>{when}</time>
+          <span className="font-medium">{agentLabel(agentNames, alert.agentId)}</span>: {t("agents.frozen")} · {when}
         </span>
       </li>
     );
@@ -131,7 +132,7 @@ function AlertItem({ alert, agentNames }: { alert: Alert; agentNames: Record<str
         <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-hold" />
         <span className="min-w-0">
           <span className="font-medium">{agentLabel(agentNames, alert.agentId)}</span>: {t("agents.tainted")} · <span className="break-all font-mono text-xs">{alert.url}</span> ·{" "}
-          <time dateTime={alert.at}>{when}</time>
+          {when}
         </span>
       </li>
     );
@@ -143,7 +144,7 @@ function AlertItem({ alert, agentNames }: { alert: Alert; agentNames: Record<str
       <Icon aria-hidden="true" className={`mt-0.5 size-4 shrink-0 ${row.decision === "deny" ? "text-deny" : "text-hold"}`} />
       <span>
         <span className="font-medium">{agentLabel(agentNames, row.agentId)}</span> → {row.vendor} <Amount value={row.amountMicros} />:{" "}
-        {row.reasons.map((r) => reasonText(r.code)).join(" ")} · <time dateTime={row.at}>{when}</time>
+        {row.reasons.map((r) => reasonText(r.code)).join(" ")} · {when}
       </span>
     </li>
   );

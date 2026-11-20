@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { LocalTime } from "@/ui/LocalTime";
 import { REASON_CODES } from "@/core/policy";
 import { Amount } from "@/ui/components/Amount";
 import { DataState } from "@/ui/components/DataState";
@@ -105,7 +106,7 @@ function Row({ row, agentNames }: { row: FeedRow; agentNames: Record<string, str
   return (
     <tr className="align-top">
       <td className="whitespace-nowrap px-3 py-2">
-        <time dateTime={row.at}>{new Date(row.at).toLocaleTimeString()}</time>
+        <LocalTime iso={row.at} format="time" />
       </td>
       <td className="px-3 py-2">{agentLabel(agentNames, row.agentId)}</td>
       <td className="px-3 py-2">

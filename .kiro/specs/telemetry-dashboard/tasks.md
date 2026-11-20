@@ -107,6 +107,6 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
   - `audit.rail.*` names and `audit.what.settledMock` in `copy.ts`; `describeEvent` takes `{ sandbox }`, passed from the page
   - _Requirements: UI-30_
 
-- [ ] 22. Format every dashboard time in the browser
+- [x] 22. Format every dashboard time in the browser
   - `LocalTime` in `src/ui/LocalTime.tsx`, used by the audit, agents, feed, and overview pages
   - _Requirements: UI-32_

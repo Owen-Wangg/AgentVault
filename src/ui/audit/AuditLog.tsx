@@ -1,6 +1,7 @@
 "use client";
 
 import { PencilLine, ShieldCheck, ShieldX, Trash2 } from "lucide-react";
+import { LocalTime } from "@/ui/LocalTime";
 import Link from "next/link";
 import { useState } from "react";
 import { DataState } from "@/ui/components/DataState";
@@ -179,10 +180,7 @@ export function AuditLog({
                   <tr key={e.seq}>
                     <td className="px-3 py-2 font-mono">{e.seq}</td>
                     <td className="whitespace-nowrap px-3 py-2">
-                      {/* Local time differs between the server render and the browser, so React may not compare it. */}
-                      <time dateTime={e.created_at} suppressHydrationWarning>
-                        {new Date(e.created_at).toLocaleString()}
-                      </time>
+                      <LocalTime iso={e.created_at} />
                     </td>
                     <td className="px-3 py-2 font-mono">{e.type}</td>
                     {/* UI-30: plain text, never markup or a link, even for the URL a taint names. */}

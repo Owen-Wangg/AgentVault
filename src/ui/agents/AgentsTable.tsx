@@ -1,6 +1,7 @@
 "use client";
 
 import { Ghost, Skull } from "lucide-react";
+import { LocalTime } from "@/ui/LocalTime";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -36,10 +37,7 @@ function LastDecisionCell({ last }: { last: AgentRow["lastDecision"] }) {
         {/* payee.update moves no money, so no $0.00. */}
         {amount?.success && amount.data > 0n ? <Amount value={amount.data} /> : null}
       </span>
-      {/* Local time differs between the server render and the browser, so React may not compare it. */}
-      <time dateTime={last.at} suppressHydrationWarning className="text-xs text-text-muted">
-        {new Date(last.at).toLocaleString()}
-      </time>
+      <LocalTime iso={last.at} className="text-xs text-text-muted" />
     </div>
   );
 }
