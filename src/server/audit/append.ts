@@ -1,7 +1,6 @@
 import { and, asc, eq, gt } from "drizzle-orm";
 import {
   type AuditEventBody,
-  type ChainHead,
   type EventType,
   GENESIS_HASH,
   type StoredEvent,
@@ -97,15 +96,7 @@ export async function appendEvent(tx: Tx, input: AppendInput, options: AppendOpt
   return { ...body, prev_hash: head.hash, hash };
 }
 
-/** Load a workspace's events in seq order, in the shape the pure verifier takes. */
-export async function loadChain(db: Db | Tx, workspaceId: string): Promise<{ events: StoredEvent[]; head: ChainHead | null }> {
-  const rows = await db.select().from(auditEvents).where(eq(auditEvents.workspaceId, workspaceId)).orderBy(auditEvents.seq);
-  const [head] = await db
-    .select({ seq: auditHeads.seq, hash: auditHeads.hash, mac: auditHeads.mac })
-    .from(auditHeads)
-    .where(eq(auditHeads.workspaceId, workspaceId));
-  return { events: rows.map(storedEvent), head: head ?? null };
-}
+
 
 /** Rows read per page when verifying, so a long chain is never loaded whole. */
 export const VERIFY_PAGE_SIZE = 1_000;
@@ -154,7 +145,8 @@ export async function verifyChain(
   );
 }
 
-function storedEvent(r: typeof auditEvents.$inferSelect): StoredEvent {
+/** A database row in the shape the pure verifier takes. */
+export function storedEvent(r: typeof auditEvents.$inferSelect): StoredEvent {
   return {
     workspace_id: r.workspaceId,
     seq: r.seq,

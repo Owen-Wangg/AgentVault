@@ -5,7 +5,8 @@ import { TEST_HEAD_KEY } from "@/core/testing/audit-fixtures";
 import { type Database, type Tx, queryRows } from "@/server/db/client";
 import { auditEvents, auditHeads, workspaces } from "@/server/db/schema";
 import { createTestDb } from "@/server/db/test-db";
-import { AuditHeadError, appendEvent, createHead, loadChain, verifyChain } from "./append";
+import { AuditHeadError, appendEvent, createHead, verifyChain } from "./append";
+import { loadChain } from "./test-fixtures";
 
 const key = TEST_HEAD_KEY;
 const opts = { key };

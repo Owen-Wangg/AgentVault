@@ -1,7 +1,8 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { TEST_HEAD_KEY } from "@/core/testing/audit-fixtures";
-import { loadChain, verifyChain } from "@/server/audit/append";
+import { verifyChain } from "@/server/audit/append";
+import { loadChain } from "@/server/audit/test-fixtures";
 import { type Database, queryRows } from "@/server/db/client";
 import { decodeEnvelope } from "@/server/db/envelope-json";
 import { agents, envelopes, tasks, vendors, workspaces } from "@/server/db/schema";
