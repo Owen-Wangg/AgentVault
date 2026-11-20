@@ -9,7 +9,7 @@ Draft for the Devpost write-up. Every example below comes from `docs/KIRO_LOG.md
 - **Hooks.** Seven. A shell guard applies AgentVault's own idea to Kiro and blocked it several times. A traceability check found 29 requirement IDs that no design or task named.
 - **Property-based tests.** 19 files, written from the designs' properties. They found real bugs, such as a vendor named `__proto__` whose $0 daily cap disappeared during parsing. Each safeguard was also broken on purpose to prove a test catches it.
 - **MCP, both directions.** Kiro paid through AgentVault's own MCP server, fell for the poisoned page, and was held, with no tool to approve itself. Vercel's and Neon's MCP servers let Kiro read deployment logs and free-plan usage, read-only.
-- **Custom agent and the CLI.** A least-privilege security-reviewer agent, built in the Kiro CLI, ran two full reviews, and every finding was fixed or decided in its own commits.
+- **Custom agent and the CLI.** A least-privilege security-reviewer agent, built in the Kiro CLI, ran two full reviews and a follow-up, and every finding was fixed or decided in its own commits.
 - **Powers.** Stripe (account and API data during testing, its docs, and the Connect payout design) and Neon (usage checks against the free plan).
 
 The Official Rules (section 4) list eight questions the write-up should answer. Where each is answered:
@@ -38,6 +38,8 @@ Most of the work was done in the Kiro IDE on Windows. The Kiro CLI (3.0.0) was u
 - **Prompt.** It must treat the deliberately poisoned vendor page and invoice as data and report any embedded instruction as a finding. It must cite a file and line for every finding, say what it could not check, never print a secret value, and never overwrite an earlier report.
 
 The first full review ran as a sub-agent and saved `docs/security/2026-11-18-full-review.md`: no critical or high findings, two medium (raw URLs with query strings written to the append-only audit log, and `clientIp` trusting forwarded headers off Vercel) and seven low. It also confirmed or corrected four findings from an earlier chat pass, and it said which files it had not read and that it could not run `pnpm audit`. The fixes went in as separate commits: security headers on every route, URLs stripped of query strings and credentials in fetch events, proxy IP headers trusted only behind a proxy that sets them, `AGENT_FROZEN` on early refusals, no stored GitHub tokens and shorter sessions, no vendor redirects and capped vendor reads, and all-visitor caps on scenario runs, event streams, and approval listing.
+
+The second full review, `docs/security/2026-11-19-full-review.md`, re-checked every earlier finding against the code (all fixed or accepted as recorded) and again found nothing critical or high. Its one medium: public dashboard pages read every agent and every decision in the sandbox, which one IP could grow to about 14,000 agents in a day. The fixes bound those reads to the 200 newest agents and add three indexes. The low and info findings were fixed in their own commits too: a per-agent limit of 120 pay, tool, and fetch requests a minute, a required calls-per-minute cap on saved envelopes, payouts with an unreadable destination recorded as failed with the reservation released, a longer per-run supplier name so two runs can't collide, and the no-load CSP on the vendor API.
 
 What went wrong: the first version was Markdown with front matter, which the docs allow, but the CLI's `agent list` and `validate` only read JSON, so I converted it. The agent also listed some files as unread that the earlier pass had covered. And its report corrected my own note that unknown-tool requests skip the velocity count: they count, through the idempotency row.
 
@@ -150,4 +152,4 @@ The optional Gemini agent (`gemini-3.5-flash-lite`, free tier) runs three scenar
 
 ## Numbers
 
-Nine specs, eight steering files, seven hooks, one custom agent, and about 380 commits. About 1,580 Vitest tests (unit, property, and integration), with 19 property-test files, and 10 Playwright tests. Lighthouse accessibility, best practices, and SEO 100 on the overview, Scenarios, and Audit in both themes, and on Approvals in the default theme. One real testnet payment button on the hosted site, live since Nov 17.
+Nine specs, eight steering files, seven hooks, one custom agent, and about 435 commits. About 1,630 Vitest tests (unit, property, and integration), with 19 property-test files, and 10 Playwright tests. Lighthouse accessibility, best practices, and SEO 100 on all seven dashboard pages in both themes. One real testnet payment button on the hosted site, live since Nov 17.

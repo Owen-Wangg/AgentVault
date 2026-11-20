@@ -50,8 +50,8 @@ In the **payee hijack**, an agent paying a supplier's $900 invoice reads a poiso
 - **Money is `bigint` micros** (1 USD = 1,000,000), so sub-cent charges are exact. Conversions to Stripe cents round against the agent: debits up, refunds down.
 - **Each payment is one database transaction:** lock the agent's envelope row, claim the idempotency key, load the state, run a pure `evaluate()` function, write the audit row, and reserve the amount. The rail call happens after the commit, so no lock is held during a payment. If any step fails, nothing is paid.
 - **Rails:** x402 on Base Sepolia (USDC) and Stripe MPP in test mode for payments, Stripe Connect transfers (test mode) and PayPal Payouts (sandbox) for payouts, each verified with real test payments, plus a mock rail for the sandbox. PayPal is a second, unrelated provider, there to show the same rules hold on a rail AgentVault didn't start with.
-- **Testing:** about 1,580 Vitest tests, including 19 files of fast-check property tests that check the designs' correctness properties, and Playwright for the judge's path. Each safeguard was broken on purpose to confirm a test catches it.
-- **Built with Kiro:** nine specs, steering, seven hooks, MCP, and a least-privilege security-reviewer custom agent (made in the Kiro CLI) whose review led to a round of hardening fixes. Details in the Kiro write-up.
+- **Testing:** about 1,630 Vitest tests, including 19 files of fast-check property tests that check the designs' correctness properties, and Playwright for the judge's path. Each safeguard was broken on purpose to confirm a test catches it.
+- **Built with Kiro:** nine specs, steering, seven hooks, MCP, and a least-privilege security-reviewer custom agent (made in the Kiro CLI) whose two full reviews led to rounds of hardening fixes. Details in the Kiro write-up.
 
 ## Challenges we ran into
 
@@ -70,7 +70,7 @@ In the **payee hijack**, an agent paying a supplier's $900 invoice reads a poiso
 - Any visitor can make a real $0.0015 x402 payment on Base Sepolia from the hosted site and see it on BaseScan, through the same checks as every other request.
 - Real sub-cent x402 payments ($0.0015) settled on Base Sepolia, and real Stripe MPP test payments with a refund, each found again by the read-only lookup the reconciler uses. Guarded $1.00 payouts settled as a Stripe Connect test-mode transfer and a PayPal sandbox payout.
 - Property tests that found real bugs, including one that would have let a limit disappear.
-- Lighthouse accessibility, best practices, and SEO scores of 100 on the overview, Scenarios, and Audit pages in both themes, and on Approvals in the default theme.
+- Lighthouse accessibility, best practices, and SEO scores of 100 on all seven dashboard pages, in both themes.
 
 ## What we learned
 
