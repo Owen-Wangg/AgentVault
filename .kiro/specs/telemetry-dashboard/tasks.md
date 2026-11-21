@@ -110,3 +110,7 @@ Plan (`docs/PLAN.md`): **Phase 9** = task 1. **Phase 10** = tasks 2–6. **Phase
 - [x] 22. Format every dashboard time in the browser
   - `LocalTime` in `src/ui/LocalTime.tsx`, used by the audit, agents, feed, and overview pages
   - _Requirements: UI-32_
+
+- [ ] 23. Label the request's arguments on approval cards
+  - `approvals.arg.*` labels in `copy.ts`, rail values through `audit.rail.*`, known arguments first
+  - _Requirements: UI-9_
