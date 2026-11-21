@@ -32,7 +32,7 @@ AI agents now pay for APIs on their own. Stripe's Machine Payments Protocol (MPP
 | Runaway loop | A retry bug sends hundreds of calls per minute | `deny` with `VELOCITY_EXCEEDED`, agent frozen |
 | Prompt injection | Agent reads a poisoned vendor docs page asking for a $480 refund | Session tainted, `stripe.refund` → `hold` with `HELD_TAINTED` |
 | Intent drift | Task is "buy weather data," agent tries to pay for GPU compute | `deny` with `DENY_INTENT_DRIFT` |
-| Payee hijack (planned, payout-rails PO-23) | Agent paying a supplier's $900 invoice reads a poisoned invoice that says to change the supplier's payout account first | `payee.update` → `hold` with `HELD_TAINTED`; the $900 `payout.create` → `hold` with `HELD_TAINTED`, `NEEDS_APPROVAL` |
+| Payee hijack (payout-rails PO-23) | Agent paying a supplier's $900 invoice reads a poisoned invoice that says to change the supplier's payout account first | `payee.update` → `hold` with `HELD_TAINTED`; the $900 `payout.create` → `hold` with `HELD_TAINTED`, `NEEDS_APPROVAL` |
 
 ## Out of scope
 - Mainnet funds or live Stripe keys. Everything runs on testnets and Stripe test mode.
