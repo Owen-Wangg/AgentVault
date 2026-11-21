@@ -91,6 +91,34 @@ describe("<ApprovalsInbox>", () => {
     expect(card.querySelector("a")).toBeNull();
   });
 
+  it("UI-9: labels each argument in plain language, the payout account first, and keeps an unknown one's field name", async () => {
+    const payee = refund({
+      id: "ap-2",
+      request: {
+        agent_id: "a1",
+        vendor: "acme-supplies-1a2b3c4d",
+        tool: "payee.update",
+        amount_micros: "0",
+        counted_micros: "0",
+        session_id: "s1",
+        idempotency_key: "k2",
+        args: { rail: "stripe", payee_ref: "acct_1AttackerSandbox", memo: "per invoice" },
+      },
+    });
+    const refundOnly = refund({ request: { ...refund().request, args: { payment_ref: "pi_seed_500" } } });
+    mount(api([[payee, refundOnly]]));
+    const card = await screen.findByRole("region", { name: /payee\.update/ });
+    const pairs = [...card.querySelectorAll("dl > div")].map((row) => [row.querySelector("dt")?.textContent, row.querySelector("dd")?.textContent]);
+    expect(pairs).toEqual([
+      ["Requested payout account", "acct_1AttackerSandbox"],
+      ["Rail", "Stripe"],
+      ["memo", "per invoice"],
+    ]);
+    const other = screen.getByRole("region", { name: /stripe\.refund/ });
+    expect([...other.querySelectorAll("dl > div")].map((row) => row.textContent)).toEqual(["Refund of paymentpi_seed_500"]);
+    expect(card.querySelector("a")).toBeNull();
+  });
+
   it("UI-21: notes that the sandbox uses mock rails only", async () => {
     mount(api([[]]));
     expect(await screen.findByText("Nothing is waiting for approval.")).toBeTruthy();

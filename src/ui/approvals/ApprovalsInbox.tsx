@@ -6,7 +6,7 @@ import { Amount } from "@/ui/components/Amount";
 import { DataState, type DataStatus } from "@/ui/components/DataState";
 import { StreamStatusBadge } from "@/ui/components/StreamStatusBadge";
 import { Badge, Button, Card, PageTitle } from "@/ui/components/primitives";
-import type { Copy } from "@/ui/copy";
+import type { Copy, UiKey } from "@/ui/copy";
 import { useCopy } from "@/ui/ThemeProvider";
 import { type EventStreamOptions, useEventStream } from "@/ui/events/use-event-stream";
 import { agentLabel } from "@/ui/feed/agent-label";
@@ -15,6 +15,28 @@ import { type InboxApproval, parseApprovals, timeLeft } from "./approval-view";
 export interface ApprovalsApi {
   list: () => Promise<{ status: number; body: unknown }>;
   act: (id: string, action: "approve" | "deny") => Promise<{ status: number; body: unknown }>;
+}
+
+/** Arguments the inbox can name (UI-9), in the order they're shown. */
+const ARG_LABELS = [
+  ["payee_ref", "approvals.arg.payeeRef"],
+  ["rail", "approvals.arg.rail"],
+  ["payment_ref", "approvals.arg.paymentRef"],
+] as const satisfies readonly (readonly [string, UiKey])[];
+const RAIL_NAMES: Readonly<Record<string, UiKey>> = { stripe: "audit.rail.stripe", x402: "audit.rail.x402", paypal: "audit.rail.paypal" };
+
+/** A card's arguments with plain labels, known ones first; any other keeps its field name, so nothing is hidden. */
+export function argRows(args: Readonly<Record<string, string>>, c: Copy): { key: string; label: string; value: string }[] {
+  const known = ARG_LABELS.filter(([key]) => Object.hasOwn(args, key)).map(([key, label]) => {
+    const value = args[key] ?? "";
+    const rail = key === "rail" && Object.hasOwn(RAIL_NAMES, value) ? RAIL_NAMES[value] : undefined;
+    return { key, label: c.t(label), value: rail ? c.t(rail) : value };
+  });
+  const names = new Set<string>(ARG_LABELS.map(([key]) => key));
+  const rest = Object.entries(args)
+    .filter(([key]) => !names.has(key))
+    .map(([key, value]) => ({ key, label: key, value }));
+  return [...known, ...rest];
 }
 
 const asJson = async (response: Response) => ({ status: response.status, body: await response.json().catch(() => null) });
@@ -161,7 +183,8 @@ function ApprovalCard({
   busy: boolean;
   onAct: (action: "approve" | "deny") => void;
 }) {
-  const { t, reasonText } = useCopy();
+  const copy = useCopy();
+  const { t, reasonText } = copy;
   const left = timeLeft(a.expiresAt, now);
   const titleId = `approval-${a.id}`;
   return (
@@ -184,10 +207,10 @@ function ApprovalCard({
       </div>
       {Object.keys(a.args).length > 0 ? (
         <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 text-sm">
-          {Object.entries(a.args).map(([k, v]) => (
-            <div key={k} className="contents">
-              <dt className="text-text-muted">{k}</dt>
-              <dd className="break-all font-mono">{v}</dd>
+          {argRows(a.args, copy).map(({ key, label, value }) => (
+            <div key={key} className="contents">
+              <dt className="text-text-muted">{label}</dt>
+              <dd className="break-all font-mono">{value}</dd>
             </div>
           ))}
         </dl>

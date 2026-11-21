@@ -140,6 +140,9 @@ type UiKey =
   | "approvals.timeLeft"
   | "approvals.expired"
   | "approvals.taintSource"
+  | "approvals.arg.payeeRef"
+  | "approvals.arg.rail"
+  | "approvals.arg.paymentRef"
   | "approvals.request"
   | "approvals.result"
   | "approvals.executed"
@@ -448,6 +451,9 @@ const defaultCopy: CopyTable = {
   "approvals.timeLeft": "Time left",
   "approvals.expired": "Expired",
   "approvals.taintSource": "Untrusted content read from",
+  "approvals.arg.payeeRef": "Requested payout account",
+  "approvals.arg.rail": "Rail",
+  "approvals.arg.paymentRef": "Refund of payment",
   "approvals.request": "Request",
   "approvals.result": "Result",
   "approvals.executed": "Approved. The request ran.",
