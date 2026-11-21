@@ -19,8 +19,9 @@ Because the judging rewards original writing, write the post in your own words. 
 - **The spec caught a demo bug before the scenario existed.** While planning the Payee hijack, writing the spec showed that in a shared sandbox one visitor approving the hijack would redirect every later visitor's payout until the nightly reset. Each run now gets its own supplier.
 - **Probes before adapters.** The payout-rails spec required measuring each rail first. PayPal's real behavior contradicted its docs (a resent batch is refused, not replayed), and the design changed before any adapter code was written.
 - **Kiro reading its own hosting bill.** Through the Neon MCP server, Kiro read the project's compute usage. From that and the published free-plan rates, it estimated that one forgotten dashboard tab could use up the free plans before judging ends. The fix (pause the live stream when nobody is watching) went into the spec first.
+- **A reviewer that can't touch the code.** The custom security-reviewer agent can read the repo but not `.env` files, has no shell or web access, and can only write new reports under `docs/security/`. It ran two full reviews; each finding became a spec change and a commit.
 - **What changed in how you work:** for example, writing requirements with IDs first and letting every test name start with one, or breaking each safeguard on purpose to prove a test catches it.
 
 ## Asset ideas
 
-A 10 to 20 second screen clip of the Payee hijack (both holds, deny the account change, approve the payout, "Paid out to" the supplier), the held $480 refund, the runaway loop's freeze, or the Kiro chat calling the MCP tools.
+A 10 to 20 second screen clip of the Payee hijack (both holds, deny the account change, approve the payout, "Paid out to" the supplier), the held $480 refund, the runaway loop's freeze, or the Kiro chat calling the MCP tools. For a still image, use one of the Devpost gallery screenshots (`02`, the hijack's decision path, or `09`, the same in Kiroween mode).

@@ -2,11 +2,19 @@
 
 For dev.to, Medium, or another third-party blog platform. About 1,200 words.
 
-Bonus Blog Prize rules (Official Rules, section 4, read 2026-11-16): the post must be public, be about Kiro and the project build, be published during the Submission Period (until Dec 4, 2026, 2:00 PM PT), and **mention that it's written as part of the Kiroween 2026 hackathon**. The first line below does that; keep it. Put the post's URL in the submission form.
+Bonus Blog Prize rules (Official Rules, section 4, read 2026-11-16): the post must be public, be about Kiro and the project build, be published during the Submission Period (until Dec 4, 2026, 2:00 PM PT), and **mention that it's written as part of the Kiroween 2026 hackathon**. The italic first line of the post does that; keep it. Put the post's URL in the submission form.
+
+To post on dev.to: create a post, switch the editor to Markdown, and paste everything from the `---` line just above `title:` to the end of the file. dev.to takes the title from the front matter, so the post has no `#` heading. Set `published: true` when it's ready, or publish from the editor. The cover is the site's own 1200×630 social image.
 
 ---
 
-# My AI agent fell for a prompt injection. The $480 refund still didn't run.
+---
+title: My AI agent fell for a prompt injection. The $480 refund still didn't run.
+published: false
+description: I built AgentVault for Kiroween 2026, a security proxy that checks every payment an AI agent makes before any money moves.
+tags: ai, security, kiro, hackathon
+cover_image: https://owen-agentvault.vercel.app/opengraph-image.png
+---
 
 *I wrote this as part of the Kiroween 2026 hackathon, where I built AgentVault with Kiro.*
 
@@ -59,6 +67,8 @@ Honest note: on the live injection run, Gemini Flash-Lite reads the poisoned pag
 I wrote nine specs before the code, each with numbered requirements and a list of correctness properties. Writing them caught design bugs early, for example a database lock that would have been held for the whole duration of a blockchain payment, and an approval flow that would have replayed "held" forever.
 
 Steering files held the rules every change had to follow (integer money, the order of checks, testnet keys only). Hooks enforced some of them: one blocks Kiro's own shell from force-deleting folders or reading `.env` files, which is AgentVault's idea applied to my coding agent. Another runs the money checker on every save.
+
+I also built a custom Kiro agent, a security reviewer. It can read the repo but not `.env` files, it has no shell or web access, and the only thing it can write is a new report under `docs/security/`. It ran two full reviews, found nothing critical or high, and each of its other findings became a spec change and a commit.
 
 Then I connected Kiro to AgentVault's own MCP server and let Kiro be the agent. It paid for a forecast, read the poisoned page, and asked for the $480 refund. AgentVault held it. There's no approve tool in the MCP server, so Kiro couldn't approve its own refund; I did that in the dashboard.
 
