@@ -574,6 +574,9 @@ Raw notes for the Devpost "How Kiro was used" write-up. The `devlog` hook (Stop 
   - Kiro got wrong: its own traceability script first matched IDs with `\b`, which fails before the `_` that closes `_Requirements: UI-30_`, and reported 12 false gaps until the pattern was fixed.
   - Checks: `pnpm verify:local` 1,625 passed (18 skipped); the new tests fail on the old wording.
 - **Credits checklist item updated.** The Devpost checklist said to request the Kiro credits by Dec 1; Owen had already requested them, so it now says only to redeem them by Dec 4.
+
+## 2026-11-20
+
 - **Gallery screenshots and local times (telemetry-dashboard UI-32, task 22).** Ten 1440x960 gallery shots of the live site, both themes, were taken with a temporary Playwright script (deleted afterwards) that ran the Payee hijack and cleared its held requests. They showed one payout at 7:43 AM on Audit and 12:43 AM in the feed: Audit and Agents formatted times during the server render, in Vercel's UTC, and hydration kept that text. `LocalTime` now renders only `dateTime` on the server and the browser's format after hydration, on the audit, agents, feed, and overview pages.
   - Kiro features: the spec first (UI-32, a design note, the testing line, task 22), the spec-trace hook (39 IDs, no gaps).
   - Kiro got wrong: the first script run timed out on the Kiroween page, whose decision path has a themed name, and left two held cards that were then cleared; one task edit failed on an anchor that appears twice in tasks.md.
