@@ -67,3 +67,7 @@ Plan (`docs/PLAN.md`): **Phase 5** = tasks 1–3. **Phase 6** = tasks 4–6. **P
 - [x] 10. Cap each agent's request rate
   - `hitRateLimit` in `withAgent`, 120 a minute per agent, before the handler; 429 `RATE_LIMITED`; a failed count is 503
   - _Requirements: PXY-15_
+
+- [x] 11. Verify the chain from the dashboard
+  - `POST /api/v1/audit/verify` in `src/server/audit/handlers.ts`, human-only, with an integration test; the audit page's Verify chain button shows the count and the signed head (telemetry-dashboard UI-10)
+  - _Requirements: AUD-6_

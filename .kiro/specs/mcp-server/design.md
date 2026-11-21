@@ -55,3 +55,5 @@ The key goes in the user's local config, never in the repo. This repo's own `.ki
 ## Testing strategy
 - Integration tests using the SDK's in-memory client transport against the HTTP-mode server with a test database, including a mock rail timeout to check the MCP-12 wording.
 - Manual check: connect from Kiro, call `agentvault_pay`, see the event in the dashboard. Record it for the write-up and video.
+- Example tests, named with their IDs, cover the rest: Zod input validation, the decision and explanation, the held message with its approval ID, and the untrusted label (MCP-2 to MCP-5) in `src/mcp/tools.test.ts`; key authentication, failing every call without a valid key, and the stdio and HTTP transports (MCP-6 to MCP-8) in `src/mcp/stdio.test.ts` and `src/server/mcp/handler.int.test.ts`.
+- MCP-10 is documentation: `docs/MCP.md` has the Kiro and Claude Desktop configs, checked by connecting Kiro for the demo.
