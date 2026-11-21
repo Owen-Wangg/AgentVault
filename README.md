@@ -109,7 +109,7 @@ Checks:
 
 ## How it was built
 
-Built with Kiro for Kiroween 2026: nine specs in [.kiro/specs](.kiro/specs), steering in [.kiro/steering](.kiro/steering), and hooks in [.kiro/hooks](.kiro/hooks). The development log is [docs/KIRO_LOG.md](docs/KIRO_LOG.md).
+Built with Kiro for Kiroween 2026: nine specs in [.kiro/specs](.kiro/specs), steering in [.kiro/steering](.kiro/steering), hooks in [.kiro/hooks](.kiro/hooks), and a least-privilege security-reviewer agent in [.kiro/agents](.kiro/agents), whose reports are in [docs/security](docs/security). [docs/KIRO_WRITEUP.md](docs/KIRO_WRITEUP.md) explains how each Kiro feature was used, and the development log is [docs/KIRO_LOG.md](docs/KIRO_LOG.md).
 
 ## License
 

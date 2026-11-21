@@ -39,6 +39,17 @@ Every open dashboard tab holds an event stream (`/api/v1/events`). Each stream r
 
 Both numbers are estimates from the published rates, not measurements. The dashboards' usage pages show the real figures. Since telemetry-dashboard task 10 (TEL-6, TEL-7), the dashboard closes its stream while the tab is hidden and after 15 minutes without input, and shows "Live updates paused" with a Resume button, so a forgotten tab costs at most 15 minutes. A client that ignores this, such as a script holding the stream open, still costs the same. On the sandbox, the only checks on that are 30 stream opens a minute per IP and 40 a minute for all visitors together. The second cap keeps open streams, each holding a database connection, well under the roughly 100 connections a direct (unpooled) Neon connection string allows.
 
+## Status on 2026-11-21
+
+From `pnpm ops:check` against the main database at 00:48 UTC on Nov 21. It reported nothing needing attention.
+
+- **Storage:** 9.8 MB of 1 GB, 692 audit rows, an estimate of 15.2 MB for Jan 29.
+- **Nightly reset:** ran each day from Nov 17 to Nov 20, each time at about 11:58 UTC.
+- **Reconciler cleanup:** the oldest idempotency row is from Nov 19 18:37 UTC, under 24 hours before the last cleanup window, so the daily cleanup is running.
+- **Waiting:** no open reservations and no pending approvals.
+- **Testnet button:** 4 settled payments in total.
+- **Not checked here:** Neon compute hours and Vercel usage, which need their dashboards. The Nov 16 estimate below has December's compute running out around Dec 21 at development-time usage, so check Neon's Usage page in early December.
+
 ## Status on 2026-11-16
 
 From `pnpm ops:check` against the main database at 02:23 UTC on Nov 17:

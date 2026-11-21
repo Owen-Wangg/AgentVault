@@ -44,6 +44,7 @@ The second full review, `docs/security/2026-11-19-full-review.md`, re-checked ev
 What went wrong: the first version was Markdown with front matter, which the docs allow, but the CLI's `agent list` and `validate` only read JSON, so I converted it. The agent also listed some files as unread that the earlier pass had covered. And its report corrected my own note that unknown-tool requests skip the velocity count: they count, through the idempotency row.
 
 Kiro's built-in introspect subagent checked Kiro's own docs: that a hook's `timeout` belongs on the hook and not the action, and how Kiro confirms and permits MCP tool calls.
+
 ## Powers
 
 Two Kiro powers were installed and authenticated: Stripe and Neon.
@@ -102,7 +103,7 @@ Seven hooks in `.kiro/hooks/`:
 | no-float-money | Save of a `.ts` file | Runs `pnpm check:money`. It flagged the fake Stripe account's cents fields, which now carry an explicit exemption with a reason. |
 | test-on-save | Save in `src/core` | Runs the pure-core unit and property tests. |
 | post-task-verify | After a spec task | Runs typecheck, lint, and the full test suite. |
-| spec-trace | Save of a `requirements.md` | Lists requirement IDs with no task or no planned test. It found 13 taint-and-intent IDs and 15 demo-agents IDs that the designs never named, and the new PO-25 missing from the payout-rails tasks and testing strategy. |
+| spec-trace | Save of a `requirements.md` | Lists requirement IDs with no task or no planned test. It found 13 taint-and-intent IDs and 15 demo-agents IDs that the designs never named, and the new PO-25 missing from the payout-rails tasks and testing strategy. A last pass over all nine specs (256 IDs) found AUD-6 with no task and 22 tested IDs that a design named only through a general line. |
 | devlog | End of a turn | Appends to `docs/KIRO_LOG.md`, the raw material for this write-up. |
 
 ## Property-based tests that found real bugs
@@ -148,8 +149,9 @@ The optional Gemini agent (`gemini-3.5-flash-lite`, free tier) runs three scenar
 - **Shell quoting.** PowerShell expanded `${…}` inside a replacement string and turned two `aria-label`s into `" bot"`. A component test's accessible-name query caught it.
 - **Calling a failure a one-off.** The end-to-end test's reload loop was first dismissed as a one-off. It came back; the test's dev server now builds into its own folder, and Playwright writes its output outside the repo. It still came back once. The cause is unknown, but a watcher found a lead: the test server rewrites `next-env.d.ts`, a file in the project root that the normal dev server also writes.
 - **Mis-decoded characters.** To commit one change in `copy.ts` apart from another, Kiro rebuilt the file from `git show` output read through PowerShell, which mis-decoded six ellipsis characters, and committed that. A follow-up commit restored them from the earlier commit's bytes. The working rule is now to write `git show` to a file and read it as UTF-8. The same kind of slip happened again later: PowerShell 5 read an edit script without a byte-order mark as ANSI and garbled an ellipsis in the log, so edit scripts now hold only ASCII.
+- **Times in the wrong zone.** The audit and agents pages formatted times while the server rendered them, and Vercel's servers run in UTC, so the same payout read 7:43 AM on Audit and 12:43 AM in the live feed. Every test passed, because the tests and the dev server run in local time. The gallery screenshots showed it. Times are now formatted in the browser, and a test checks that the server HTML carries none.
 - **False reports.** The first two traceability rechecks reported every requirement as untested, because of a regex quoting mistake and then a search of file names instead of contents.
 
 ## Numbers
 
-Nine specs, eight steering files, seven hooks, one custom agent, and about 435 commits. About 1,630 Vitest tests (unit, property, and integration), with 19 property-test files, and 10 Playwright tests. Lighthouse accessibility, best practices, and SEO 100 on all seven dashboard pages in both themes. One real testnet payment button on the hosted site, live since Nov 17.
+Nine specs, eight steering files, seven hooks, one custom agent, and about 450 commits. About 1,630 Vitest tests (unit, property, and integration), with 19 property-test files, and 10 Playwright tests. Lighthouse accessibility, best practices, and SEO 100 on all seven dashboard pages in both themes. One real testnet payment button on the hosted site, live since Nov 17.
