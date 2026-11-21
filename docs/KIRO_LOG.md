@@ -578,3 +578,6 @@ Raw notes for the Devpost "How Kiro was used" write-up. The `devlog` hook (Stop 
   - Kiro features: the spec first (UI-32, a design note, the testing line, task 22), the spec-trace hook (39 IDs, no gaps).
   - Kiro got wrong: the first script run timed out on the Kiroween page, whose decision path has a themed name, and left two held cards that were then cleared; one task edit failed on an anchor that appears twice in tasks.md.
   - Checks: `pnpm verify:local` 1,628 passed (18 skipped); the server-HTML test fails when the server snapshot formats the time.
+- **Approval card labels and blog formatting.** Approval cards now label request arguments in plain language (telemetry-dashboard UI-9, task 23): a `payee.update` card reads "Requested payout account" then "Rail: Stripe" instead of raw `payee_ref` and `rail` fields, a refund names its payment, and unknown arguments keep their field name. The blog draft has dev.to front matter with the site's 1200x630 social image as the cover and a paragraph on the custom security-reviewer agent; the social notes gain the same point.
+  - Kiro features: the spec first (UI-9, design note, testing line, task 23), the spec-trace hook (39 IDs, no gaps).
+  - Checks: `pnpm verify:local` 1,629 passed (18 skipped).
